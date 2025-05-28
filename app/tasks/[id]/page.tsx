@@ -861,7 +861,7 @@ function TaskPageContent() {
   
   // Timeline state - Start with today's date
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [timelineView, setTimelineView] = useState<'carousel' | 'week' | 'month'>('carousel');
+  const [timelineView, setTimelineView] = useState<'carousel' | 'week' | 'month'>('month');
 
   const taskId = params.id as string;
 

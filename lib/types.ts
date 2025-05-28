@@ -97,6 +97,7 @@ export interface TTSubtask {
   updatedAt: string;
   version: number; // Version tracking for subtasks
   lastEditedBy?: string; // Who made the last edit
+  jira_subtask_number?: string; // JIRA subtask number (DATACO-XXXXX)
 }
 
 export interface TTTask {
@@ -176,6 +177,7 @@ export interface TaskCreationData {
   description?: string;
   location: string;
   priority: 'high' | 'medium' | 'low';
+  version: string;
   subtasks: TTSubtask[];
   csvFileName: string;
 } 

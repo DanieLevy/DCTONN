@@ -47,10 +47,10 @@ export function TTTaskRow({ task, onClick }: TTTaskRowProps) {
   return (
     <div 
       onClick={onClick}
-      className="bg-white border-t border-b border-gray-200 px-6 py-5 hover:bg-gray-50 cursor-pointer transition-all duration-200 group -mb-px"
+      className="bg-white border-t border-b border-gray-200 px-0 py-5 hover:bg-gray-50 cursor-pointer transition-all duration-200 group -mb-px"
     >
       {/* Desktop Layout */}
-      <div className="hidden lg:grid lg:grid-cols-12 lg:gap-6 lg:items-center">
+      <div className="hidden lg:grid lg:grid-cols-12 lg:gap-6 lg:items-center px-6">
         {/* Task Title & Type - 4 columns */}
         <div className="col-span-4">
           <div className="flex items-start space-x-3">
@@ -126,7 +126,7 @@ export function TTTaskRow({ task, onClick }: TTTaskRowProps) {
       </div>
 
       {/* Tablet Layout */}
-      <div className="hidden md:block lg:hidden">
+      <div className="hidden md:block lg:hidden px-6">
         <div className="flex items-center justify-between">
           {/* Left side */}
           <div className="flex-1 min-w-0 pr-4">
@@ -178,7 +178,7 @@ export function TTTaskRow({ task, onClick }: TTTaskRowProps) {
       </div>
 
       {/* Mobile Layout */}
-      <div className="block md:hidden">
+      <div className="block md:hidden px-6">
         <div className="space-y-3">
           {/* Title and badges */}
           <div className="flex items-start justify-between">

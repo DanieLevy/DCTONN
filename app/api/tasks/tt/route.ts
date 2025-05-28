@@ -204,7 +204,7 @@ export async function POST(request: NextRequest) {
       createdBy: user.username,
       createdAt: now,
       updatedAt: now,
-      version: 1,
+      version: parseFloat(taskData.version) || 1,
       lastEditedBy: user.username,
       subtasks: taskData.subtasks.map(subtask => ({
         ...subtask,

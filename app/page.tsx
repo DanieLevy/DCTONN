@@ -253,8 +253,8 @@ function TaskDashboard() {
         activeTab={currentSection}
       />
       
-      <main className="container mx-auto px-4 py-6">
-        <div className="mb-6">
+      <main className="py-6">
+        <div className="container mx-auto px-4 mb-6">
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
             {currentSection === 'DC' ? 'Data Collection Tasks' : 'Test Track Tasks'}
           </h2>
@@ -285,26 +285,30 @@ function TaskDashboard() {
         </div>
 
         {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-            <span className="ml-3 text-gray-600">Loading tasks...</span>
+          <div className="container mx-auto px-4">
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+              <span className="ml-3 text-gray-600">Loading tasks...</span>
+            </div>
           </div>
         ) : filteredTasks.length === 0 ? (
-          <div className="text-center py-12 px-4">
-            <div className="text-gray-500 text-lg mb-2">No tasks found</div>
-            <p className="text-gray-400 mb-6 max-w-md mx-auto">
-              {Object.keys(filters).some(key => filters[key as keyof TaskFiltersType] && filters[key as keyof TaskFiltersType] !== 'all')
-                ? 'Try adjusting your filters to see more tasks.'
-                : 'No tasks are currently available.'}
-            </p>
-            {!error && (
-              <button 
-                onClick={fetchTasks}
-                className="px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 touch-manipulation"
-              >
-                Refresh Tasks
-              </button>
-            )}
+          <div className="container mx-auto px-4">
+            <div className="text-center py-12 px-4">
+              <div className="text-gray-500 text-lg mb-2">No tasks found</div>
+              <p className="text-gray-400 mb-6 max-w-md mx-auto">
+                {Object.keys(filters).some(key => filters[key as keyof TaskFiltersType] && filters[key as keyof TaskFiltersType] !== 'all')
+                  ? 'Try adjusting your filters to see more tasks.'
+                  : 'No tasks are currently available.'}
+              </p>
+              {!error && (
+                <button 
+                  onClick={fetchTasks}
+                  className="px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 touch-manipulation"
+                >
+                  Refresh Tasks
+                </button>
+              )}
+            </div>
           </div>
         ) : (
           <div className="space-y-0">

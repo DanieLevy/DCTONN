@@ -65,8 +65,8 @@ export function TaskCard({ task, onTaskUpdated }: TaskCardProps) {
   // TT Task Rendering
   if (isTTTask(task)) {
     return (
-      <Card className="hover:shadow-md transition-shadow duration-200 border border-gray-200">
-        <CardContent className="p-4">
+      <div className="bg-white border-t border-b border-gray-200 px-0 py-5 hover:bg-gray-50 transition-all duration-200 group -mb-px">
+        <div className="px-6">
           {/* TT Task Header */}
           <div className="flex items-center justify-between mb-3">
             <div className="flex-1">
@@ -229,7 +229,7 @@ export function TaskCard({ task, onTaskUpdated }: TaskCardProps) {
               )}
             </div>
           )}
-        </CardContent>
+        </div>
         
         {/* TT Task Editor Modal */}
         {showEditor && (
@@ -242,15 +242,15 @@ export function TaskCard({ task, onTaskUpdated }: TaskCardProps) {
             }}
           />
         )}
-      </Card>
+      </div>
     );
   }
 
   // DC Task Rendering (existing logic)
   const dcTask = task as Task;
   return (
-    <Card className="hover:shadow-md transition-shadow duration-200 border border-gray-200">
-      <CardContent className="p-4">
+    <div className="bg-white border-t border-b border-gray-200 px-0 py-5 hover:bg-gray-50 transition-all duration-200 group -mb-px">
+      <div className="px-6">
         {/* DC Task Header */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex-1">
@@ -336,7 +336,7 @@ export function TaskCard({ task, onTaskUpdated }: TaskCardProps) {
             </div>
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 } 

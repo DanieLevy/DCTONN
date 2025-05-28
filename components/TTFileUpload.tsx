@@ -34,7 +34,8 @@ export function TTFileUpload({ onTaskCreated, onClose }: TTFileUploadProps) {
     title: '',
     description: '',
     location: user?.location || 'IL',
-    priority: 'medium' as 'high' | 'medium' | 'low'
+    priority: 'medium' as 'high' | 'medium' | 'low',
+    version: '1.0'
   });
   
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -96,6 +97,14 @@ export function TTFileUpload({ onTaskCreated, onClose }: TTFileUploadProps) {
     }
   };
 
+  // Function to generate JIRA subtask numbers
+  const generateJiraSubtaskNumbers = (subtasks: TTSubtask[], startingNumber: number = 10223): TTSubtask[] => {
+    return subtasks.map((subtask, index) => ({
+      ...subtask,
+      jira_subtask_number: `DATACO-${(startingNumber + index).toString().padStart(5, '0')}`
+    }));
+  };
+
   const handleCreateTask = async () => {
     if (!uploadResult?.success || !uploadResult.data || !user || !token) {
       return;
@@ -106,15 +115,24 @@ export function TTFileUpload({ onTaskCreated, onClose }: TTFileUploadProps) {
       return;
     }
 
+    if (!taskData.version.trim()) {
+      alert('Please enter a version number');
+      return;
+    }
+
     setIsCreating(true);
 
     try {
+      // Generate JIRA subtask numbers
+      const subtasksWithJira = generateJiraSubtaskNumbers(uploadResult.data);
+
       const taskCreationData: TaskCreationData = {
         title: taskData.title.trim(),
         description: taskData.description.trim() || undefined,
         location: taskData.location,
         priority: taskData.priority,
-        subtasks: uploadResult.data,
+        version: taskData.version.trim(),
+        subtasks: subtasksWithJira,
         csvFileName: uploadResult.fileName || 'unknown.csv'
       };
 
@@ -165,7 +183,8 @@ export function TTFileUpload({ onTaskCreated, onClose }: TTFileUploadProps) {
       title: '',
       description: '',
       location: user?.location || 'IL',
-      priority: 'medium'
+      priority: 'medium',
+      version: '1.0'
     });
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -313,6 +332,19 @@ export function TTFileUpload({ onTaskCreated, onClose }: TTFileUploadProps) {
                 </div>
 
                 <div className="space-y-2">
+                  <Label htmlFor="version">Version *</Label>
+                  <Input
+                    id="version"
+                    value={taskData.version}
+                    onChange={(e) => setTaskData(prev => ({ ...prev, version: e.target.value }))}
+                    placeholder="e.g., 1.0, 2.1, etc."
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
                   <Label htmlFor="priority">Priority</Label>
                   <select
                     id="priority"
@@ -328,9 +360,7 @@ export function TTFileUpload({ onTaskCreated, onClose }: TTFileUploadProps) {
                     <option value="high">High Priority</option>
                   </select>
                 </div>
-              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="location">Location</Label>
                   <select
@@ -344,12 +374,12 @@ export function TTFileUpload({ onTaskCreated, onClose }: TTFileUploadProps) {
                     ))}
                   </select>
                 </div>
+              </div>
 
-                <div className="space-y-2">
-                  <Label>Subtasks</Label>
-                  <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm text-gray-700">
-                    {uploadResult.totalRows} subtasks loaded
-                  </div>
+              <div className="space-y-2">
+                <Label>Subtasks</Label>
+                <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm text-gray-700">
+                  {uploadResult.totalRows} subtasks loaded
                 </div>
               </div>
 
