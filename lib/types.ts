@@ -98,6 +98,26 @@ export interface TTSubtask {
   version: number; // Version tracking for subtasks
   lastEditedBy?: string; // Who made the last edit
   jira_subtask_number?: string; // JIRA subtask number (DATACO-XXXXX)
+  
+  // Enhanced execution tracking fields
+  isExecuted?: boolean; // Whether the subtask has been executed
+  executionDate?: string; // When it was actually executed
+  assignedDate?: string; // When it's assigned to be executed (ISO date string)
+  executionNotes?: string; // Notes about execution
+  executionStatus?: 'not_assigned' | 'assigned' | 'in_execution' | 'executed' | 'failed_execution';
+  
+  // New assignment conflict prevention
+  isAssigned?: boolean; // Quick check if assigned to any date
+  assignmentConflict?: boolean; // Flag for potential conflicts
+}
+
+// New interface for date assignments
+export interface DateAssignment {
+  date: string; // ISO date string (YYYY-MM-DD)
+  subtaskIds: string[];
+  assignedBy: string;
+  assignedAt: string;
+  notes?: string;
 }
 
 export interface TTTask {
@@ -123,6 +143,9 @@ export interface TTTask {
   
   // Change tracking
   changeLog: TTChangeLogEntry[];
+  
+  // New date assignments tracking
+  dateAssignments?: DateAssignment[];
 }
 
 // Change log entry interface

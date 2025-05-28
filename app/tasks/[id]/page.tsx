@@ -3,12 +3,16 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { AuthProvider, useAuth } from '@/lib/auth-context';
-import { TTTask } from '@/lib/types';
+import { TTTask, TTSubtask, DateAssignment } from '@/lib/types';
 import { Header } from '@/components/Header';
 import { Sidebar } from '@/components/Sidebar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { 
   ArrowLeft, 
   MapPin, 
@@ -29,19 +33,350 @@ import {
   ChevronLeft,
   Grid3X3,
   CalendarDays,
-  CalendarRange
+  CalendarRange,
+  Plus,
+  Save,
+  CheckCircle2,
+  Circle,
+  AlertCircle,
+  Users,
+  ClipboardList,
+  Eye,
+  Settings,
+  Target
 } from 'lucide-react';
 
-// Timeline/Calendar Component
+// Day Missions Modal Component
+interface DayMissionsModalProps {
+  selectedDate: Date;
+  assignments: DateAssignment[];
+  allSubtasks: TTSubtask[];
+  isOpen: boolean;
+  onClose: () => void;
+  canManage: boolean;
+  onAssignTasks?: (date: string, subtaskIds: string[], notes?: string) => void;
+  onRemoveAssignment?: (date: string, subtaskId: string) => void;
+}
+
+function DayMissionsModal({ 
+  selectedDate, 
+  assignments, 
+  allSubtasks, 
+  isOpen, 
+  onClose, 
+  canManage,
+  onAssignTasks,
+  onRemoveAssignment 
+}: DayMissionsModalProps) {
+  const [selectedSubtasks, setSelectedSubtasks] = useState<string[]>([]);
+  const [assignmentNotes, setAssignmentNotes] = useState('');
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  
+  const dateString = selectedDate.toISOString().split('T')[0];
+  const todayAssignments = assignments.filter(a => a.date === dateString);
+  const assignedSubtaskIds = todayAssignments.flatMap(a => a.subtaskIds);
+  const assignedSubtasks = allSubtasks.filter(s => assignedSubtaskIds.includes(s.id));
+  const availableSubtasks = allSubtasks.filter(s => 
+    !assignedSubtaskIds.includes(s.id) && 
+    !(s.isExecuted || s.status === 'completed') // Exclude completed tasks
+  );
+  
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'completed': return <CheckCircle2 className="h-4 w-4 text-green-600" />;
+      case 'in_progress': return <Play className="h-4 w-4 text-blue-600" />;
+      case 'failed': return <AlertCircle className="h-4 w-4 text-red-600" />;
+      default: return <Circle className="h-4 w-4 text-gray-400" />;
+    }
+  };
+
+  const getExecutionStatusColor = (subtask: TTSubtask) => {
+    if (subtask.isExecuted) return 'bg-green-100 text-green-800';
+    if (subtask.assignedDate) return 'bg-blue-100 text-blue-800';
+    return 'bg-gray-100 text-gray-600';
+  };
+
+  const getExecutionStatusText = (subtask: TTSubtask) => {
+    if (subtask.isExecuted) return 'Executed';
+    if (subtask.assignedDate) return 'Assigned';
+    return 'Not Assigned';
+  };
+
+  const handleAssignTasks = () => {
+    if (onAssignTasks && selectedSubtasks.length > 0) {
+      onAssignTasks(dateString, selectedSubtasks, assignmentNotes);
+      setSelectedSubtasks([]);
+      setAssignmentNotes('');
+      setShowAssignModal(false);
+    }
+  };
+
+  const handleSelectSubtask = (subtaskId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedSubtasks(prev => [...prev, subtaskId]);
+    } else {
+      setSelectedSubtasks(prev => prev.filter(id => id !== subtaskId));
+    }
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedSubtasks(availableSubtasks.map(s => s.id));
+    } else {
+      setSelectedSubtasks([]);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+          <div className="flex items-center space-x-3">
+            <Calendar className="h-6 w-6 text-blue-600" />
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">Day Missions</h2>
+              <p className="text-sm text-gray-600">{formatDate(selectedDate)}</p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2">
+            {canManage && (
+              <Button 
+                onClick={() => setShowAssignModal(true)}
+                size="sm"
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Assign Tasks
+              </Button>
+            )}
+            <Button variant="ghost" size="sm" onClick={onClose}>
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-6">
+          {/* Assigned Tasks */}
+          <div className="mb-6">
+            <div className="flex items-center space-x-2 mb-4">
+              <ClipboardList className="h-5 w-5 text-blue-600" />
+              <h3 className="text-lg font-semibold text-gray-900">
+                Assigned Tasks ({assignedSubtasks.length})
+              </h3>
+            </div>
+            
+            {assignedSubtasks.length > 0 ? (
+              <div className="space-y-3">
+                {assignedSubtasks.map((subtask) => (
+                  <div key={subtask.id} className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-3 mb-2">
+                          {getStatusIcon(subtask.status)}
+                          <span className="font-medium text-gray-900">
+                            {subtask.jira_subtask_number || subtask.id}
+                          </span>
+                          <Badge variant="outline" className="text-xs">
+                            {subtask.category}
+                          </Badge>
+                          <Badge variant="outline" className={getExecutionStatusColor(subtask)}>
+                            {getExecutionStatusText(subtask)}
+                          </Badge>
+                        </div>
+                        <div className="text-sm text-gray-700">
+                          <span className="font-medium">{subtask.scenario}</span> • 
+                          {subtask.lighting} • {subtask.target_speed} km/h → {subtask.ego_speed} km/h
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          Runs: {subtask.executedRuns || 0}/{subtask.number_of_runs} • Priority: {subtask.priority}
+                        </div>
+                      </div>
+                      {canManage && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => onRemoveAssignment?.(dateString, subtask.id)}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                <p>No tasks assigned for this date</p>
+                {canManage && (
+                  <Button 
+                    onClick={() => setShowAssignModal(true)} 
+                    variant="outline" 
+                    size="sm" 
+                    className="mt-2"
+                  >
+                    Assign Tasks
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Task Assignment Modal */}
+        {showAssignModal && canManage && (
+          <div className="absolute inset-0 bg-black/50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-lg w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+              <div className="p-4 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900">Assign Tasks to {formatDate(selectedDate)}</h3>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto p-4">
+                <div className="mb-4">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <Checkbox
+                      checked={selectedSubtasks.length === availableSubtasks.length && availableSubtasks.length > 0}
+                      onCheckedChange={handleSelectAll}
+                    />
+                    <Label className="text-sm font-medium">
+                      Select All ({availableSubtasks.length} available)
+                    </Label>
+                  </div>
+                </div>
+
+                <div className="space-y-2 mb-4 max-h-64 overflow-y-auto">
+                  {availableSubtasks.map((subtask) => (
+                    <div key={subtask.id} className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded">
+                      <Checkbox
+                        checked={selectedSubtasks.includes(subtask.id)}
+                        onCheckedChange={(checked) => handleSelectSubtask(subtask.id, checked as boolean)}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-sm font-medium text-gray-900">
+                            {subtask.jira_subtask_number || subtask.id}
+                          </span>
+                          <Badge variant="outline" className="text-xs">
+                            {subtask.category}
+                          </Badge>
+                        </div>
+                        <div className="text-xs text-gray-600 truncate">
+                          {subtask.scenario} • {subtask.lighting}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="notes" className="text-sm font-medium">Notes (Optional)</Label>
+                  <Textarea
+                    id="notes"
+                    value={assignmentNotes}
+                    onChange={(e) => setAssignmentNotes(e.target.value)}
+                    placeholder="Add any notes for this assignment..."
+                    rows={3}
+                    className="text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="p-4 border-t border-gray-200 flex justify-end space-x-2">
+                <Button variant="outline" onClick={() => setShowAssignModal(false)}>
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleAssignTasks}
+                  disabled={selectedSubtasks.length === 0}
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  Assign ({selectedSubtasks.length})
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Enhanced Timeline/Calendar Component
 interface TimelineCalendarProps {
   selectedDate: Date;
   onDateSelect: (date: Date) => void;
   view: 'carousel' | 'week' | 'month';
   onViewChange: (view: 'carousel' | 'week' | 'month') => void;
+  assignments: DateAssignment[];
+  subtasks: TTSubtask[];
+  onDateClick: (date: Date) => void;
 }
 
-function TimelineCalendar({ selectedDate, onDateSelect, view, onViewChange }: TimelineCalendarProps) {
+function TimelineCalendar({ 
+  selectedDate, 
+  onDateSelect, 
+  view, 
+  onViewChange, 
+  assignments,
+  subtasks,
+  onDateClick 
+}: TimelineCalendarProps) {
   const today = new Date();
+  
+  const getDateAssignmentInfo = (date: Date) => {
+    const dateString = date.toISOString().split('T')[0];
+    const dayAssignments = assignments.filter(a => a.date === dateString);
+    const assignedSubtaskIds = dayAssignments.flatMap(a => a.subtaskIds);
+    const assignedSubtasks = subtasks.filter(s => assignedSubtaskIds.includes(s.id));
+    
+    const totalAssigned = assignedSubtasks.length;
+    const completed = assignedSubtasks.filter(s => s.isExecuted || s.status === 'completed').length;
+    const inProgress = assignedSubtasks.filter(s => s.status === 'in_progress').length;
+    const failed = assignedSubtasks.filter(s => s.status === 'failed').length;
+    
+    // Determine overall status
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const dateObj = new Date(date);
+    dateObj.setHours(0, 0, 0, 0);
+    
+    let dayStatus: 'no_tasks' | 'pending_future' | 'pending_past' | 'partial' | 'completed' = 'no_tasks';
+    
+    if (totalAssigned === 0) {
+      dayStatus = 'no_tasks';
+    } else if (completed === totalAssigned) {
+      dayStatus = 'completed';
+    } else if (completed > 0 || inProgress > 0) {
+      dayStatus = 'partial';
+    } else if (dateObj > today) {
+      dayStatus = 'pending_future';
+    } else {
+      dayStatus = 'pending_past';
+    }
+    
+    return { 
+      totalAssigned, 
+      completed, 
+      inProgress, 
+      failed,
+      dayStatus,
+      hasAssignments: totalAssigned > 0 
+    };
+  };
   
   const generateCarouselDays = () => {
     const days = [];
@@ -59,7 +394,7 @@ function TimelineCalendar({ selectedDate, onDateSelect, view, onViewChange }: Ti
   const generateWeekDays = () => {
     const startOfWeek = new Date(selectedDate);
     const day = startOfWeek.getDay();
-    const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
+    const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1);
     startOfWeek.setDate(diff);
     
     const days = [];
@@ -79,11 +414,10 @@ function TimelineCalendar({ selectedDate, onDateSelect, view, onViewChange }: Ti
     const startDate = new Date(firstDay);
     const startDay = firstDay.getDay();
     
-    // Start from previous month's days to fill the first week
     startDate.setDate(firstDay.getDate() - (startDay === 0 ? 6 : startDay - 1));
     
     const days = [];
-    const totalCells = 42; // 6 weeks * 7 days
+    const totalCells = 42;
     
     for (let i = 0; i < totalCells; i++) {
       const date = new Date(startDate);
@@ -127,9 +461,125 @@ function TimelineCalendar({ selectedDate, onDateSelect, view, onViewChange }: Ti
     onDateSelect(newDate);
   };
 
+  const renderDateButton = (date: Date, className: string) => {
+    const assignmentInfo = getDateAssignmentInfo(date);
+    
+    // Add status-based styling
+    let statusClass = '';
+    let borderClass = '';
+    
+    switch (assignmentInfo.dayStatus) {
+      case 'completed':
+        statusClass = 'bg-green-50 border-green-300';
+        borderClass = 'ring-2 ring-green-200';
+        break;
+      case 'partial':
+        statusClass = 'bg-blue-50 border-blue-300';
+        borderClass = 'ring-2 ring-blue-200';
+        break;
+      case 'pending_future':
+        statusClass = 'bg-orange-50 border-orange-300';
+        borderClass = 'ring-1 ring-orange-200';
+        break;
+      case 'pending_past':
+        statusClass = 'bg-red-50 border-red-300';
+        borderClass = 'ring-2 ring-red-200';
+        break;
+      default:
+        statusClass = 'bg-gray-50 border-gray-200';
+    }
+    
+    return (
+      <button
+        key={date.toISOString()}
+        onClick={() => {
+          onDateSelect(date);
+          onDateClick(date);
+        }}
+        className={`${className} relative ${statusClass} ${borderClass}`}
+        title={getDateTooltip(assignmentInfo, date)}
+      >
+        <div className="text-center p-1">
+          <div className={`text-xs font-medium ${
+            isSelected(date) ? 'text-blue-700' : isToday(date) ? 'text-orange-700' : 'text-gray-600'
+          }`}>
+            {view === 'carousel' && formatDate(date, 'day')}
+          </div>
+          <div className={`text-lg font-bold ${
+            isSelected(date) ? 'text-blue-900' : isToday(date) ? 'text-orange-900' : 'text-gray-900'
+          }`}>
+            {formatDate(date, 'dayNum')}
+          </div>
+        </div>
+        
+        {/* Enhanced assignment indicators */}
+        {assignmentInfo.hasAssignments && (
+          <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2">
+            <div className="flex items-center space-x-1">
+              {assignmentInfo.dayStatus === 'completed' && (
+                <div className="w-3 h-3 bg-green-500 rounded-full flex items-center justify-center">
+                  <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
+                </div>
+              )}
+              {assignmentInfo.dayStatus === 'partial' && (
+                <div className="w-3 h-3 bg-blue-500 rounded-full relative">
+                  <div className="absolute inset-0 flex">
+                    <div className="w-1/2 bg-green-400 rounded-l-full"></div>
+                    <div className="w-1/2 bg-blue-400 rounded-r-full"></div>
+                  </div>
+                </div>
+              )}
+              {assignmentInfo.dayStatus === 'pending_future' && (
+                <div className="w-3 h-3 bg-orange-400 rounded-full"></div>
+              )}
+              {assignmentInfo.dayStatus === 'pending_past' && (
+                <div className="w-3 h-3 bg-red-500 rounded-full flex items-center justify-center">
+                  <div className="w-1 h-1 bg-white rounded-full"></div>
+                </div>
+              )}
+            </div>
+            {/* Task count badge */}
+            <div className="absolute -top-1 -right-1 w-4 h-4 bg-gray-600 text-white text-xs rounded-full flex items-center justify-center font-bold">
+              {assignmentInfo.totalAssigned}
+            </div>
+          </div>
+        )}
+      </button>
+    );
+  };
+
+  // Helper function for date tooltips
+  const getDateTooltip = (assignmentInfo: any, date: Date) => {
+    const dateStr = date.toLocaleDateString();
+    
+    if (!assignmentInfo.hasAssignments) {
+      return `${dateStr} - No tasks assigned`;
+    }
+    
+    const { totalAssigned, completed, inProgress, failed, dayStatus } = assignmentInfo;
+    
+    let statusText = '';
+    switch (dayStatus) {
+      case 'completed':
+        statusText = 'All tasks completed';
+        break;
+      case 'partial':
+        statusText = `${completed} completed, ${inProgress} in progress`;
+        break;
+      case 'pending_future':
+        statusText = 'Tasks scheduled (future)';
+        break;
+      case 'pending_past':
+        statusText = 'Tasks overdue';
+        break;
+    }
+    
+    return `${dateStr} - ${totalAssigned} tasks assigned\n${statusText}${failed > 0 ? `\n${failed} failed` : ''}`;
+  };
+
   return (
     <Card className="p-4">
-      {/* View Switcher - Moved to top */}
+      {/* View Switcher */}
       <div className="flex items-center justify-center mb-6">
         <div className="flex bg-gray-100 rounded-lg p-1 gap-1">
           <Button
@@ -184,6 +634,30 @@ function TimelineCalendar({ selectedDate, onDateSelect, view, onViewChange }: Ti
         </div>
         
         <div className="flex items-center space-x-2">
+          {/* Legend */}
+          <div className="hidden sm:flex items-center space-x-4 text-xs text-gray-500 mr-4">
+            <div className="flex items-center space-x-1">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <span>All Completed</span>
+            </div>
+            <div className="flex items-center space-x-1">
+              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+              <span>Partial/In Progress</span>
+            </div>
+            <div className="flex items-center space-x-1">
+              <div className="w-2 h-2 bg-orange-400 rounded-full"></div>
+              <span>Scheduled</span>
+            </div>
+            <div className="flex items-center space-x-1">
+              <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+              <span>Overdue</span>
+            </div>
+            <div className="flex items-center space-x-1">
+              <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+              <span>No Tasks</span>
+            </div>
+          </div>
+          
           {/* Navigation */}
           <Button variant="ghost" size="sm" onClick={() => navigateDate('prev')}>
             <ChevronLeft className="h-4 w-4" />
@@ -205,32 +679,16 @@ function TimelineCalendar({ selectedDate, onDateSelect, view, onViewChange }: Ti
       {/* Calendar Content */}
       {view === 'carousel' && (
         <div className="flex space-x-2 overflow-x-auto pb-2">
-          {generateCarouselDays().map((date, index) => (
-            <button
-              key={index}
-              onClick={() => onDateSelect(date)}
-              className={`flex-shrink-0 w-16 h-16 rounded-lg border-2 transition-all ${
-                isSelected(date)
-                  ? 'border-blue-500 bg-blue-50'
-                  : isToday(date)
-                  ? 'border-orange-400 bg-orange-50'
-                  : 'border-gray-200 bg-white hover:border-gray-300'
-              }`}
-            >
-              <div className="text-center p-1">
-                <div className={`text-xs font-medium ${
-                  isSelected(date) ? 'text-blue-700' : isToday(date) ? 'text-orange-700' : 'text-gray-600'
-                }`}>
-                  {formatDate(date, 'day')}
-                </div>
-                <div className={`text-lg font-bold ${
-                  isSelected(date) ? 'text-blue-900' : isToday(date) ? 'text-orange-900' : 'text-gray-900'
-                }`}>
-                  {formatDate(date, 'dayNum')}
-                </div>
-              </div>
-            </button>
-          ))}
+          {generateCarouselDays().map((date, index) => {
+            const baseClass = `flex-shrink-0 w-16 h-20 rounded-lg border-2 transition-all ${
+              isSelected(date)
+                ? 'border-blue-500 bg-blue-50'
+                : isToday(date)
+                ? 'border-orange-400 bg-orange-50'
+                : 'border-gray-200 bg-white hover:border-gray-300'
+            }`;
+            return renderDateButton(date, baseClass);
+          })}
         </div>
       )}
 
@@ -241,21 +699,16 @@ function TimelineCalendar({ selectedDate, onDateSelect, view, onViewChange }: Ti
               {day}
             </div>
           ))}
-          {generateWeekDays().map((date, index) => (
-            <button
-              key={index}
-              onClick={() => onDateSelect(date)}
-              className={`h-12 rounded-lg border transition-all ${
-                isSelected(date)
-                  ? 'border-blue-500 bg-blue-50 text-blue-900'
-                  : isToday(date)
-                  ? 'border-orange-400 bg-orange-50 text-orange-900'
-                  : 'border-gray-200 bg-white hover:border-gray-300 text-gray-900'
-              }`}
-            >
-              <div className="text-lg font-bold">{formatDate(date, 'dayNum')}</div>
-            </button>
-          ))}
+          {generateWeekDays().map((date, index) => {
+            const baseClass = `h-16 rounded-lg border transition-all ${
+              isSelected(date)
+                ? 'border-blue-500 bg-blue-50 text-blue-900'
+                : isToday(date)
+                ? 'border-orange-400 bg-orange-50 text-orange-900'
+                : 'border-gray-200 bg-white hover:border-gray-300 text-gray-900'
+            }`;
+            return renderDateButton(date, baseClass);
+          })}
         </div>
       )}
 
@@ -266,23 +719,18 @@ function TimelineCalendar({ selectedDate, onDateSelect, view, onViewChange }: Ti
               {day}
             </div>
           ))}
-          {generateMonthDays().map((date, index) => (
-            <button
-              key={index}
-              onClick={() => onDateSelect(date)}
-              className={`h-10 rounded border transition-all text-sm ${
-                isSelected(date)
-                  ? 'border-blue-500 bg-blue-50 text-blue-900 font-bold'
-                  : isToday(date)
-                  ? 'border-orange-400 bg-orange-50 text-orange-900 font-bold'
-                  : isCurrentMonth(date)
-                  ? 'border-gray-200 bg-white hover:border-gray-300 text-gray-900'
-                  : 'border-gray-100 bg-gray-50 text-gray-400 hover:border-gray-200'
-              }`}
-            >
-              {formatDate(date, 'dayNum')}
-            </button>
-          ))}
+          {generateMonthDays().map((date, index) => {
+            const baseClass = `h-12 rounded border transition-all text-sm ${
+              isSelected(date)
+                ? 'border-blue-500 bg-blue-50 text-blue-900 font-bold'
+                : isToday(date)
+                ? 'border-orange-400 bg-orange-50 text-orange-900 font-bold'
+                : isCurrentMonth(date)
+                ? 'border-gray-200 bg-white hover:border-gray-300 text-gray-900'
+                : 'border-gray-100 bg-gray-50 text-gray-400 hover:border-gray-200'
+            }`;
+            return renderDateButton(date, baseClass);
+          })}
         </div>
       )}
       
@@ -314,7 +762,7 @@ interface ScenarioGroupProps {
   onEditSubtask?: (subtask: any) => void;
 }
 
-function ScenarioGroupRow({ scenario, subtasks, isExpanded, onToggle, onEditSubtask }: ScenarioGroupProps) {
+function ScenarioGroupRow({ scenario, subtasks, isExpanded, onToggle, onEditSubtask, onSelectSubtask }: ScenarioGroupProps & { onSelectSubtask?: (subtask: TTSubtask) => void }) {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'completed': return <Check className="h-4 w-4 text-green-600" />;
@@ -375,10 +823,11 @@ function ScenarioGroupRow({ scenario, subtasks, isExpanded, onToggle, onEditSubt
     return sum + execRuns;
   }, 0);
 
-  const completedCount = subtasks.filter(s => s.status === 'completed').length;
+  const completedCount = subtasks.filter(s => s.status === 'completed' || s.isExecuted).length;
   const inProgressCount = subtasks.filter(s => s.status === 'in_progress').length;
   const pausedCount = subtasks.filter(s => s.status === 'paused').length;
   const pendingCount = subtasks.filter(s => s.status === 'pending').length;
+  const assignedCount = subtasks.filter(s => s.assignedDate).length;
 
   // Get dominant status
   const statusCounts = { completed: completedCount, in_progress: inProgressCount, paused: pausedCount, pending: pendingCount };
@@ -419,6 +868,7 @@ function ScenarioGroupRow({ scenario, subtasks, isExpanded, onToggle, onEditSubt
                 <div className="flex items-center space-x-4 mt-1 text-sm text-gray-600">
                   <span className="hidden sm:inline">{completionPercentage}% complete</span>
                   <span>{executedRuns}/{totalRuns} runs</span>
+                  <span className="text-blue-600 font-medium">{assignedCount}/{subtasks.length} assigned</span>
                   {subtasks.length > 1 && (
                     <span className="hidden md:inline text-xs">
                       ({completedCount}✓ {inProgressCount}⏵ {pausedCount}⏸ {pendingCount}⏳)
@@ -554,9 +1004,14 @@ function SubtaskRow({ subtask, isExpanded, onToggle, onEdit, isGrouped = false }
               <span className="font-medium text-sm text-gray-900 truncate">
                 {subtask.scenario || 'Unknown Scenario'}
               </span>
-              <span className="font-mono text-xs text-gray-500 flex-shrink-0">
-                #{subtask.id}
+              <span className="font-mono text-xs text-blue-600 flex-shrink-0 font-bold">
+                {subtask.jira_subtask_number || `#${subtask.id}`}
               </span>
+              {subtask.assignedDate && (
+                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full flex-shrink-0">
+                  📅 {new Date(subtask.assignedDate).toLocaleDateString()}
+                </span>
+              )}
             </div>
             
             {/* Additional info on mobile */}
@@ -605,43 +1060,44 @@ function SubtaskRow({ subtask, isExpanded, onToggle, onEdit, isGrouped = false }
   );
 }
 
-// New interface for subtask detail modal
+// Enhanced Subtask Detail Modal Component
 interface SubtaskDetailModalProps {
-  subtask: any;
+  subtask: TTSubtask | null;
   isOpen: boolean;
   onClose: () => void;
-  onEdit?: (subtask: any) => void;
+  onEdit?: (subtask: TTSubtask) => void;
+  canEdit?: boolean;
 }
 
-function SubtaskDetailModal({ subtask, isOpen, onClose, onEdit }: SubtaskDetailModalProps) {
+function SubtaskDetailModal({ subtask, isOpen, onClose, onEdit, canEdit }: SubtaskDetailModalProps) {
   if (!isOpen || !subtask) return null;
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'completed': return <Check className="h-5 w-5 text-green-600" />;
+      case 'completed': return <CheckCircle2 className="h-5 w-5 text-green-600" />;
       case 'in_progress': return <Play className="h-5 w-5 text-blue-600" />;
-      case 'paused': return <Pause className="h-5 w-5 text-yellow-600" />;
-      default: return <div className="h-5 w-5 rounded-full bg-gray-300" />;
+      case 'failed': return <AlertCircle className="h-5 w-5 text-red-600" />;
+      default: return <Circle className="h-5 w-5 text-gray-400" />;
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed': return 'bg-green-100 text-green-800';
-      case 'in_progress': return 'bg-blue-100 text-blue-800';
-      case 'paused': return 'bg-yellow-100 text-yellow-800';
-      case 'pending': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'completed': return 'bg-green-100 text-green-800 border-green-200';
+      case 'in_progress': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'failed': return 'bg-red-100 text-red-800 border-red-200';
+      case 'pending': return 'bg-gray-100 text-gray-800 border-gray-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
   const getPriorityColor = (priority: string | number) => {
     const priorityNum = typeof priority === 'string' ? parseInt(priority) : priority;
     switch (priorityNum) {
-      case 1: return 'bg-red-100 text-red-800';
-      case 2: return 'bg-yellow-100 text-yellow-800';
-      case 3: return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 1: return 'bg-red-100 text-red-800 border-red-200';
+      case 2: return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 3: return 'bg-green-100 text-green-800 border-green-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
@@ -651,191 +1107,214 @@ function SubtaskDetailModal({ subtask, isOpen, onClose, onEdit }: SubtaskDetailM
       case 1: return 'High Priority';
       case 2: return 'Medium Priority';
       case 3: return 'Low Priority';
-      default: return 'Unknown Priority';
+      default: return `Priority ${priority}`;
     }
   };
 
-  const completionPercentage = subtask.number_of_runs > 0 
-    ? Math.round((subtask.executedRuns / subtask.number_of_runs) * 100) 
-    : 0;
+  const getExecutionProgress = () => {
+    const total = parseInt(subtask.number_of_runs) || 0;
+    const executed = subtask.executedRuns || 0;
+    return total > 0 ? Math.round((executed / total) * 100) : 0;
+  };
+
+  const executionProgress = getExecutionProgress();
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex justify-between items-start">
-            <div className="flex-1">
-              <div className="flex items-center space-x-3 mb-2">
-                {getStatusIcon(subtask.status)}
-                <h2 className="text-xl font-semibold text-gray-900">{subtask.scenario || 'Subtask Details'}</h2>
-                <Badge variant="outline" className={`${getStatusColor(subtask.status)}`}>
-                  {subtask.status}
+    <div className="fixed inset-0 bg-black/20 backdrop-blur-md flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[95vh] overflow-hidden flex flex-col">
+        {/* Enhanced Header */}
+        <div className="flex items-start justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-blue-50">
+          <div className="flex-1 mr-4">
+            <div className="flex items-center space-x-3 mb-3">
+              {getStatusIcon(subtask.status)}
+              <h2 className="text-2xl font-bold text-gray-900">{subtask.scenario}</h2>
+              <Badge variant="outline" className={`${getStatusColor(subtask.status)} font-medium`}>
+                {subtask.status}
+              </Badge>
+            </div>
+            <div className="flex items-center space-x-4 text-sm text-gray-600">
+              <div className="flex items-center space-x-2">
+                <Target className="h-4 w-4" />
+                <span className="font-medium">{subtask.jira_subtask_number || subtask.id}</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Badge variant="outline" className="text-xs">
+                  {subtask.category}
                 </Badge>
               </div>
-              <p className="text-sm text-gray-600">Subtask ID: {subtask.id}</p>
+              <div className="flex items-center space-x-2">
+                <Badge variant="outline" className={`${getPriorityColor(subtask.priority)} text-xs`}>
+                  {getPriorityLabel(subtask.priority)}
+                </Badge>
+              </div>
             </div>
+          </div>
+          <div className="flex items-center space-x-2">
+            {canEdit && onEdit && (
+              <Button onClick={() => onEdit(subtask)} size="sm" className="bg-blue-600 hover:bg-blue-700">
+                <Edit className="h-4 w-4 mr-2" />
+                Edit
+              </Button>
+            )}
             <Button variant="ghost" size="sm" onClick={onClose}>
-              <X className="h-4 w-4" />
+              <X className="h-5 w-5" />
             </Button>
           </div>
         </div>
 
-        <div className="p-6">
-          {/* Key Metrics */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div className="bg-blue-50 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-blue-700">Execution Progress</span>
-                <span className="text-lg font-bold text-blue-900">{completionPercentage}%</span>
+        {/* Enhanced Content */}
+        <div className="flex-1 overflow-y-auto p-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Left Column - Main Details */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Scenario Information */}
+              <div className="bg-white border border-gray-200 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                  <TestTube className="h-5 w-5 mr-2 text-blue-600" />
+                  Scenario Details
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                      <span className="text-sm font-medium text-gray-700">Regulation:</span>
+                      <span className="text-sm text-gray-900">{subtask.regulation}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                      <span className="text-sm font-medium text-gray-700">Lighting:</span>
+                      <Badge variant="outline" className="text-xs">{subtask.lighting}</Badge>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                      <span className="text-sm font-medium text-gray-700">Street Lights:</span>
+                      <span className="text-sm text-gray-900">{subtask.street_lights}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                      <span className="text-sm font-medium text-gray-700">Beam:</span>
+                      <span className="text-sm text-gray-900">{subtask.beam}</span>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                      <span className="text-sm font-medium text-gray-700">Target Speed:</span>
+                      <Badge variant="outline" className="text-xs">{subtask.target_speed} km/h</Badge>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                      <span className="text-sm font-medium text-gray-700">Ego Speed:</span>
+                      <Badge variant="outline" className="text-xs">{subtask.ego_speed} km/h</Badge>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                      <span className="text-sm font-medium text-gray-700">Overlap:</span>
+                      <span className="text-sm text-gray-900">{subtask.overlap}%</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                      <span className="text-sm font-medium text-gray-700">Headway:</span>
+                      <span className="text-sm text-gray-900">{subtask.headway}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div className="w-full bg-blue-200 rounded-full h-2 mb-2">
-                <div 
-                  className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
-                  style={{ width: `${completionPercentage}%` }}
-                ></div>
+
+              {/* Execution Progress */}
+              <div className="bg-white border border-gray-200 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                  <Settings className="h-5 w-5 mr-2 text-green-600" />
+                  Execution Progress
+                </h3>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">Progress</span>
+                    <span className="text-lg font-bold text-gray-900">{executionProgress}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-3">
+                    <div 
+                      className="bg-gradient-to-r from-blue-500 to-green-500 h-2 rounded-full transition-all duration-300" 
+                      style={{ width: `${executionProgress}%` }}
+                    ></div>
+                  </div>
+                </div>
               </div>
-              <div className="text-xs text-blue-600">
-                {subtask.executedRuns || 0} of {subtask.number_of_runs || 0} runs completed
+
+              {/* Additional Parameters */}
+              <div className="bg-white border border-gray-200 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Additional Parameters</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span className="text-sm font-medium text-gray-700">Brake:</span>
+                    <span className="text-sm text-gray-900">{subtask.brake}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span className="text-sm font-medium text-gray-700">Version:</span>
+                    <Badge variant="outline" className="text-xs">v{subtask.version}</Badge>
+                  </div>
+                </div>
+                {subtask.notes && (
+                  <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <h4 className="text-sm font-medium text-yellow-800 mb-1">Notes</h4>
+                    <p className="text-sm text-yellow-700">{subtask.notes}</p>
+                  </div>
+                )}
               </div>
             </div>
 
-            <div className="bg-gray-50 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700">Priority</span>
-                <Badge className={getPriorityColor(subtask.priority || 3)} variant="outline">
-                  P{subtask.priority || 3}
-                </Badge>
+            {/* Right Column - Status & Timeline */}
+            <div className="space-y-6">
+              {/* Execution Status */}
+              <div className="bg-white border border-gray-200 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                  <Clock className="h-5 w-5 mr-2 text-purple-600" />
+                  Execution Status
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <span className="text-sm font-medium text-gray-700">Current Status</span>
+                    <Badge variant="outline" className={getStatusColor(subtask.status)}>
+                      {subtask.status}
+                    </Badge>
+                  </div>
+                  {subtask.isExecuted && (
+                    <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                      <span className="text-sm font-medium text-gray-700">Executed</span>
+                      <CheckCircle2 className="h-5 w-5 text-green-600" />
+                    </div>
+                  )}
+                  {subtask.assignedDate && (
+                    <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                      <span className="text-sm font-medium text-gray-700">Assigned Date</span>
+                      <span className="text-sm text-blue-700">
+                        {new Date(subtask.assignedDate).toLocaleDateString()}
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="text-xs text-gray-600">
-                {getPriorityLabel(subtask.priority || 3)}
-              </div>
-            </div>
 
-            <div className="bg-green-50 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-green-700">Category</span>
-                <Badge variant="outline" className="bg-green-100 text-green-800">
-                  {subtask.category || 'General'}
-                </Badge>
-              </div>
-              <div className="text-xs text-green-600">
-                Test category classification
+              {/* Timestamps */}
+              <div className="bg-white border border-gray-200 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Timeline</h3>
+                <div className="space-y-3 text-sm">
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span className="font-medium text-gray-700">Created:</span>
+                    <span className="text-gray-600">
+                      {new Date(subtask.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span className="font-medium text-gray-700">Last Updated:</span>
+                    <span className="text-gray-600">
+                      {new Date(subtask.updatedAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                  {subtask.lastEditedBy && (
+                    <div className="flex justify-between items-center py-2">
+                      <span className="font-medium text-gray-700">Last Edited By:</span>
+                      <Badge variant="outline" className="text-xs">
+                        {subtask.lastEditedBy}
+                      </Badge>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
-
-          {/* Detailed Information */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Test Configuration */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">
-                Test Configuration
-              </h3>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                  <span className="text-sm font-medium text-gray-700">Scenario:</span>
-                  <span className="text-sm text-gray-900">{subtask.scenario || 'N/A'}</span>
-                </div>
-                <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                  <span className="text-sm font-medium text-gray-700">Regulation:</span>
-                  <span className="text-sm text-gray-900">{subtask.regulation || 'N/A'}</span>
-                </div>
-                <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                  <span className="text-sm font-medium text-gray-700">Lighting Conditions:</span>
-                  <span className="text-sm text-gray-900">{subtask.lighting || 'N/A'}</span>
-                </div>
-                <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                  <span className="text-sm font-medium text-gray-700">Overlap Percentage:</span>
-                  <span className="text-sm text-gray-900">{subtask.overlap || 'N/A'}%</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Speed & Performance */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">
-                Speed & Performance
-              </h3>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                  <span className="text-sm font-medium text-gray-700">Target Speed:</span>
-                  <span className="text-sm text-gray-900">{subtask.target_speed || 'N/A'} km/h</span>
-                </div>
-                <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                  <span className="text-sm font-medium text-gray-700">Ego Speed:</span>
-                  <span className="text-sm text-gray-900">{subtask.ego_speed || 'N/A'} km/h</span>
-                </div>
-                <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                  <span className="text-sm font-medium text-gray-700">Brake Setting:</span>
-                  <span className="text-sm text-gray-900">{subtask.brake || 'N/A'}</span>
-                </div>
-                <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                  <span className="text-sm font-medium text-gray-700">Headway:</span>
-                  <span className="text-sm text-gray-900">{subtask.headway || 'N/A'}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Environmental Conditions */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">
-                Environmental Conditions
-              </h3>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                  <span className="text-sm font-medium text-gray-700">Street Lights:</span>
-                  <span className="text-sm text-gray-900">{subtask.street_lights || 'N/A'}</span>
-                </div>
-                <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                  <span className="text-sm font-medium text-gray-700">Beam Type:</span>
-                  <span className="text-sm text-gray-900">{subtask.beam || 'N/A'}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Execution Details */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">
-                Execution Details
-              </h3>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                  <span className="text-sm font-medium text-gray-700">Total Runs:</span>
-                  <span className="text-sm text-gray-900">{subtask.number_of_runs || 0}</span>
-                </div>
-                <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                  <span className="text-sm font-medium text-gray-700">Executed Runs:</span>
-                  <span className="text-sm text-gray-900">{subtask.executedRuns || 0}</span>
-                </div>
-                <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                  <span className="text-sm font-medium text-gray-700">Completion Rate:</span>
-                  <span className="text-sm text-gray-900">{completionPercentage}%</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Timestamps */}
-          <div className="mt-6 pt-4 border-t border-gray-200">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-gray-500">
-              <div>
-                <strong>Created:</strong> {subtask.createdAt ? new Date(subtask.createdAt).toLocaleString() : 'N/A'}
-              </div>
-              <div>
-                <strong>Last Updated:</strong> {subtask.updatedAt ? new Date(subtask.updatedAt).toLocaleString() : 'N/A'}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="p-6 border-t border-gray-200 flex justify-end space-x-3">
-          <Button variant="outline" onClick={onClose}>Close</Button>
-          {onEdit && (
-            <Button onClick={() => onEdit(subtask)}>
-              <Edit className="h-4 w-4 mr-2" />
-              Edit Subtask
-            </Button>
-          )}
         </div>
       </div>
     </div>
@@ -857,13 +1336,20 @@ function TaskPageContent() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
-  const [selectedSubtask, setSelectedSubtask] = useState<any>(null);
+  const [assignmentFilter, setAssignmentFilter] = useState('all');
+  const [completionFilter, setCompletionFilter] = useState('all');
+  const [selectedSubtask, setSelectedSubtask] = useState<TTSubtask | null>(null);
   
   // Timeline state - Start with today's date
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [timelineView, setTimelineView] = useState<'carousel' | 'week' | 'month'>('month');
+  const [showDayMissions, setShowDayMissions] = useState(false);
 
   const taskId = params.id as string;
+
+  // User permission checks
+  const canManage = user?.role === 'admin' || user?.role === 'data_manager';
+  const canEdit = canManage;
 
   useEffect(() => {
     if (user && token && taskId) {
@@ -873,82 +1359,50 @@ function TaskPageContent() {
   }, [user, token, taskId]);
 
   const fetchTask = async () => {
-    setIsLoading(true);
-    setError(null);
-    
     try {
-      const response = await fetch('/api/tasks/tt', {
+      setIsLoading(true);
+      setError(null);
+      
+      const response = await fetch(`/api/tasks/tt/${taskId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
         },
       });
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch task: ${response.status} ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      
-      if (data.success) {
-        const foundTask = data.data.find((t: TTTask) => t.id === taskId);
-        if (foundTask) {
-          const detailResponse = await fetch(`/api/tasks/tt/${taskId}`, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-          });
-          
-          if (detailResponse.ok) {
-            const detailData = await detailResponse.json();
-            setTask(detailData.success ? detailData.data : foundTask);
-          } else {
-            setTask(foundTask);
-          }
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setTask(data.data);
         } else {
-          throw new Error('Task not found');
+          setError(data.error || 'Failed to load task');
         }
       } else {
-        throw new Error(data.error || 'Failed to fetch task');
+        setError('Failed to load task');
       }
-    } catch (error: any) {
-      console.error('Failed to fetch task:', error);
-      setError(error.message);
+    } catch (error) {
+      console.error('Error fetching task:', error);
+      setError('Failed to load task');
     } finally {
       setIsLoading(false);
     }
   };
 
   const fetchTaskCounts = async () => {
-    if (!user || !token) return;
-    
     try {
-      const [dcResponse, ttResponse] = await Promise.all([
-        fetch('/api/tasks', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }),
-        fetch('/api/tasks/tt', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        })
-      ]);
-
-      const dcData = dcResponse.ok ? await dcResponse.json() : { success: false, data: [] };
-      const ttData = ttResponse.ok ? await ttResponse.json() : { success: false, data: [] };
-
-      setTaskCounts({
-        DC: dcData.success ? dcData.data.length : 0,
-        TT: ttData.success ? ttData.data.length : 0
+      const response = await fetch('/api/tasks/counts', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
       });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setTaskCounts(data.data);
+        }
+      }
     } catch (error) {
-      console.error('Failed to fetch task counts:', error);
-      setTaskCounts({ DC: 0, TT: 0 });
+      console.error('Error fetching task counts:', error);
     }
   };
 
@@ -958,7 +1412,7 @@ function TaskPageContent() {
     } else if (section === 'TT') {
       router.push('/?section=TT');
     } else if (section === 'management') {
-      router.push('/?section=management');
+      router.push('/dashboard');
     }
   };
 
@@ -970,6 +1424,154 @@ function TaskPageContent() {
       newExpanded.add(subtaskId);
     }
     setExpandedRows(newExpanded);
+  };
+
+  const handleDateClick = (date: Date) => {
+    setSelectedDate(date);
+    setShowDayMissions(true);
+  };
+
+  const handleAssignTasks = async (date: string, subtaskIds: string[], notes?: string) => {
+    if (!task || !canManage) return;
+
+    // Check for assignment conflicts
+    const conflicts = checkAssignmentConflicts(subtaskIds, date);
+    
+    if (conflicts.length > 0) {
+      const confirmed = await showAssignmentConfirmation(conflicts, date);
+      if (!confirmed) return;
+    }
+
+    try {
+      setIsLoading(true);
+      const response = await fetch(`/api/tasks/tt/${taskId}/assignments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          date,
+          subtaskIds,
+          notes,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          await fetchTask(); // Refresh task data
+        } else {
+          alert('Failed to assign tasks: ' + data.error);
+        }
+      } else {
+        alert('Failed to assign tasks');
+      }
+    } catch (error) {
+      console.error('Error assigning tasks:', error);
+      alert('Failed to assign tasks');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Helper function to check assignment conflicts
+  const checkAssignmentConflicts = (subtaskIds: string[], targetDate: string) => {
+    if (!task) return [];
+    
+    const conflicts: { subtask: TTSubtask; reason: string; canOverride: boolean }[] = [];
+    const targetDateObj = new Date(targetDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    subtaskIds.forEach(subtaskId => {
+      const subtask = task.subtasks.find(s => s.id === subtaskId);
+      if (!subtask) return;
+      
+      // Check if already completed
+      if (subtask.isExecuted || subtask.status === 'completed') {
+        conflicts.push({
+          subtask,
+          reason: 'Task already completed',
+          canOverride: false
+        });
+        return;
+      }
+      
+      // Check if already assigned to a different date
+      if (subtask.assignedDate && subtask.assignedDate !== targetDate) {
+        const assignedDateObj = new Date(subtask.assignedDate);
+        const isPastAssignment = assignedDateObj < today;
+        
+        conflicts.push({
+          subtask,
+          reason: isPastAssignment 
+            ? `Already assigned to ${subtask.assignedDate} (past date, not completed)`
+            : `Already assigned to ${subtask.assignedDate}`,
+          canOverride: !isPastAssignment // Can't override past assignments that aren't done
+        });
+      }
+    });
+    
+    return conflicts;
+  };
+
+  // Helper function to show assignment confirmation dialog
+  const showAssignmentConfirmation = (conflicts: { subtask: TTSubtask; reason: string; canOverride: boolean }[], targetDate: string): Promise<boolean> => {
+    return new Promise((resolve) => {
+      const nonOverridable = conflicts.filter(c => !c.canOverride);
+      const overridable = conflicts.filter(c => c.canOverride);
+      
+      if (nonOverridable.length > 0) {
+        const message = `Cannot assign the following tasks:\n\n${nonOverridable.map(c => `• ${c.subtask.jira_subtask_number || c.subtask.id}: ${c.reason}`).join('\n')}`;
+        alert(message);
+        resolve(false);
+        return;
+      }
+      
+      if (overridable.length > 0) {
+        const message = `The following tasks are already assigned:\n\n${overridable.map(c => `• ${c.subtask.jira_subtask_number || c.subtask.id}: ${c.reason}`).join('\n')}\n\nDo you want to reassign them to ${targetDate}?`;
+        resolve(confirm(message));
+        return;
+      }
+      
+      resolve(true);
+    });
+  };
+
+  const handleRemoveAssignment = async (date: string, subtaskId: string) => {
+    if (!task || !canManage) return;
+
+    try {
+      setIsLoading(true);
+      const response = await fetch(`/api/tasks/tt/${taskId}/assignments`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          date,
+          subtaskId,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          await fetchTask(); // Refresh task data
+        } else {
+          alert('Failed to remove assignment: ' + data.error);
+        }
+      } else {
+        alert('Failed to remove assignment');
+      }
+    } catch (error) {
+      console.error('Error removing assignment:', error);
+      alert('Failed to remove assignment');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -984,95 +1586,63 @@ function TaskPageContent() {
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'high': return 'bg-red-100 text-red-800 border-red-200';
-      case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'low': return 'bg-green-100 text-green-800 border-green-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'high': return 'bg-red-100 text-red-800';
+      case 'medium': return 'bg-yellow-100 text-yellow-800';
+      case 'low': return 'bg-green-100 text-green-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return 'bg-green-100 text-green-800 border-green-200';
-      case 'paused': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'completed': return 'bg-blue-100 text-blue-800 border-blue-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'active': return 'bg-green-100 text-green-800';
+      case 'paused': return 'bg-yellow-100 text-yellow-800';
+      case 'completed': return 'bg-blue-100 text-blue-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
-  // Filter subtasks based on search and filters using actual JSON structure
-  const filteredSubtasks = task?.subtasks?.filter(subtask => {
-    const scenarioDescription = [
-      subtask.scenario,
-      subtask.lighting,
-      subtask.overlap && `${subtask.overlap}% overlap`,
-      subtask.target_speed && `Target: ${subtask.target_speed}km/h`,
-      subtask.ego_speed && `Ego: ${subtask.ego_speed}km/h`
-    ].filter(Boolean).join(' ').toLowerCase();
-
-    const matchesSearch = !searchTerm || 
-      scenarioDescription.includes(searchTerm.toLowerCase()) ||
-      (subtask.id && subtask.id.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (subtask.category && subtask.category.toLowerCase().includes(searchTerm.toLowerCase()));
+  // Filter subtasks based on search and filters
+  const filteredSubtasks = task?.subtasks.filter(subtask => {
+    const matchesSearch = searchTerm === '' || 
+      subtask.scenario.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      subtask.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (subtask.jira_subtask_number && subtask.jira_subtask_number.toLowerCase().includes(searchTerm.toLowerCase()));
     
     const matchesStatus = statusFilter === 'all' || subtask.status === statusFilter;
-    
-    const priorityNum = typeof subtask.priority === 'string' ? parseInt(subtask.priority) : subtask.priority;
-    const matchesPriority = priorityFilter === 'all' || 
-      (priorityFilter === 'high' && priorityNum === 1) ||
-      (priorityFilter === 'medium' && priorityNum === 2) ||
-      (priorityFilter === 'low' && priorityNum === 3);
-    
+    const matchesPriority = priorityFilter === 'all' || subtask.priority === priorityFilter;
     const matchesCategory = categoryFilter === 'all' || subtask.category === categoryFilter;
     
-    return matchesSearch && matchesStatus && matchesPriority && matchesCategory;
+    // Assignment status filter
+    const matchesAssignment = assignmentFilter === 'all' || 
+      (assignmentFilter === 'assigned' && subtask.assignedDate) ||
+      (assignmentFilter === 'not_assigned' && !subtask.assignedDate) ||
+      (assignmentFilter === 'past_due' && subtask.assignedDate && new Date(subtask.assignedDate) < new Date() && !subtask.isExecuted);
+    
+    // Completion status filter  
+    const matchesCompletion = completionFilter === 'all' ||
+      (completionFilter === 'completed' && (subtask.isExecuted || subtask.status === 'completed')) ||
+      (completionFilter === 'not_completed' && !(subtask.isExecuted || subtask.status === 'completed'));
+    
+    return matchesSearch && matchesStatus && matchesPriority && matchesCategory && matchesAssignment && matchesCompletion;
   }) || [];
 
   // Group subtasks by scenario
-  const groupedSubtasks = filteredSubtasks.reduce((groups, subtask) => {
-    const scenario = subtask.scenario || 'Unknown Scenario';
+  const scenarioGroups = filteredSubtasks.reduce((groups, subtask) => {
+    const scenario = subtask.scenario;
     if (!groups[scenario]) {
       groups[scenario] = [];
     }
     groups[scenario].push(subtask);
     return groups;
-  }, {} as Record<string, any[]>);
-
-  // Convert to array for rendering
-  const scenarioGroups = Object.entries(groupedSubtasks).map(([scenario, subtasks]) => ({
-    scenario,
-    subtasks,
-    // Generate a unique ID for the group
-    id: scenario.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()
-  }));
-
-  // Get unique categories for filter
-  const categories = [...new Set(task?.subtasks?.map(s => s.category).filter(Boolean) || [])];
-
-  // Handle redirect when user is not authenticated
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push('/');
-    }
-  }, [loading, user, router]);
+  }, {} as Record<string, TTSubtask[]>);
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="mt-4 text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Redirecting...</p>
         </div>
       </div>
     );
@@ -1080,154 +1650,105 @@ function TaskPageContent() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header 
-        onMenuToggle={() => setIsSidebarOpen(true)}
-        title="Test Track Task"
+      <Header
+        onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+        taskCounts={taskCounts}
       />
-      
-      <div className="p-4 sm:p-6">
-        {/* Back Button */}
-        <div className="mb-6">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => router.push('/?section=TT')}
-            className="text-gray-600 hover:text-gray-900"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Tasks
-          </Button>
-        </div>
 
-        {/* Content */}
-        {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-            <span className="ml-3 text-gray-600">Loading task...</span>
-          </div>
-        ) : error ? (
-          <div className="text-center py-12">
-            <div className="text-red-600 text-lg mb-2">Error: {error}</div>
-            <Button onClick={fetchTask} variant="outline">
-              Try Again
-            </Button>
-          </div>
-        ) : task ? (
-          <div className="max-w-7xl mx-auto space-y-6">
+      <div className="container mx-auto px-4 py-6">
+        {task ? (
+          <div className="space-y-6">
             {/* Task Header */}
-            <Card className="p-6">
-              <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
-                  <div className="flex flex-wrap items-center gap-3 mb-3">
-                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{task.title}</h1>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant="outline" className="text-xs">
-                        🏁 TT
-                      </Badge>
-                    </div>
+                  <div className="flex items-center space-x-2 mb-2">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => router.push('/?section=TT')}
+                      className="text-blue-600 hover:text-blue-700"
+                    >
+                      <ArrowLeft className="h-4 w-4 mr-2" />
+                      Back to TT Tasks
+                    </Button>
                   </div>
-                      {task.version && (
-                        <Badge variant="outline" className="text-xs">
-                          v{task.version}
-                        </Badge>
-                      )}
-                  {task.description && (
-                    <p className="text-gray-600 mb-4">{task.description}</p>
-                  )}
-                  
-                  {/* Status and Priority Badges - Fixed Layout */}
-                  <div className="flex flex-wrap items-center gap-2 mb-4">
-                    <Badge className={getPriorityColor(task.priority)} variant="outline">
-                      Priority: {task.priority}
-                    </Badge>
-                    <Badge className={getStatusColor(task.status)} variant="outline">
-                      Status: {task.status}
-                    </Badge>
-                    <Badge variant="outline">
-                      📍 {task.location}
-                    </Badge>
+                  <h1 className="text-3xl font-bold text-gray-900 mb-2">{task.title}</h1>
+                  <div className="flex items-center space-x-4 text-sm text-gray-600">
+                    <div className="flex items-center space-x-1">
+                      <MapPin className="h-4 w-4" />
+                      <span>{task.location}</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <FileText className="h-4 w-4" />
+                      <span>{task.totalSubtasks} subtasks</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <Clock className="h-4 w-4" />
+                      <span>Updated: {formatDate(task.updatedAt)}</span>
+                    </div>
                   </div>
                 </div>
 
-                {/* Progress Section */}
-                <div className="lg:w-80">
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <div className="flex justify-between text-sm text-gray-600 mb-2">
-                      <span>Progress</span>
-                      <span>{task.completedSubtasks}/{task.totalSubtasks} ({task.progress}%)</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-3 mb-3">
-                      <div 
-                        className="bg-blue-600 h-3 rounded-full transition-all duration-300" 
-                        style={{ width: `${task.progress}%` }}
-                      ></div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="text-gray-500">Subtasks</span>
-                        <div className="font-semibold">{task.totalSubtasks}</div>
-                      </div>
-                      <div>
-                        <span className="text-gray-500">Completed</span>
-                        <div className="font-semibold text-green-600">{task.completedSubtasks}</div>
-                      </div>
-                    </div>
-                  </div>
+                <div className="flex items-center space-x-3">
+                  <Badge className={getPriorityColor(task.priority)} variant="outline">
+                    {task.priority}
+                  </Badge>
+                  <Badge className={getStatusColor(task.status)} variant="outline">
+                    {task.status}
+                  </Badge>
+                  <Badge variant="outline">🏁 TT</Badge>
+                  <Badge variant="outline">v{task.version}</Badge>
                 </div>
               </div>
 
-              {/* Task Metadata */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-6 border-t border-gray-200 mt-6">
-                <div className="flex items-center space-x-2 text-sm text-gray-600">
-                  <Calendar className="h-4 w-4 flex-shrink-0" />
-                  <div>
-                    <div className="font-medium">Created</div>
-                    <div>{formatDate(task.createdAt)}</div>
-                  </div>
+              {task.description && (
+                <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+                  <p className="text-gray-700">{task.description}</p>
                 </div>
-                <div className="flex items-center space-x-2 text-sm text-gray-600">
-                  <Clock className="h-4 w-4 flex-shrink-0" />
-                  <div>
-                    <div className="font-medium">Updated</div>
-                    <div>{formatDate(task.updatedAt)}</div>
-                  </div>
+              )}
+
+              {/* Progress Overview */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="bg-blue-50 rounded-lg p-4">
+                  <div className="text-sm font-medium text-blue-700 mb-1">Total Subtasks</div>
+                  <div className="text-2xl font-bold text-blue-900">{task.totalSubtasks}</div>
                 </div>
-                {/* <div className="flex items-center space-x-2 text-sm text-gray-600">
-                  <FileText className="h-4 w-4 flex-shrink-0" />
-                  <div>
-                    <div className="font-medium">CSV File</div>
-                    <div className="truncate">{task.csvFileName}</div>
-                  </div>
-                </div> */}
-                <div className="flex items-center space-x-2 text-sm text-gray-600">
-                  <div className="w-4 h-4 bg-blue-100 rounded flex-shrink-0 flex items-center justify-center">
-                    <span className="text-blue-600 text-xs font-bold">{task.createdBy.charAt(0).toUpperCase()}</span>
-                  </div>
-                  <div>
-                    <div className="font-medium">Created by</div>
-                    <div>{task.createdBy}</div>
-                  </div>
+                <div className="bg-green-50 rounded-lg p-4">
+                  <div className="text-sm font-medium text-green-700 mb-1">Completed</div>
+                  <div className="text-2xl font-bold text-green-900">{task.completedSubtasks}</div>
+                </div>
+                <div className="bg-purple-50 rounded-lg p-4">
+                  <div className="text-sm font-medium text-purple-700 mb-1">Progress</div>
+                  <div className="text-2xl font-bold text-purple-900">{task.progress}%</div>
+                </div>
+                <div className="bg-orange-50 rounded-lg p-4">
+                  <div className="text-sm font-medium text-orange-700 mb-1">CSV File</div>
+                  <div className="text-sm font-medium text-orange-900 truncate">{task.csvFileName}</div>
                 </div>
               </div>
-            </Card>
+            </div>
 
-            {/* Timeline/Calendar Section */}
+            {/* Enhanced Timeline */}
             <TimelineCalendar
               selectedDate={selectedDate}
               onDateSelect={setSelectedDate}
               view={timelineView}
               onViewChange={setTimelineView}
+              assignments={task.dateAssignments || []}
+              subtasks={task.subtasks}
+              onDateClick={handleDateClick}
             />
 
-            {/* Subtasks Section */}
+            {/* Filters and Search */}
             <Card className="p-6">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                 <div>
                   <h2 className="text-xl font-semibold text-gray-900">
-                    Scenarios ({scenarioGroups.length})
+                    Scenarios ({Object.keys(scenarioGroups).length})
                   </h2>
                   <p className="text-sm text-gray-600">
-                    {filteredSubtasks.length} subtasks across {scenarioGroups.length} scenarios
+                    {filteredSubtasks.length} subtasks across {Object.keys(scenarioGroups).length} scenarios
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -1238,69 +1759,86 @@ function TaskPageContent() {
                 </div>
               </div>
 
-              <div className="space-y-4">
-                {/* Combined Filters - More Compact */}
-                <div className="flex flex-wrap items-center gap-3 p-4 bg-gray-50 rounded-lg">
-                  <div className="relative flex-1 min-w-[200px]">
+              {/* Search and Filters */}
+              <div className="grid grid-cols-1 md:grid-cols-7 gap-4 mb-6">
+                <div className="md:col-span-2">
+                  <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                    <input
-                      type="text"
-                      placeholder="Search scenarios..."
+                    <Input
+                      placeholder="Search scenarios, categories, or JIRA numbers..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="pl-10"
                     />
                   </div>
-                  <select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 min-w-[120px]"
-                  >
-                    <option value="all">All Status</option>
-                    <option value="pending">Pending</option>
-                    <option value="in_progress">In Progress</option>
-                    <option value="completed">Completed</option>
-                    <option value="paused">Paused</option>
-                  </select>
-                  <select
-                    value={priorityFilter}
-                    onChange={(e) => setPriorityFilter(e.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 min-w-[100px]"
-                  >
-                    <option value="all">All Priority</option>
-                    <option value="high">High</option>
-                    <option value="medium">Medium</option>
-                    <option value="low">Low</option>
-                  </select>
-                  {categories.length > 0 && (
-                    <select
-                      value={categoryFilter}
-                      onChange={(e) => setCategoryFilter(e.target.value)}
-                      className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 min-w-[120px]"
-                    >
-                      <option value="all">All Categories</option>
-                      {categories.map(category => (
-                        <option key={category} value={category}>{category}</option>
-                      ))}
-                    </select>
-                  )}
                 </div>
-
-                {/* Scenarios List */}
-                <div className="border border-gray-200 rounded-lg overflow-hidden">
-                  {scenarioGroups.map(({ scenario, subtasks }) => (
-                    <ScenarioGroupRow
-                      key={scenario}
-                      scenario={scenario}
-                      subtasks={subtasks}
-                      isExpanded={expandedRows.has(scenario)}
-                      onToggle={() => handleRowToggle(scenario)}
-                      onEditSubtask={(subtask) => setSelectedSubtask(subtask)}
-                    />
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="all">All Status</option>
+                  <option value="pending">Pending</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="completed">Completed</option>
+                  <option value="failed">Failed</option>
+                </select>
+                <select
+                  value={priorityFilter}
+                  onChange={(e) => setPriorityFilter(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="all">All Priority</option>
+                  <option value="1">High (1)</option>
+                  <option value="2">Medium (2)</option>
+                  <option value="3">Low (3)</option>
+                </select>
+                <select
+                  value={categoryFilter}
+                  onChange={(e) => setCategoryFilter(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="all">All Categories</option>
+                  {[...new Set(task.subtasks.map(s => s.category))].map(category => (
+                    <option key={category} value={category}>{category}</option>
                   ))}
-                </div>
+                </select>
+                <select
+                  value={assignmentFilter}
+                  onChange={(e) => setAssignmentFilter(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="all">All Assignment</option>
+                  <option value="assigned">Assigned</option>
+                  <option value="not_assigned">Not Assigned</option>
+                  <option value="past_due">Past Due</option>
+                </select>
+                <select
+                  value={completionFilter}
+                  onChange={(e) => setCompletionFilter(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="all">All Completion</option>
+                  <option value="completed">Completed</option>
+                  <option value="not_completed">Not Completed</option>
+                </select>
+              </div>
 
-                {scenarioGroups.length === 0 && (
+              {/* Scenario Groups */}
+              <div className="space-y-4">
+                {Object.entries(scenarioGroups).map(([scenario, subtasks]) => (
+                  <ScenarioGroupRow
+                    key={scenario}
+                    scenario={scenario}
+                    subtasks={subtasks}
+                    isExpanded={expandedRows.has(scenario)}
+                    onToggle={() => handleRowToggle(scenario)}
+                    onEditSubtask={canEdit ? undefined : undefined} // TODO: Implement edit functionality
+                    onSelectSubtask={setSelectedSubtask}
+                  />
+                ))}
+
+                {Object.keys(scenarioGroups).length === 0 && (
                   <div className="text-center py-8">
                     <TestTube className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-gray-900 mb-2">No Scenarios Found</h3>
@@ -1333,12 +1871,28 @@ function TaskPageContent() {
         taskCounts={taskCounts}
       />
 
-      {/* Subtask Detail Modal */}
+      {/* Day Missions Modal */}
+      {showDayMissions && (
+        <DayMissionsModal
+          selectedDate={selectedDate}
+          assignments={task?.dateAssignments || []}
+          allSubtasks={task?.subtasks || []}
+          isOpen={showDayMissions}
+          onClose={() => setShowDayMissions(false)}
+          canManage={canManage}
+          onAssignTasks={handleAssignTasks}
+          onRemoveAssignment={handleRemoveAssignment}
+        />
+      )}
+
+      {/* Enhanced Subtask Detail Modal */}
       {selectedSubtask && (
         <SubtaskDetailModal
           subtask={selectedSubtask}
           isOpen={!!selectedSubtask}
           onClose={() => setSelectedSubtask(null)}
+          onEdit={canEdit ? undefined : undefined} // TODO: Implement edit functionality
+          canEdit={canEdit}
         />
       )}
     </div>

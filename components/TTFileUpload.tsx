@@ -97,11 +97,16 @@ export function TTFileUpload({ onTaskCreated, onClose }: TTFileUploadProps) {
     }
   };
 
-  // Function to generate JIRA subtask numbers
+  // Function to generate JIRA subtask numbers and add execution status fields
   const generateJiraSubtaskNumbers = (subtasks: TTSubtask[], startingNumber: number = 10223): TTSubtask[] => {
     return subtasks.map((subtask, index) => ({
       ...subtask,
-      jira_subtask_number: `DATACO-${(startingNumber + index).toString().padStart(5, '0')}`
+      jira_subtask_number: `DATACO-${(startingNumber + index).toString().padStart(5, '0')}`,
+      // Add new execution tracking fields
+      isExecuted: false,
+      isAssigned: false,
+      executionStatus: 'not_assigned' as const,
+      executedRuns: 0,
     }));
   };
 
