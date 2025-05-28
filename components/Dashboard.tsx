@@ -428,7 +428,7 @@ function EditUserModal({ user, isOpen, onClose, onSave }: EditUserModalProps) {
 
   const handleSave = () => {
     if (user) {
-      const updateData = {
+      const updateData: any = {
         ...formData,
         id: user.id
       };

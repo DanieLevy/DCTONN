@@ -17,9 +17,10 @@ interface HeaderProps {
   onMenuToggle?: () => void;
   onDashboardToggle?: () => void;
   title?: string;
+  taskCounts?: { DC: number; TT: number; };
 }
 
-export function Header({ onMenuToggle, onDashboardToggle, title }: HeaderProps) {
+export function Header({ onMenuToggle, onDashboardToggle, title, taskCounts }: HeaderProps) {
   const { user, logout, token } = useAuth();
   const [aiStatus, setAiStatus] = useState<{
     connected: boolean;

@@ -69,7 +69,7 @@ export async function PUT(
     task.subtasks[subtaskIndex] = updatedSubtask;
 
     // Recalculate task progress
-    const completedSubtasks = task.subtasks.filter((s: any) => s.status === 'completed').length;
+    const completedSubtasks = task.subtasks.filter((s: any) => s.isExecuted || s.status === 'completed').length;
     const totalSubtasks = task.subtasks.length;
     const progress = totalSubtasks > 0 ? Math.round((completedSubtasks / totalSubtasks) * 100) : 0;
 
@@ -151,7 +151,7 @@ export async function DELETE(
     task.subtasks.splice(subtaskIndex, 1);
 
     // Recalculate task progress
-    const completedSubtasks = task.subtasks.filter((s: any) => s.status === 'completed').length;
+    const completedSubtasks = task.subtasks.filter((s: any) => s.isExecuted || s.status === 'completed').length;
     const totalSubtasks = task.subtasks.length;
     const progress = totalSubtasks > 0 ? Math.round((completedSubtasks / totalSubtasks) * 100) : 0;
 

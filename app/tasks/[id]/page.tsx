@@ -46,7 +46,7 @@ import {
   Target
 } from 'lucide-react';
 
-// Day Missions Modal Component
+// Day Missions Modal Component with Duration Support
 interface DayMissionsModalProps {
   selectedDate: Date;
   assignments: DateAssignment[];
@@ -54,8 +54,18 @@ interface DayMissionsModalProps {
   isOpen: boolean;
   onClose: () => void;
   canManage: boolean;
-  onAssignTasks?: (date: string, subtaskIds: string[], notes?: string) => void;
-  onRemoveAssignment?: (date: string, subtaskId: string) => void;
+  onAssignTasks?: (assignmentData: {
+    assignmentType: 'single_day' | 'date_range' | 'duration_days';
+    date?: string;
+    startDate?: string;
+    endDate?: string;
+    durationDays?: number;
+    subtaskIds: string[];
+    notes?: string;
+    title?: string;
+    overrideConflicts?: boolean;
+  }) => void;
+  onRemoveAssignment?: (assignmentId: string, subtaskId: string) => void;
 }
 
 function DayMissionsModal({ 
@@ -70,13 +80,89 @@ function DayMissionsModal({
 }: DayMissionsModalProps) {
   const [selectedSubtasks, setSelectedSubtasks] = useState<string[]>([]);
   const [assignmentNotes, setAssignmentNotes] = useState('');
+  const [assignmentTitle, setAssignmentTitle] = useState('');
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showAlreadyAssigned, setShowAlreadyAssigned] = useState(false);
   
+  // New duration assignment states
+  const [assignmentType, setAssignmentType] = useState<'single_day' | 'date_range' | 'duration_days'>('single_day');
+  const [startDate, setStartDate] = useState(selectedDate.toISOString().split('T')[0]);
+  const [endDate, setEndDate] = useState(selectedDate.toISOString().split('T')[0]);
+  const [durationDays, setDurationDays] = useState(1);
+  const [conflicts, setConflicts] = useState<any[]>([]);
+  const [showConflictDialog, setShowConflictDialog] = useState(false);
+  
   const dateString = selectedDate.toISOString().split('T')[0];
-  const todayAssignments = assignments.filter(a => a.date === dateString);
-  const assignedSubtaskIds = todayAssignments.flatMap(a => a.subtaskIds);
+  
+  // Get assignments that cover the selected date
+  const relevantAssignments = assignments.filter(assignment => {
+    const assignmentDates = getAssignmentDates(assignment);
+    return assignmentDates.includes(dateString);
+  });
+  
+  const assignedSubtaskIds = relevantAssignments.flatMap(a => a.subtaskIds);
   const assignedSubtasks = allSubtasks.filter(s => assignedSubtaskIds.includes(s.id));
+
+  // Helper function to get assignment dates from DateAssignment
+  const getAssignmentDates = (assignment: DateAssignment): string[] => {
+    switch (assignment.assignmentType) {
+      case 'single_day':
+        return assignment.date ? [assignment.date] : [];
+      case 'date_range':
+        if (assignment.startDate && assignment.endDate) {
+          return getDateRange(assignment.startDate, assignment.endDate);
+        }
+        return [];
+      case 'duration_days':
+        if (assignment.startDate && assignment.durationDays) {
+          return getDateRangeFromDuration(assignment.startDate, assignment.durationDays);
+        }
+        return [];
+      default:
+        return [];
+    }
+  };
+
+  // Helper function to generate date range
+  const getDateRange = (start: string, end: string): string[] => {
+    const dates: string[] = [];
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    
+    for (let current = new Date(startDate); current <= endDate; current.setDate(current.getDate() + 1)) {
+      dates.push(current.toISOString().split('T')[0]);
+    }
+    
+    return dates;
+  };
+
+  // Helper function to generate dates from duration
+  const getDateRangeFromDuration = (start: string, duration: number): string[] => {
+    const dates: string[] = [];
+    const startDate = new Date(start);
+    
+    for (let i = 0; i < duration; i++) {
+      const current = new Date(startDate);
+      current.setDate(startDate.getDate() + i);
+      dates.push(current.toISOString().split('T')[0]);
+    }
+    
+    return dates;
+  };
+
+  // Get preview of assignment dates
+  const getAssignmentPreviewDates = (): string[] => {
+    switch (assignmentType) {
+      case 'single_day':
+        return [startDate];
+      case 'date_range':
+        return getDateRange(startDate, endDate);
+      case 'duration_days':
+        return getDateRangeFromDuration(startDate, durationDays);
+      default:
+        return [];
+    }
+  };
   
   // Get available and already assigned subtasks for assignment modal
   const availableSubtasks = allSubtasks.filter(s => 
@@ -138,10 +224,29 @@ function DayMissionsModal({
 
   const handleAssignTasks = () => {
     if (onAssignTasks && selectedSubtasks.length > 0) {
-      onAssignTasks(dateString, selectedSubtasks, assignmentNotes);
-      setSelectedSubtasks([]);
-      setAssignmentNotes('');
-      setShowAssignModal(false);
+      const assignmentData = {
+        assignmentType,
+        date: assignmentType === 'single_day' ? startDate : undefined,
+        startDate: assignmentType !== 'single_day' ? startDate : undefined,
+        endDate: assignmentType === 'date_range' ? endDate : undefined,
+        durationDays: assignmentType === 'duration_days' ? durationDays : undefined,
+        subtaskIds: selectedSubtasks,
+        notes: assignmentNotes,
+        title: assignmentTitle
+      };
+      
+      try {
+        onAssignTasks(assignmentData);
+        setSelectedSubtasks([]);
+        setAssignmentNotes('');
+        setAssignmentTitle('');
+        setShowAssignModal(false);
+      } catch (error: any) {
+        if (error.conflicts) {
+          setConflicts(error.conflicts);
+          setShowConflictDialog(true);
+        }
+      }
     }
   };
 
@@ -164,7 +269,14 @@ function DayMissionsModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div 
+      className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
       <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
@@ -204,39 +316,51 @@ function DayMissionsModal({
             </div>
             
             {assignedSubtasks.length > 0 ? (
-              <div className="space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {assignedSubtasks.map((subtask) => (
-                  <div key={subtask.id} className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-3 mb-2">
-                          {getStatusIcon(subtask.status)}
-                          <span className="font-medium text-gray-900">
+                  <div key={subtask.id} className="bg-gradient-to-br from-slate-50 to-gray-50 border border-gray-200 rounded-lg p-3 hover:shadow-md transition-all duration-200 group">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center space-x-2 mb-2">
+                          {subtask.isExecuted ? (
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          ) : (
+                            getStatusIcon(subtask.status)
+                          )}
+                          <div className="font-mono text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded truncate">
                             {subtask.jira_subtask_number || subtask.id}
-                          </span>
-                          <Badge variant="outline" className="text-xs">
+                          </div>
+                        </div>
+                        <div className="text-xs text-gray-700 mb-1 font-medium truncate">
+                          {subtask.scenario}
+                        </div>
+                        <div className="flex items-center space-x-1 text-xs text-gray-500">
+                          <Badge variant="outline" className="text-xs px-1 py-0">
                             {subtask.category}
                           </Badge>
-                          <Badge variant="outline" className={getExecutionStatusColor(subtask)}>
+                          <span>•</span>
+                          <span>P{subtask.priority}</span>
+                        </div>
+                        <div className="flex items-center space-x-1 mt-1">
+                          <Badge variant="outline" className={`text-xs px-2 py-0 ${getExecutionStatusColor(subtask)}`}>
                             {getExecutionStatusText(subtask)}
                           </Badge>
-                        </div>
-                        <div className="text-sm text-gray-700">
-                          <span className="font-medium">{subtask.scenario}</span> • 
-                          {subtask.lighting} • {subtask.target_speed} km/h → {subtask.ego_speed} km/h
-                        </div>
-                        <div className="text-xs text-gray-500 mt-1">
-                          Runs: {subtask.executedRuns || 0}/{subtask.number_of_runs} • Priority: {subtask.priority}
                         </div>
                       </div>
                       {canManage && (
                         <Button 
                           variant="ghost" 
                           size="sm"
-                          onClick={() => onRemoveAssignment?.(dateString, subtask.id)}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => {
+                            // Find the assignment for this subtask
+                            const assignment = assignments.find(a => a.subtaskIds.includes(subtask.id));
+                            if (assignment) {
+                              onRemoveAssignment?.(assignment.id, subtask.id);
+                            }
+                          }}
+                          className="text-red-400 hover:text-red-600 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity p-1 h-6 w-6"
                         >
-                          <X className="h-4 w-4" />
+                          <X className="h-3 w-3" />
                         </Button>
                       )}
                     </div>
@@ -264,10 +388,159 @@ function DayMissionsModal({
 
         {/* Task Assignment Modal */}
         {showAssignModal && canManage && (
-          <div className="absolute inset-0 bg-black/50 flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-black/50 flex items-center justify-center p-4"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setShowAssignModal(false);
+              }
+            }}
+          >
             <div className="bg-white rounded-lg w-full max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
               <div className="p-4 border-b border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900">Assign Tasks to {formatDate(selectedDate)}</h3>
+                <h3 className="text-lg font-semibold text-gray-900">Assign Tasks</h3>
+                
+                {/* Assignment Type Selection */}
+                <div className="mt-4 mb-6">
+                  <Label className="text-sm font-medium text-gray-700 mb-3 block">Assignment Type</Label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setAssignmentType('single_day')}
+                      className={`p-3 rounded-lg border-2 transition-all duration-200 text-left ${
+                        assignmentType === 'single_day' 
+                          ? 'border-blue-500 bg-blue-50 text-blue-900' 
+                          : 'border-gray-200 hover:border-gray-300 bg-white text-gray-700'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-2 mb-1">
+                        <Calendar className="h-4 w-4" />
+                        <span className="font-medium">Single Day</span>
+                      </div>
+                      <p className="text-xs text-gray-600">Assign to one specific date</p>
+                    </button>
+                    
+                    <button
+                      type="button"
+                      onClick={() => setAssignmentType('date_range')}
+                      className={`p-3 rounded-lg border-2 transition-all duration-200 text-left ${
+                        assignmentType === 'date_range' 
+                          ? 'border-blue-500 bg-blue-50 text-blue-900' 
+                          : 'border-gray-200 hover:border-gray-300 bg-white text-gray-700'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-2 mb-1">
+                        <CalendarRange className="h-4 w-4" />
+                        <span className="font-medium">Date Range</span>
+                      </div>
+                      <p className="text-xs text-gray-600">Set start and end dates</p>
+                    </button>
+                    
+                    <button
+                      type="button"
+                      onClick={() => setAssignmentType('duration_days')}
+                      className={`p-3 rounded-lg border-2 transition-all duration-200 text-left ${
+                        assignmentType === 'duration_days' 
+                          ? 'border-blue-500 bg-blue-50 text-blue-900' 
+                          : 'border-gray-200 hover:border-gray-300 bg-white text-gray-700'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-2 mb-1">
+                        <CalendarDays className="h-4 w-4" />
+                        <span className="font-medium">Duration</span>
+                      </div>
+                      <p className="text-xs text-gray-600">Start date + number of days</p>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Date Configuration */}
+                <div className="mb-6">
+                  <Label className="text-sm font-medium text-gray-700 mb-3 block">Date Configuration</Label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {assignmentType === 'single_day' && (
+                      <div>
+                        <Label htmlFor="single-date" className="text-sm text-gray-600">Date</Label>
+                        <Input
+                          id="single-date"
+                          type="date"
+                          value={startDate}
+                          onChange={(e) => setStartDate(e.target.value)}
+                          className="mt-1"
+                        />
+                      </div>
+                    )}
+                    
+                    {assignmentType === 'date_range' && (
+                      <>
+                        <div>
+                          <Label htmlFor="start-date" className="text-sm text-gray-600">Start Date</Label>
+                          <Input
+                            id="start-date"
+                            type="date"
+                            value={startDate}
+                            onChange={(e) => setStartDate(e.target.value)}
+                            className="mt-1"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="end-date" className="text-sm text-gray-600">End Date</Label>
+                          <Input
+                            id="end-date"
+                            type="date"
+                            value={endDate}
+                            onChange={(e) => setEndDate(e.target.value)}
+                            min={startDate}
+                            className="mt-1"
+                          />
+                        </div>
+                      </>
+                    )}
+                    
+                    {assignmentType === 'duration_days' && (
+                      <>
+                        <div>
+                          <Label htmlFor="start-date-duration" className="text-sm text-gray-600">Start Date</Label>
+                          <Input
+                            id="start-date-duration"
+                            type="date"
+                            value={startDate}
+                            onChange={(e) => setStartDate(e.target.value)}
+                            className="mt-1"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="duration" className="text-sm text-gray-600">Duration (Days)</Label>
+                          <Input
+                            id="duration"
+                            type="number"
+                            min="1"
+                            max="365"
+                            value={durationDays}
+                            onChange={(e) => setDurationDays(parseInt(e.target.value) || 1)}
+                            className="mt-1"
+                          />
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  
+                  {/* Assignment Preview */}
+                  <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="text-sm font-medium text-blue-800 mb-1">Assignment Preview</div>
+                    <div className="text-sm text-blue-700">
+                      {getAssignmentPreviewDates().length > 0 ? (
+                        <>
+                          <div>Dates: {getAssignmentPreviewDates().join(', ')}</div>
+                          <div className="mt-1">Duration: {getAssignmentPreviewDates().length} day{getAssignmentPreviewDates().length !== 1 ? 's' : ''}</div>
+                        </>
+                      ) : (
+                        'Please configure the assignment dates above'
+                      )}
+                    </div>
+                  </div>
+                </div>
+                
                 <div className="flex items-center space-x-4 mt-2">
                   <button
                     onClick={() => setShowAlreadyAssigned(false)}
@@ -411,6 +684,18 @@ function DayMissionsModal({
 
                 {/* Notes section */}
                 <div className="space-y-2">
+                  <Label htmlFor="title" className="text-sm font-medium">Assignment Title (Optional)</Label>
+                  <Input
+                    id="title"
+                    value={assignmentTitle}
+                    onChange={(e) => setAssignmentTitle(e.target.value)}
+                    placeholder="Add a title for this assignment..."
+                    className="text-sm"
+                  />
+                </div>
+
+                {/* Notes section */}
+                <div className="space-y-2 mt-4">
                   <Label htmlFor="notes" className="text-sm font-medium">Notes (Optional)</Label>
                   <Textarea
                     id="notes"
@@ -467,8 +752,34 @@ function TimelineCalendar({
   
   const getDateAssignmentInfo = (date: Date) => {
     const dateString = date.toISOString().split('T')[0];
-    const dayAssignments = assignments.filter(a => a.date === dateString);
-    const assignedSubtaskIds = dayAssignments.flatMap(a => a.subtaskIds);
+    
+    // Find all assignments that cover this date
+    const relevantAssignments = assignments.filter(assignment => {
+      switch (assignment.assignmentType) {
+        case 'single_day':
+          return assignment.date === dateString;
+        case 'date_range':
+          if (assignment.startDate && assignment.endDate) {
+            return dateString >= assignment.startDate && dateString <= assignment.endDate;
+          }
+          return false;
+        case 'duration_days':
+          if (assignment.startDate && assignment.durationDays) {
+            const startDate = new Date(assignment.startDate);
+            const endDate = new Date(startDate);
+            endDate.setDate(startDate.getDate() + assignment.durationDays - 1);
+            const endDateString = endDate.toISOString().split('T')[0];
+            return dateString >= assignment.startDate && dateString <= endDateString;
+          }
+          return false;
+        default:
+          // Fallback for legacy assignments
+          return assignment.date === dateString;
+      }
+    });
+
+    // Get all subtasks assigned to this date
+    const assignedSubtaskIds = relevantAssignments.flatMap(a => a.subtaskIds);
     const assignedSubtasks = subtasks.filter(s => assignedSubtaskIds.includes(s.id));
     
     const totalAssigned = assignedSubtasks.length;
@@ -495,6 +806,58 @@ function TimelineCalendar({
     } else {
       dayStatus = 'pending_past';
     }
+
+    // Check if this date is part of a multi-day assignment
+    const multiDayAssignments = relevantAssignments.filter(assignment => {
+      switch (assignment.assignmentType) {
+        case 'date_range':
+          return assignment.startDate && assignment.endDate && assignment.startDate !== assignment.endDate;
+        case 'duration_days':
+          return assignment.durationDays && assignment.durationDays > 1;
+        default:
+          return false;
+      }
+    });
+
+    // Calculate position in multi-day assignments
+    const multiDayInfo = multiDayAssignments.map(assignment => {
+      let startDate = '';
+      let totalDays = 1;
+      let currentDayIndex = 0;
+
+      switch (assignment.assignmentType) {
+        case 'date_range':
+          if (assignment.startDate && assignment.endDate) {
+            startDate = assignment.startDate;
+            const start = new Date(assignment.startDate);
+            const end = new Date(assignment.endDate);
+            totalDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+            const current = new Date(dateString);
+            currentDayIndex = Math.ceil((current.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+          }
+          break;
+        case 'duration_days':
+          if (assignment.startDate && assignment.durationDays) {
+            startDate = assignment.startDate;
+            totalDays = assignment.durationDays;
+            const start = new Date(assignment.startDate);
+            const current = new Date(dateString);
+            currentDayIndex = Math.ceil((current.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+          }
+          break;
+      }
+
+      return {
+        assignmentId: assignment.id,
+        title: assignment.title || `Assignment ${assignment.id.slice(-6)}`,
+        isStart: currentDayIndex === 0,
+        isEnd: currentDayIndex === totalDays - 1,
+        isMiddle: currentDayIndex > 0 && currentDayIndex < totalDays - 1,
+        totalDays,
+        currentDay: currentDayIndex + 1,
+        progress: totalDays > 0 ? ((currentDayIndex + 1) / totalDays) * 100 : 0
+      };
+    });
     
     return { 
       totalAssigned, 
@@ -502,7 +865,9 @@ function TimelineCalendar({
       inProgress, 
       failed,
       dayStatus,
-      hasAssignments: totalAssigned > 0 
+      hasAssignments: totalAssigned > 0,
+      relevantAssignments,
+      multiDayInfo
     };
   };
   
@@ -596,49 +961,49 @@ function TimelineCalendar({
     const isSelectedDate = isSelected(date);
     const isTodayDate = isToday(date);
     
-    // Base styling
-    let baseClass = 'relative transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1';
+    // Fixed base styling for consistent sizing
+    let baseClass = 'relative transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 overflow-hidden';
     let dateClass = '';
     let textClass = '';
     let borderClass = '';
     let bgClass = '';
     
-    // Today styling - most prominent
+    // Today styling - minimal border approach
     if (isTodayDate) {
-      borderClass = 'ring-3 ring-orange-400 ring-offset-2';
-      bgClass = 'bg-gradient-to-br from-orange-50 to-orange-100 border-2 border-orange-400';
-      textClass = 'text-orange-900 font-bold';
-      dateClass = 'shadow-lg';
+      borderClass = 'ring-2 ring-blue-600 ring-inset shadow-lg';
+      bgClass = 'bg-white border-2 border-blue-600';
+      textClass = 'text-blue-900 font-bold';
+      dateClass = 'shadow-md';
     }
     // Selected styling - secondary prominence
     else if (isSelectedDate) {
-      borderClass = 'ring-2 ring-blue-400 ring-offset-1';
-      bgClass = 'bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-400';
+      borderClass = 'ring-1 ring-blue-400 ring-inset';
+      bgClass = 'bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-300';
       textClass = 'text-blue-900 font-semibold';
-      dateClass = 'shadow-md';
+      dateClass = 'shadow-sm';
     }
     // Assignment status styling
     else {
       switch (assignmentInfo.dayStatus) {
         case 'completed':
-          bgClass = 'bg-gradient-to-br from-green-50 to-green-100 border border-green-200';
-          textClass = 'text-green-900';
-          borderClass = 'hover:ring-1 hover:ring-green-300';
+          bgClass = 'bg-gradient-to-br from-emerald-50 to-green-50 border border-emerald-200';
+          textClass = 'text-emerald-900';
+          borderClass = 'hover:ring-1 hover:ring-emerald-300';
           break;
         case 'partial':
-          bgClass = 'bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200';
-          textClass = 'text-blue-900';
-          borderClass = 'hover:ring-1 hover:ring-blue-300';
+          bgClass = 'bg-gradient-to-br from-sky-50 to-blue-50 border border-sky-200';
+          textClass = 'text-sky-900';
+          borderClass = 'hover:ring-1 hover:ring-sky-300';
           break;
         case 'pending_future':
-          bgClass = 'bg-gradient-to-br from-amber-50 to-amber-100 border border-amber-200';
+          bgClass = 'bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200';
           textClass = 'text-amber-900';
           borderClass = 'hover:ring-1 hover:ring-amber-300';
           break;
         case 'pending_past':
-          bgClass = 'bg-gradient-to-br from-red-50 to-red-100 border border-red-200';
-          textClass = 'text-red-900';
-          borderClass = 'hover:ring-1 hover:ring-red-300';
+          bgClass = 'bg-gradient-to-br from-rose-50 to-red-50 border border-rose-200';
+          textClass = 'text-rose-900';
+          borderClass = 'hover:ring-1 hover:ring-rose-300';
           break;
         default:
           bgClass = 'bg-white border border-gray-200';
@@ -657,7 +1022,7 @@ function TimelineCalendar({
         className={`${className} ${baseClass} ${bgClass} ${borderClass} ${dateClass}`}
         title={getDateTooltip(assignmentInfo, date)}
       >
-        <div className="text-center p-2">
+        <div className="text-center p-3 flex flex-col items-center justify-center h-full">
           {/* Day label for carousel view */}
           {view === 'carousel' && (
             <div className={`text-xs font-medium mb-1 ${textClass.replace('font-bold', 'font-medium').replace('font-semibold', 'font-medium')}`}>
@@ -666,59 +1031,85 @@ function TimelineCalendar({
           )}
           
           {/* Date number - main focus */}
-          <div className={`text-lg ${isTodayDate ? 'text-2xl font-black' : isSelectedDate ? 'text-xl font-bold' : 'font-semibold'} ${textClass}`}>
+          <div className={`${isTodayDate ? 'text-xl font-black' : isSelectedDate ? 'text-lg font-bold' : 'text-lg font-semibold'} ${textClass}`}>
             {formatDate(date, 'dayNum')}
           </div>
           
           {/* Today indicator */}
           {isTodayDate && (
-            <div className="text-xs font-bold text-orange-700 mt-1 animate-pulse">
-              TODAY
+            <div className="text-xs font-bold text-blue-600 mt-1 px-2 py-0.5 bg-blue-100 rounded-full">
+              Today
             </div>
           )}
         </div>
         
         {/* Enhanced assignment indicators */}
         {assignmentInfo.hasAssignments && (
-          <div className="absolute -bottom-1 -right-1">
+          <div className="absolute top-1 right-1">
             <div className="relative">
               {/* Status indicator */}
-              <div className="w-4 h-4 rounded-full shadow-sm border-2 border-white">
+              <div className="w-3 h-3 rounded-full shadow-sm border border-white">
                 {assignmentInfo.dayStatus === 'completed' && (
-                  <div className="w-full h-full bg-green-500 rounded-full flex items-center justify-center">
-                    <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
-                  </div>
+                  <div className="w-full h-full bg-emerald-500 rounded-full"></div>
                 )}
                 {assignmentInfo.dayStatus === 'partial' && (
-                  <div className="w-full h-full bg-blue-500 rounded-full relative overflow-hidden">
-                    <div className="absolute inset-0 flex">
-                      <div className="w-1/2 bg-green-400"></div>
-                      <div className="w-1/2 bg-blue-400"></div>
-                    </div>
-                  </div>
+                  <div className="w-full h-full bg-sky-500 rounded-full"></div>
                 )}
                 {assignmentInfo.dayStatus === 'pending_future' && (
                   <div className="w-full h-full bg-amber-400 rounded-full"></div>
                 )}
                 {assignmentInfo.dayStatus === 'pending_past' && (
-                  <div className="w-full h-full bg-red-500 rounded-full flex items-center justify-center">
-                    <div className="w-1 h-1 bg-white rounded-full"></div>
-                  </div>
+                  <div className="w-full h-full bg-rose-500 rounded-full"></div>
                 )}
               </div>
               
               {/* Task count badge */}
-              <div className="absolute -top-2 -left-2 w-5 h-5 bg-gray-800 text-white text-xs rounded-full flex items-center justify-center font-bold shadow-sm">
+              <div className="absolute -top-1 -right-1 min-w-[16px] h-4 bg-gray-900 text-white text-xs rounded-full flex items-center justify-center font-bold shadow-sm px-1">
                 {assignmentInfo.totalAssigned}
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Multi-day assignment indicators */}
+        {assignmentInfo.multiDayInfo && assignmentInfo.multiDayInfo.length > 0 && (
+          <div className="absolute bottom-1 left-1 right-1">
+            {assignmentInfo.multiDayInfo.map((multiDay, index) => (
+              <div key={multiDay.assignmentId} className="mb-1">
+                {/* Connection line for multi-day assignments */}
+                <div className="flex items-center h-2">
+                  {/* Start indicator */}
+                  {multiDay.isStart && (
+                    <div className="w-2 h-2 bg-blue-600 rounded-full flex-shrink-0"></div>
+                  )}
+                  
+                  {/* Progress bar */}
+                  <div className="flex-1 h-1 mx-1 bg-blue-200 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-blue-600 transition-all duration-300 rounded-full"
+                      style={{ width: `${multiDay.progress}%` }}
+                    ></div>
+                  </div>
+                  
+                  {/* End indicator */}
+                  {multiDay.isEnd && (
+                    <div className="w-2 h-2 bg-blue-600 rounded-full flex-shrink-0"></div>
+                  )}
+                </div>
+                
+                {/* Day indicator */}
+                <div className="text-xs text-blue-700 font-bold text-center">
+                  {multiDay.currentDay}/{multiDay.totalDays}
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </button>
     );
   };
 
-  // Helper function for date tooltips
+  // Helper function for date tooltips with duration support
   const getDateTooltip = (assignmentInfo: any, date: Date) => {
     const dateStr = date.toLocaleDateString();
     
@@ -726,7 +1117,7 @@ function TimelineCalendar({
       return `${dateStr} - No tasks assigned`;
     }
     
-    const { totalAssigned, completed, inProgress, failed, dayStatus } = assignmentInfo;
+    const { totalAssigned, completed, inProgress, failed, dayStatus, multiDayInfo } = assignmentInfo;
     
     let statusText = '';
     switch (dayStatus) {
@@ -744,7 +1135,21 @@ function TimelineCalendar({
         break;
     }
     
-    return `${dateStr} - ${totalAssigned} tasks assigned\n${statusText}${failed > 0 ? `\n${failed} failed` : ''}`;
+    let tooltip = `${dateStr} - ${totalAssigned} tasks assigned\n${statusText}`;
+    
+    if (failed > 0) {
+      tooltip += `\n${failed} failed`;
+    }
+    
+    // Add multi-day assignment information
+    if (multiDayInfo && multiDayInfo.length > 0) {
+      tooltip += '\n\nMulti-day assignments:';
+      multiDayInfo.forEach((multiDay: any) => {
+        tooltip += `\n• ${multiDay.title}: Day ${multiDay.currentDay}/${multiDay.totalDays}`;
+      });
+    }
+    
+    return tooltip;
   };
 
   return (
@@ -845,32 +1250,31 @@ function TimelineCalendar({
       {/* Calendar Content */}
       <div className="px-6 pb-6">
         {view === 'carousel' && (
-          <div className="flex space-x-2 overflow-x-auto pb-2 px-1">
+          <div className="flex space-x-3 overflow-x-auto pb-2 px-1">
             {generateCarouselDays().map((date, index) => {
-              const baseClass = `flex-shrink-0 w-16 h-20 bg-white border border-gray-200 rounded-lg transition-all hover:border-gray-300 hover:shadow-sm flex items-center justify-center relative`;
+              const baseClass = `flex-shrink-0 w-20 h-24 rounded-xl transition-all hover:scale-105 cursor-pointer`;
               return renderDateButton(date, baseClass);
             })}
           </div>
         )}
 
         {view === 'week' && (
-          <div className="bg-white">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             {/* Clean week grid */}
-            <div className="space-y-1">
+            <div className="space-y-0">
               {/* Day headers */}
-              <div className="grid grid-cols-7 gap-px bg-gray-100 p-px rounded-lg mb-2">
+              <div className="grid grid-cols-7 bg-gray-50 border-b border-gray-100">
                 {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, index) => (
-                  <div key={index} className="bg-white text-center text-xs font-medium text-gray-500 py-3 first:rounded-l-md last:rounded-r-md">
+                  <div key={index} className="text-center text-xs font-semibold text-gray-600 py-3 border-r border-gray-100 last:border-r-0">
                     {day}
                   </div>
                 ))}
               </div>
               
               {/* Week days */}
-              <div className="grid grid-cols-7 gap-px bg-gray-100 p-px rounded-lg">
+              <div className="grid grid-cols-7">
                 {generateWeekDays().map((date, index) => {
-                  const baseClass = `min-h-[80px] bg-white relative cursor-pointer transition-all duration-200 hover:bg-gray-50 flex items-center justify-center 
-                    ${index === 0 ? 'rounded-l-lg' : ''} ${index === 6 ? 'rounded-r-lg' : ''}`;
+                  const baseClass = `h-20 relative cursor-pointer transition-all duration-200 border-r border-gray-100 last:border-r-0`;
                   return renderDateButton(date, baseClass);
                 })}
               </div>
@@ -879,56 +1283,49 @@ function TimelineCalendar({
         )}
 
         {view === 'month' && (
-          <div className="bg-white">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             {/* Clean month grid */}
-            <div className="space-y-1">
+            <div className="space-y-0">
               {/* Day headers */}
-              <div className="grid grid-cols-7 gap-px bg-gray-100 p-px rounded-lg mb-2">
+              <div className="grid grid-cols-7 bg-gray-50 border-b border-gray-100">
                 {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, index) => (
-                  <div key={index} className="bg-white text-center text-xs font-medium text-gray-500 py-3 first:rounded-l-md last:rounded-r-md">
+                  <div key={index} className="text-center text-xs font-semibold text-gray-600 py-3 border-r border-gray-100 last:border-r-0">
                     {day}
                   </div>
                 ))}
               </div>
               
-              {/* Calendar days */}
-              <div className="grid grid-cols-7 gap-px bg-gray-100 p-px rounded-lg">
+              {/* Calendar days - Fixed height grid */}
+              <div className="grid grid-cols-7">
                 {generateMonthDays().map((date, index) => {
                   const isTodayDate = isToday(date);
                   const isSelectedDate = isSelected(date);
                   const isCurrentMonthDate = isCurrentMonth(date);
                   const assignmentInfo = getDateAssignmentInfo(date);
                   
-                  // Minimal styling approach
-                  let dayClass = 'bg-white min-h-[60px] relative group cursor-pointer transition-all duration-200 hover:bg-gray-50 flex flex-col';
+                  // Fixed sizing approach with modern styling
+                  let dayClass = 'h-16 relative cursor-pointer transition-all duration-200 border-r border-b border-gray-100 last:border-r-0 hover:bg-gray-50 flex flex-col items-center justify-center';
                   let textClass = 'text-sm font-medium text-gray-700';
-                  let dateNumClass = 'text-sm';
+                  let dateNumClass = 'text-sm font-semibold';
                   
-                  // Rounded corners for first/last items
-                  if (index < 7) { // First row
-                    if (index === 0) dayClass += ' rounded-tl-md';
-                    if (index === 6) dayClass += ' rounded-tr-md';
-                  }
-                  if (index >= 35) { // Last row
-                    if (index === 35) dayClass += ' rounded-bl-md';
-                    if (index === 41) dayClass += ' rounded-br-md';
-                  }
-                  
-                  // Today styling - clean and prominent
+                  // Today styling - minimal border approach
                   if (isTodayDate) {
-                    dayClass = dayClass.replace('bg-white', 'bg-blue-500 text-white');
-                    textClass = 'text-white font-semibold';
-                    dateNumClass = 'text-white font-bold';
+                    dayClass = dayClass.replace('hover:bg-gray-50', 'hover:bg-blue-50');
+                    dayClass += ' ring-2 ring-inset ring-blue-600 bg-blue-50';
+                    textClass = 'text-blue-900 font-bold';
+                    dateNumClass = 'text-blue-900 font-black';
                   }
                   // Selected styling - subtle
                   else if (isSelectedDate) {
-                    dayClass = dayClass.replace('bg-white', 'bg-blue-50');
-                    dayClass = dayClass.replace('hover:bg-gray-50', 'hover:bg-blue-100');
-                    textClass = 'text-blue-700 font-medium';
+                    dayClass = dayClass.replace('hover:bg-gray-50', 'hover:bg-blue-50');
+                    dayClass += ' bg-blue-50 ring-1 ring-inset ring-blue-300';
+                    textClass = 'text-blue-700 font-semibold';
+                    dateNumClass = 'text-blue-700 font-bold';
                   }
                   // Other month dates - muted
                   else if (!isCurrentMonthDate) {
                     textClass = 'text-gray-400';
+                    dateNumClass = 'text-gray-400';
                     dayClass = dayClass.replace('hover:bg-gray-50', 'hover:bg-gray-25');
                   }
                   
@@ -942,37 +1339,35 @@ function TimelineCalendar({
                       className={dayClass}
                       title={getDateTooltip(assignmentInfo, date)}
                     >
-                      <div className="p-3 flex-1 flex flex-col">
-                        {/* Date number */}
-                        <div className={`${dateNumClass} mb-1`}>
-                          {formatDate(date, 'dayNum')}
-                        </div>
-                        
-                        {/* Today badge */}
-                        {isTodayDate && (
-                          <div className="text-xs font-medium opacity-90">
-                            Today
-                          </div>
-                        )}
-                        
-                        {/* Assignment indicator - minimal dot */}
-                        {assignmentInfo.hasAssignments && (
-                          <div className="mt-auto flex items-center justify-between">
-                            <div className={`w-2 h-2 rounded-full ${
-                              assignmentInfo.dayStatus === 'completed' ? 'bg-green-400' :
-                              assignmentInfo.dayStatus === 'partial' ? 'bg-blue-400' :
-                              assignmentInfo.dayStatus === 'pending_future' ? 'bg-amber-400' :
-                              assignmentInfo.dayStatus === 'pending_past' ? 'bg-red-400' : 'bg-gray-400'
-                            } ${isTodayDate ? 'bg-white bg-opacity-80' : ''}`}></div>
-                            <div className={`text-xs font-medium ${
-                              isTodayDate ? 'text-white text-opacity-90' : 
-                              isSelectedDate ? 'text-blue-600' : 'text-gray-500'
-                            }`}>
-                              {assignmentInfo.totalAssigned}
-                            </div>
-                          </div>
-                        )}
+                      {/* Date number */}
+                      <div className={`${dateNumClass} mb-1`}>
+                        {formatDate(date, 'dayNum')}
                       </div>
+                      
+                      {/* Today badge */}
+                      {isTodayDate && (
+                        <div className="text-xs font-bold text-blue-600 px-1.5 py-0.5 bg-blue-100 rounded-full">
+                          Today
+                        </div>
+                      )}
+                      
+                      {/* Assignment indicator - minimal dot */}
+                      {assignmentInfo.hasAssignments && (
+                        <div className="absolute bottom-1 right-1 flex items-center space-x-1">
+                          <div className={`w-2 h-2 rounded-full ${
+                            assignmentInfo.dayStatus === 'completed' ? 'bg-emerald-500' :
+                            assignmentInfo.dayStatus === 'partial' ? 'bg-sky-500' :
+                            assignmentInfo.dayStatus === 'pending_future' ? 'bg-amber-400' :
+                            assignmentInfo.dayStatus === 'pending_past' ? 'bg-rose-500' : 'bg-gray-400'
+                          }`}></div>
+                          <div className={`text-xs font-bold min-w-[16px] text-center ${
+                            isTodayDate ? 'text-blue-700' : 
+                            isSelectedDate ? 'text-blue-600' : 'text-gray-600'
+                          }`}>
+                            {assignmentInfo.totalAssigned}
+                          </div>
+                        </div>
+                      )}
                     </button>
                   );
                 })}
@@ -1023,7 +1418,8 @@ function ScenarioGroupRow({ scenario, subtasks, isExpanded, onToggle, onEditSubt
     }
   };
 
-  const getStatusDot = (status: string) => {
+  const getStatusDot = (status: string, isExecuted: boolean = false) => {
+    if (isExecuted) return 'bg-green-500';
     switch (status) {
       case 'completed': return 'bg-green-500';
       case 'in_progress': return 'bg-blue-500';
@@ -1033,7 +1429,8 @@ function ScenarioGroupRow({ scenario, subtasks, isExpanded, onToggle, onEditSubt
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string, isExecuted: boolean = false) => {
+    if (isExecuted) return 'bg-green-100 text-green-800';
     switch (status) {
       case 'completed': return 'bg-green-100 text-green-800';
       case 'in_progress': return 'bg-blue-100 text-blue-800';
@@ -1074,15 +1471,20 @@ function ScenarioGroupRow({ scenario, subtasks, isExpanded, onToggle, onEditSubt
     return sum + execRuns;
   }, 0);
 
-  const completedCount = subtasks.filter(s => s.status === 'completed' || s.isExecuted).length;
-  const inProgressCount = subtasks.filter(s => s.status === 'in_progress').length;
-  const pausedCount = subtasks.filter(s => s.status === 'paused').length;
-  const pendingCount = subtasks.filter(s => s.status === 'pending').length;
-  const assignedCount = subtasks.filter(s => s.assignedDate).length;
+  const completedCount = subtasks.filter(s => s.isExecuted || s.status === 'completed').length;
+  const inProgressCount = subtasks.filter(s => s.status === 'in_progress' && !s.isExecuted).length;
+  const pausedCount = subtasks.filter(s => s.status === 'paused' && !s.isExecuted).length;
+  const pendingCount = subtasks.filter(s => s.status === 'pending' && !s.isExecuted).length;
+  const assignedCount = subtasks.filter(s => s.assignedDate || s.assignmentId).length;
 
-  // Get dominant status
-  const statusCounts = { completed: completedCount, in_progress: inProgressCount, paused: pausedCount, pending: pendingCount };
-  const dominantStatus = Object.entries(statusCounts).reduce((a, b) => statusCounts[a[0] as keyof typeof statusCounts] > statusCounts[b[0] as keyof typeof statusCounts] ? a : b)[0] as keyof typeof statusCounts;
+  // Get dominant status - prioritize executed tasks
+  const hasExecuted = subtasks.some(s => s.isExecuted);
+  let dominantStatus = 'pending';
+  if (completedCount === subtasks.length) {
+    dominantStatus = 'completed';
+  } else if (completedCount > 0 || inProgressCount > 0) {
+    dominantStatus = inProgressCount > completedCount ? 'in_progress' : 'completed';
+  }
 
   // Get dominant priority (lowest number = highest priority)
   const priorities = subtasks.map(s => parseInt(s.priority) || 3);
@@ -1104,7 +1506,7 @@ function ScenarioGroupRow({ scenario, subtasks, isExpanded, onToggle, onEditSubt
             <div className="flex items-center space-x-4 flex-1">
               <div className="flex items-center space-x-2">
                 {isExpanded ? <ChevronDown className="h-4 w-4 text-gray-500" /> : <ChevronRight className="h-4 w-4 text-gray-500" />}
-                <div className={`w-3 h-3 rounded-full ${getStatusDot(dominantStatus)}`}></div>
+                <div className={`w-3 h-3 rounded-full ${getStatusDot(dominantStatus, hasExecuted)}`}></div>
               </div>
               
               <div className="flex-1 min-w-0">
@@ -1132,8 +1534,8 @@ function ScenarioGroupRow({ scenario, subtasks, isExpanded, onToggle, onEditSubt
             {/* Right side - Status indicators */}
             <div className="flex items-center space-x-3 flex-shrink-0">
               <div className="hidden sm:flex items-center space-x-2">
-                <Badge variant="outline" className={`text-xs ${getStatusColor(dominantStatus)}`}>
-                  {dominantStatus.replace('_', ' ')}
+                <Badge variant="outline" className={`text-xs ${getStatusColor(dominantStatus, hasExecuted)}`}>
+                  {hasExecuted && completedCount > 0 ? 'executed' : dominantStatus.replace('_', ' ')}
                 </Badge>
                 <Badge variant="outline" className={`text-xs ${getPriorityColor(dominantPriority)}`}>
                   P{dominantPriority}
@@ -1177,7 +1579,8 @@ function ScenarioGroupRow({ scenario, subtasks, isExpanded, onToggle, onEditSubt
 }
 
 function SubtaskRow({ subtask, isExpanded, onToggle, onEdit, isGrouped = false }: SubtaskRowProps & { isGrouped?: boolean }) {
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status: string, isExecuted: boolean = false) => {
+    if (isExecuted) return <CheckCircle2 className="h-4 w-4 text-green-600" />;
     switch (status) {
       case 'completed': return <Check className="h-4 w-4 text-green-600" />;
       case 'in_progress': return <Play className="h-4 w-4 text-blue-600" />;
@@ -1186,7 +1589,8 @@ function SubtaskRow({ subtask, isExpanded, onToggle, onEdit, isGrouped = false }
     }
   };
 
-  const getStatusDot = (status: string) => {
+  const getStatusDot = (status: string, isExecuted: boolean = false) => {
+    if (isExecuted) return 'bg-green-500';
     switch (status) {
       case 'completed': return 'bg-green-500';
       case 'in_progress': return 'bg-blue-500';
@@ -1196,7 +1600,8 @@ function SubtaskRow({ subtask, isExpanded, onToggle, onEdit, isGrouped = false }
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string, isExecuted: boolean = false) => {
+    if (isExecuted) return 'bg-green-100 text-green-800';
     switch (status) {
       case 'completed': return 'bg-green-100 text-green-800';
       case 'in_progress': return 'bg-blue-100 text-blue-800';
@@ -1248,7 +1653,7 @@ function SubtaskRow({ subtask, isExpanded, onToggle, onEdit, isGrouped = false }
       <div className="flex items-center justify-between">
         {/* Left side - Subtask info */}
         <div className="flex items-center space-x-3 flex-1 min-w-0">
-          <div className={`w-2 h-2 rounded-full ${getStatusDot(subtask.status)} flex-shrink-0`}></div>
+          <div className={`w-2 h-2 rounded-full ${getStatusDot(subtask.status, subtask.isExecuted)} flex-shrink-0`}></div>
           
           <div className="flex-1 min-w-0">
             <div className="flex items-center space-x-2">
@@ -1258,17 +1663,22 @@ function SubtaskRow({ subtask, isExpanded, onToggle, onEdit, isGrouped = false }
               <span className="font-mono text-xs text-blue-600 flex-shrink-0 font-bold">
                 {subtask.jira_subtask_number || `#${subtask.id}`}
               </span>
-              {subtask.assignedDate && (
+              {subtask.isExecuted && (
+                <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full flex-shrink-0">
+                  ✓ Executed
+                </span>
+              )}
+              {(subtask.assignedDate || subtask.assignmentId) && !subtask.isExecuted && (
                 <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full flex-shrink-0">
-                  📅 {new Date(subtask.assignedDate).toLocaleDateString()}
+                  📅 {subtask.assignedDate ? new Date(subtask.assignedDate).toLocaleDateString() : 'Assigned'}
                 </span>
               )}
             </div>
             
             {/* Additional info on mobile */}
             <div className="flex items-center space-x-3 mt-1 text-xs text-gray-600 sm:hidden">
-              <Badge variant="outline" className={`text-xs ${getStatusColor(subtask.status)}`}>
-                {subtask.status}
+              <Badge variant="outline" className={`text-xs ${getStatusColor(subtask.status, subtask.isExecuted)}`}>
+                {subtask.isExecuted ? 'executed' : subtask.status}
               </Badge>
               <Badge variant="outline" className={`text-xs ${getPriorityColor(subtask.priority || 3)}`}>
                 P{subtask.priority || 3}
@@ -1282,8 +1692,8 @@ function SubtaskRow({ subtask, isExpanded, onToggle, onEdit, isGrouped = false }
         <div className="flex items-center space-x-3 flex-shrink-0">
           {/* Desktop badges */}
           <div className="hidden sm:flex items-center space-x-2">
-            <Badge variant="outline" className={`text-xs ${getStatusColor(subtask.status)}`}>
-              {subtask.status}
+            <Badge variant="outline" className={`text-xs ${getStatusColor(subtask.status, subtask.isExecuted)}`}>
+              {subtask.isExecuted ? 'executed' : subtask.status}
             </Badge>
             <Badge variant="outline" className={`text-xs ${getPriorityColor(subtask.priority || 3)}`}>
               P{subtask.priority || 3}
@@ -1297,7 +1707,7 @@ function SubtaskRow({ subtask, isExpanded, onToggle, onEdit, isGrouped = false }
             </span>
             <div className="w-8 bg-gray-200 rounded-full h-1.5 hidden md:block">
               <div 
-                className="bg-blue-600 h-1.5 rounded-full transition-all duration-300" 
+                className={`h-1.5 rounded-full transition-all duration-300 ${subtask.isExecuted ? 'bg-green-600' : 'bg-blue-600'}`}
                 style={{ width: `${completionPercentage}%` }}
               ></div>
             </div>
@@ -1682,16 +2092,18 @@ function TaskPageContent() {
     setShowDayMissions(true);
   };
 
-  const handleAssignTasks = async (date: string, subtaskIds: string[], notes?: string) => {
+  const handleAssignTasks = async (assignmentData: {
+    assignmentType: 'single_day' | 'date_range' | 'duration_days';
+    date?: string;
+    startDate?: string;
+    endDate?: string;
+    durationDays?: number;
+    subtaskIds: string[];
+    notes?: string;
+    title?: string;
+    overrideConflicts?: boolean;
+  }) => {
     if (!task || !canManage) return;
-
-    // Check for assignment conflicts
-    const conflicts = checkAssignmentConflicts(subtaskIds, date);
-    
-    if (conflicts.length > 0) {
-      const confirmed = await showAssignmentConfirmation(conflicts, date);
-      if (!confirmed) return;
-    }
 
     try {
       setIsLoading(true);
@@ -1701,96 +2113,33 @@ function TaskPageContent() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          date,
-          subtaskIds,
-          notes,
-        }),
+        body: JSON.stringify(assignmentData),
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          await fetchTask(); // Refresh task data
-        } else {
-          alert('Failed to assign tasks: ' + data.error);
-        }
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        await fetchTask(); // Refresh task data
+      } else if (response.status === 409 && data.requiresConfirmation) {
+        // Handle conflicts - throw with conflict data to be caught by modal
+        throw { conflicts: data.conflicts };
       } else {
+        alert('Failed to assign tasks: ' + (data.error || 'Unknown error'));
+      }
+    } catch (error: any) {
+      if (error.conflicts) {
+        // Re-throw for modal to handle
+        throw error;
+      } else {
+        console.error('Error assigning tasks:', error);
         alert('Failed to assign tasks');
       }
-    } catch (error) {
-      console.error('Error assigning tasks:', error);
-      alert('Failed to assign tasks');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Helper function to check assignment conflicts
-  const checkAssignmentConflicts = (subtaskIds: string[], targetDate: string) => {
-    if (!task) return [];
-    
-    const conflicts: { subtask: TTSubtask; reason: string; canOverride: boolean }[] = [];
-    const targetDateObj = new Date(targetDate);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    subtaskIds.forEach(subtaskId => {
-      const subtask = task.subtasks.find(s => s.id === subtaskId);
-      if (!subtask) return;
-      
-      // Check if already completed
-      if (subtask.isExecuted || subtask.status === 'completed') {
-        conflicts.push({
-          subtask,
-          reason: 'Task already completed',
-          canOverride: false
-        });
-        return;
-      }
-      
-      // Check if already assigned to a different date
-      if (subtask.assignedDate && subtask.assignedDate !== targetDate) {
-        const assignedDateObj = new Date(subtask.assignedDate);
-        const isPastAssignment = assignedDateObj < today;
-        
-        conflicts.push({
-          subtask,
-          reason: isPastAssignment 
-            ? `Already assigned to ${subtask.assignedDate} (past date, not completed)`
-            : `Already assigned to ${subtask.assignedDate}`,
-          canOverride: !isPastAssignment // Can't override past assignments that aren't done
-        });
-      }
-    });
-    
-    return conflicts;
-  };
-
-  // Helper function to show assignment confirmation dialog
-  const showAssignmentConfirmation = (conflicts: { subtask: TTSubtask; reason: string; canOverride: boolean }[], targetDate: string): Promise<boolean> => {
-    return new Promise((resolve) => {
-      const nonOverridable = conflicts.filter(c => !c.canOverride);
-      const overridable = conflicts.filter(c => c.canOverride);
-      
-      if (nonOverridable.length > 0) {
-        const message = `Cannot assign the following tasks:\n\n${nonOverridable.map(c => `• ${c.subtask.jira_subtask_number || c.subtask.id}: ${c.reason}`).join('\n')}`;
-        alert(message);
-        resolve(false);
-        return;
-      }
-      
-      if (overridable.length > 0) {
-        const message = `The following tasks are already assigned:\n\n${overridable.map(c => `• ${c.subtask.jira_subtask_number || c.subtask.id}: ${c.reason}`).join('\n')}\n\nDo you want to reassign them to ${targetDate}?`;
-        resolve(confirm(message));
-        return;
-      }
-      
-      resolve(true);
-    });
-  };
-
-  const handleRemoveAssignment = async (date: string, subtaskId: string) => {
+  const handleRemoveAssignment = async (assignmentId: string, subtaskId: string) => {
     if (!task || !canManage) return;
 
     try {
@@ -1802,7 +2151,7 @@ function TaskPageContent() {
           'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
-          date,
+          assignmentId,
           subtaskId,
         }),
       });
@@ -1902,12 +2251,19 @@ function TaskPageContent() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header
-        onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+        onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)}
         taskCounts={taskCounts}
       />
 
       <div className="container mx-auto px-4 py-6">
-        {task ? (
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading task...</p>
+            </div>
+          </div>
+        ) : task ? (
           <div className="space-y-6">
             {/* Task Header */}
             <div className="bg-white rounded-lg shadow-sm p-6">
@@ -1967,11 +2323,15 @@ function TaskPageContent() {
                 </div>
                 <div className="bg-green-50 rounded-lg p-4">
                   <div className="text-sm font-medium text-green-700 mb-1">Completed</div>
-                  <div className="text-2xl font-bold text-green-900">{task.completedSubtasks}</div>
+                  <div className="text-2xl font-bold text-green-900">
+                    {task.subtasks.filter(s => s.isExecuted || s.status === 'completed').length}
+                  </div>
                 </div>
                 <div className="bg-purple-50 rounded-lg p-4">
                   <div className="text-sm font-medium text-purple-700 mb-1">Progress</div>
-                  <div className="text-2xl font-bold text-purple-900">{task.progress}%</div>
+                  <div className="text-2xl font-bold text-purple-900">
+                    {Math.round((task.subtasks.filter(s => s.isExecuted || s.status === 'completed').length / task.totalSubtasks) * 100)}%
+                  </div>
                 </div>
                 <div className="bg-orange-50 rounded-lg p-4">
                   <div className="text-sm font-medium text-orange-700 mb-1">CSV File</div>
@@ -2106,6 +2466,7 @@ function TaskPageContent() {
         ) : (
           <div className="text-center py-12">
             <div className="text-gray-500 text-lg mb-2">Task not found</div>
+            <p className="text-gray-400 mb-4">The task you're looking for doesn't exist or you don't have permission to view it.</p>
             <Button onClick={() => router.push('/?section=TT')} variant="outline">
               Back to Tasks
             </Button>
