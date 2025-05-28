@@ -191,7 +191,7 @@ function TimelineCalendar({ selectedDate, onDateSelect, view, onViewChange }: Ti
           <Button 
             variant="ghost" 
             size="sm" 
-            onClick={() => onDateSelect(today)}
+            onClick={() => onDateSelect(new Date())}
             className="text-blue-600 hover:text-blue-700"
           >
             Today
@@ -324,6 +324,16 @@ function ScenarioGroupRow({ scenario, subtasks, isExpanded, onToggle, onEditSubt
     }
   };
 
+  const getStatusDot = (status: string) => {
+    switch (status) {
+      case 'completed': return 'bg-green-500';
+      case 'in_progress': return 'bg-blue-500';
+      case 'paused': return 'bg-yellow-500';
+      case 'pending': return 'bg-gray-400';
+      default: return 'bg-gray-300';
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed': return 'bg-green-100 text-green-800';
@@ -383,79 +393,84 @@ function ScenarioGroupRow({ scenario, subtasks, isExpanded, onToggle, onEditSubt
 
   return (
     <>
-      {/* Scenario Group Row */}
-      <tr className="border-b border-gray-200 hover:bg-gray-50 cursor-pointer group bg-blue-50" onClick={onToggle}>
-        <td className="px-3 py-3 text-sm">
-          <div className="flex flex-col space-y-1">
-            <div className="flex items-center space-x-2">
-              {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-              <span className="font-medium text-sm">{scenario || 'Unknown Scenario'}</span>
-              <Badge variant="outline" className="text-xs bg-blue-100 text-blue-800">
-                {subtasks.length}
-              </Badge>
-            </div>
-            {/* Mobile-only status and priority info */}
-            <div className="flex items-center space-x-2 sm:hidden">
-              {getStatusIcon(dominantStatus)}
-              <Badge variant="outline" className={`text-xs ${getStatusColor(dominantStatus)}`}>
-                {dominantStatus}
-              </Badge>
-              <Badge variant="outline" className={`text-xs ${getPriorityColor(dominantPriority)}`}>
-                P{dominantPriority}
-              </Badge>
-            </div>
-          </div>
-        </td>
-        <td className="px-3 py-3 text-sm hidden sm:table-cell">
-          <div className="flex items-center space-x-2">
-            {getStatusIcon(dominantStatus)}
-            <Badge variant="outline" className={`text-xs ${getStatusColor(dominantStatus)}`}>
-              {dominantStatus}
-            </Badge>
-            {subtasks.length > 1 && (
-              <span className="text-xs text-gray-500 hidden lg:inline">
-                ({completedCount}C, {inProgressCount}P, {pausedCount}Pa, {pendingCount}Pe)
-              </span>
-            )}
-          </div>
-        </td>
-        <td className="px-3 py-3 text-sm hidden md:table-cell">
-          <Badge variant="outline" className={`text-xs ${getPriorityColor(dominantPriority)}`}>
-            {getPriorityLabel(dominantPriority)}
-          </Badge>
-        </td>
-        <td className="px-3 py-3 text-sm">
-          <div className="flex items-center space-x-2">
-            <div className="flex-1 min-w-0">
-              <div className="flex justify-between items-center mb-1">
-                <span className="text-xs text-gray-600 hidden sm:inline">Progress</span>
-                <span className="text-xs font-medium">{executedRuns}/{totalRuns}</span>
+      {/* Scenario Group Row - Simplified flat design */}
+      <div 
+        className="border-b border-gray-200 hover:bg-gray-50 cursor-pointer transition-all duration-200 last:border-b-0"
+        onClick={onToggle}
+      >
+        <div className="px-6 py-4">
+          <div className="flex items-center justify-between">
+            {/* Left side - Scenario info */}
+            <div className="flex items-center space-x-4 flex-1">
+              <div className="flex items-center space-x-2">
+                {isExpanded ? <ChevronDown className="h-4 w-4 text-gray-500" /> : <ChevronRight className="h-4 w-4 text-gray-500" />}
+                <div className={`w-3 h-3 rounded-full ${getStatusDot(dominantStatus)}`}></div>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div 
-                  className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
-                  style={{ width: `${completionPercentage}%` }}
-                ></div>
-              </div>
-              <div className="text-xs text-gray-500 mt-1">
-                {completionPercentage}% complete
+              
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center space-x-3">
+                  <h3 className="font-medium text-gray-900 truncate">{scenario || 'Unknown Scenario'}</h3>
+                  <Badge variant="outline" className="text-xs bg-gray-100 text-gray-600 flex-shrink-0">
+                    {subtasks.length}
+                  </Badge>
+                </div>
+                
+                {/* Progress info inline - Mobile responsive */}
+                <div className="flex items-center space-x-4 mt-1 text-sm text-gray-600">
+                  <span className="hidden sm:inline">{completionPercentage}% complete</span>
+                  <span>{executedRuns}/{totalRuns} runs</span>
+                  {subtasks.length > 1 && (
+                    <span className="hidden md:inline text-xs">
+                      ({completedCount}✓ {inProgressCount}⏵ {pausedCount}⏸ {pendingCount}⏳)
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
+
+            {/* Right side - Status indicators */}
+            <div className="flex items-center space-x-3 flex-shrink-0">
+              <div className="hidden sm:flex items-center space-x-2">
+                <Badge variant="outline" className={`text-xs ${getStatusColor(dominantStatus)}`}>
+                  {dominantStatus.replace('_', ' ')}
+                </Badge>
+                <Badge variant="outline" className={`text-xs ${getPriorityColor(dominantPriority)}`}>
+                  P{dominantPriority}
+                </Badge>
+              </div>
+              
+              {/* Compact progress indicator */}
+              <div className="flex items-center space-x-2">
+                <div className="w-12 bg-gray-200 rounded-full h-1.5 hidden sm:block">
+                  <div 
+                    className="bg-blue-600 h-1.5 rounded-full transition-all duration-300" 
+                    style={{ width: `${completionPercentage}%` }}
+                  ></div>
+                </div>
+                <span className="text-xs text-gray-500 font-medium hidden sm:inline">
+                  {completionPercentage}%
+                </span>
+              </div>
+            </div>
           </div>
-        </td>
-      </tr>
+        </div>
+      </div>
 
       {/* Expanded Individual Subtasks */}
-      {isExpanded && subtasks.map((subtask, index) => (
-        <SubtaskRow
-          key={subtask.id || index}
-          subtask={subtask}
-          isExpanded={false}
-          onToggle={() => {}}
-          onEdit={() => onEditSubtask?.(subtask)}
-          isGrouped={true}
-        />
-      ))}
+      {isExpanded && (
+        <div className="bg-gray-50 border-b border-gray-200 last:border-b-0">
+          {subtasks.map((subtask, index) => (
+            <SubtaskRow
+              key={subtask.id || index}
+              subtask={subtask}
+              isExpanded={false}
+              onToggle={() => {}}
+              onEdit={() => onEditSubtask?.(subtask)}
+              isGrouped={true}
+            />
+          ))}
+        </div>
+      )}
     </>
   );
 }
@@ -467,6 +482,16 @@ function SubtaskRow({ subtask, isExpanded, onToggle, onEdit, isGrouped = false }
       case 'in_progress': return <Play className="h-4 w-4 text-blue-600" />;
       case 'paused': return <Pause className="h-4 w-4 text-yellow-600" />;
       default: return <div className="h-4 w-4 rounded-full bg-gray-300" />;
+    }
+  };
+
+  const getStatusDot = (status: string) => {
+    switch (status) {
+      case 'completed': return 'bg-green-500';
+      case 'in_progress': return 'bg-blue-500';
+      case 'paused': return 'bg-yellow-500';
+      case 'pending': return 'bg-gray-400';
+      default: return 'bg-gray-300';
     }
   };
 
@@ -515,22 +540,42 @@ function SubtaskRow({ subtask, isExpanded, onToggle, onEdit, isGrouped = false }
   const completionPercentage = totalRuns > 0 ? Math.round((executedRuns / totalRuns) * 100) : 0;
 
   return (
-    <tr 
-      className={`border-b border-gray-200 hover:bg-gray-50 cursor-pointer group ${isGrouped ? 'bg-gray-25' : ''}`} 
-      onClick={() => onEdit?.()}
+    <div 
+      className="border-b border-gray-300 last:border-b-0 hover:bg-gray-100 cursor-pointer transition-all duration-200 px-8 py-3" 
+      onClick={() => onEdit?.(subtask)}
     >
-      <td className="px-3 py-3 text-sm">
-        <div className="flex flex-col space-y-1">
-          <div className="flex items-center space-x-2">
-            {isGrouped && <div className="w-4 h-4 ml-4"></div>}
-            <span className="font-medium text-xs truncate">{subtask.scenario || 'Unknown Scenario'}</span>
-            {isGrouped && (
-              <span className="font-mono text-xs text-gray-500">({subtask.id})</span>
-            )}
+      <div className="flex items-center justify-between">
+        {/* Left side - Subtask info */}
+        <div className="flex items-center space-x-3 flex-1 min-w-0">
+          <div className={`w-2 h-2 rounded-full ${getStatusDot(subtask.status)} flex-shrink-0`}></div>
+          
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center space-x-2">
+              <span className="font-medium text-sm text-gray-900 truncate">
+                {subtask.scenario || 'Unknown Scenario'}
+              </span>
+              <span className="font-mono text-xs text-gray-500 flex-shrink-0">
+                #{subtask.id}
+              </span>
+            </div>
+            
+            {/* Additional info on mobile */}
+            <div className="flex items-center space-x-3 mt-1 text-xs text-gray-600 sm:hidden">
+              <Badge variant="outline" className={`text-xs ${getStatusColor(subtask.status)}`}>
+                {subtask.status}
+              </Badge>
+              <Badge variant="outline" className={`text-xs ${getPriorityColor(subtask.priority || 3)}`}>
+                P{subtask.priority || 3}
+              </Badge>
+              <span>{executedRuns}/{totalRuns} runs</span>
+            </div>
           </div>
-          {/* Mobile-only status and priority info */}
-          <div className="flex items-center space-x-2 sm:hidden">
-            {getStatusIcon(subtask.status)}
+        </div>
+
+        {/* Right side - Status and progress */}
+        <div className="flex items-center space-x-3 flex-shrink-0">
+          {/* Desktop badges */}
+          <div className="hidden sm:flex items-center space-x-2">
             <Badge variant="outline" className={`text-xs ${getStatusColor(subtask.status)}`}>
               {subtask.status}
             </Badge>
@@ -538,41 +583,25 @@ function SubtaskRow({ subtask, isExpanded, onToggle, onEdit, isGrouped = false }
               P{subtask.priority || 3}
             </Badge>
           </div>
-        </div>
-      </td>
-      <td className="px-3 py-3 text-sm hidden sm:table-cell">
-        <div className="flex items-center space-x-2">
-          {getStatusIcon(subtask.status)}
-          <Badge variant="outline" className={`text-xs ${getStatusColor(subtask.status)}`}>
-            {subtask.status}
-          </Badge>
-        </div>
-      </td>
-      <td className="px-3 py-3 text-sm hidden md:table-cell">
-        <Badge variant="outline" className={`text-xs ${getPriorityColor(subtask.priority || 3)}`}>
-          {getPriorityLabel(subtask.priority || 3)}
-        </Badge>
-      </td>
-      <td className="px-3 py-3 text-sm">
-        <div className="flex items-center space-x-2">
-          <div className="flex-1 min-w-0">
-            <div className="flex justify-between items-center mb-1">
-              <span className="text-xs text-gray-600 hidden sm:inline">Progress</span>
-              <span className="text-xs font-medium">{executedRuns}/{totalRuns}</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
+          
+          {/* Progress indicator */}
+          <div className="flex items-center space-x-2">
+            <span className="text-xs text-gray-600 hidden sm:inline">
+              {executedRuns}/{totalRuns}
+            </span>
+            <div className="w-8 bg-gray-200 rounded-full h-1.5 hidden md:block">
               <div 
-                className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                className="bg-blue-600 h-1.5 rounded-full transition-all duration-300" 
                 style={{ width: `${completionPercentage}%` }}
               ></div>
             </div>
-            <div className="text-xs text-gray-500 mt-1">
-              {completionPercentage}% complete
-            </div>
+            <span className="text-xs text-gray-500 font-medium hidden md:inline">
+              {completionPercentage}%
+            </span>
           </div>
         </div>
-      </td>
-    </tr>
+      </div>
+    </div>
   );
 }
 
@@ -822,7 +851,7 @@ function TaskPageContent() {
   const [error, setError] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [taskCounts, setTaskCounts] = useState<{ DC: number; TT: number }>({ DC: 0, TT: 0 });
-  const [showSubtasks, setShowSubtasks] = useState(false);
+  const [showSubtasks, setShowSubtasks] = useState(true);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -830,7 +859,7 @@ function TaskPageContent() {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [selectedSubtask, setSelectedSubtask] = useState<any>(null);
   
-  // Timeline state
+  // Timeline state - Start with today's date
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [timelineView, setTimelineView] = useState<'carousel' | 'week' | 'month'>('carousel');
 
@@ -1191,140 +1220,96 @@ function TaskPageContent() {
             {/* Subtasks Section */}
             <Card className="p-6">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-                <h2 className="text-xl font-semibold text-gray-900">
-                  Subtasks ({filteredSubtasks.length} items in {scenarioGroups.length} scenarios)
-                </h2>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Button
-                    variant={showSubtasks ? "default" : "outline"}
-                    onClick={() => setShowSubtasks(!showSubtasks)}
-                    className="flex items-center space-x-2"
-                  >
-                    <TestTube className="h-4 w-4" />
-                    <span>{showSubtasks ? 'Hide Table' : 'Show Table'}</span>
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900">
+                    Scenarios ({scenarioGroups.length})
+                  </h2>
+                  <p className="text-sm text-gray-600">
+                    {filteredSubtasks.length} subtasks across {scenarioGroups.length} scenarios
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm">
+                    <Download className="h-4 w-4 mr-2" />
+                    Export
                   </Button>
-                  {showSubtasks && (
-                    <Button variant="outline" size="sm">
-                      <Download className="h-4 w-4 mr-2" />
-                      Export
-                    </Button>
-                  )}
                 </div>
               </div>
 
-              {showSubtasks && (
-                <div className="space-y-4">
-                  {/* Instructions for mobile/tablet users */}
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                      <span className="font-medium">Tip:</span>
-                      <span>Click on any scenario or subtask row to view detailed information</span>
-                    </div>
+              <div className="space-y-4">
+                {/* Combined Filters - More Compact */}
+                <div className="flex flex-wrap items-center gap-3 p-4 bg-gray-50 rounded-lg">
+                  <div className="relative flex-1 min-w-[200px]">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <input
+                      type="text"
+                      placeholder="Search scenarios..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
                   </div>
-
-                  {/* Filters and Search */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                    <div className="relative col-span-1 sm:col-span-2">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                      <input
-                        type="text"
-                        placeholder="Search subtasks..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    </div>
-                    <select
-                      value={statusFilter}
-                      onChange={(e) => setStatusFilter(e.target.value)}
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="all">All Status</option>
-                      <option value="pending">Pending</option>
-                      <option value="in_progress">In Progress</option>
-                      <option value="completed">Completed</option>
-                      <option value="paused">Paused</option>
-                    </select>
-                    <select
-                      value={priorityFilter}
-                      onChange={(e) => setPriorityFilter(e.target.value)}
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="all">All Priority</option>
-                      <option value="high">High (1)</option>
-                      <option value="medium">Medium (2)</option>
-                      <option value="low">Low (3)</option>
-                    </select>
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 min-w-[120px]"
+                  >
+                    <option value="all">All Status</option>
+                    <option value="pending">Pending</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="completed">Completed</option>
+                    <option value="paused">Paused</option>
+                  </select>
+                  <select
+                    value={priorityFilter}
+                    onChange={(e) => setPriorityFilter(e.target.value)}
+                    className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 min-w-[100px]"
+                  >
+                    <option value="all">All Priority</option>
+                    <option value="high">High</option>
+                    <option value="medium">Medium</option>
+                    <option value="low">Low</option>
+                  </select>
+                  {categories.length > 0 && (
                     <select
                       value={categoryFilter}
                       onChange={(e) => setCategoryFilter(e.target.value)}
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 min-w-[120px]"
                     >
                       <option value="all">All Categories</option>
                       {categories.map(category => (
                         <option key={category} value={category}>{category}</option>
                       ))}
                     </select>
-                  </div>
-
-                  {/* Subtasks Table */}
-                  <div className="overflow-x-auto border border-gray-200 rounded-lg">
-                    <table className="min-w-full bg-white">
-                      <thead className="bg-gray-50 border-b border-gray-200">
-                        <tr>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Scenario
-                          </th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
-                            Status
-                          </th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
-                            Priority
-                          </th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Progress
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-200">
-                        {scenarioGroups.map(({ scenario, subtasks }) => (
-                          <ScenarioGroupRow
-                            key={scenario}
-                            scenario={scenario}
-                            subtasks={subtasks}
-                            isExpanded={expandedRows.has(scenario)}
-                            onToggle={() => handleRowToggle(scenario)}
-                            onEditSubtask={(subtask) => setSelectedSubtask(subtask)}
-                          />
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {scenarioGroups.length === 0 && (
-                    <div className="text-center py-8">
-                      <TestTube className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">No Scenarios Found</h3>
-                      <p className="text-gray-600">
-                        {searchTerm || statusFilter !== 'all' || priorityFilter !== 'all'
-                          ? 'Try adjusting your filters to see more scenarios.'
-                          : 'This task has no subtasks yet.'}
-                      </p>
-                    </div>
                   )}
                 </div>
-              )}
 
-              {!showSubtasks && (
-                <div className="text-center py-8">
-                  <TestTube className="h-16 w-16 text-gray-400 mx-auto mb-4 opacity-50" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Scenario Management</h3>
-                  <p className="text-gray-600 mb-4">
-                    Click "Show Table" to view and manage {task.totalSubtasks} subtasks grouped by {Object.keys(groupedSubtasks).length} scenarios.
-                  </p>
+                {/* Scenarios List */}
+                <div className="border border-gray-200 rounded-lg overflow-hidden">
+                  {scenarioGroups.map(({ scenario, subtasks }) => (
+                    <ScenarioGroupRow
+                      key={scenario}
+                      scenario={scenario}
+                      subtasks={subtasks}
+                      isExpanded={expandedRows.has(scenario)}
+                      onToggle={() => handleRowToggle(scenario)}
+                      onEditSubtask={(subtask) => setSelectedSubtask(subtask)}
+                    />
+                  ))}
                 </div>
-              )}
+
+                {scenarioGroups.length === 0 && (
+                  <div className="text-center py-8">
+                    <TestTube className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Scenarios Found</h3>
+                    <p className="text-gray-600">
+                      {searchTerm || statusFilter !== 'all' || priorityFilter !== 'all'
+                        ? 'Try adjusting your filters to see more scenarios.'
+                        : 'This task has no subtasks yet.'}
+                    </p>
+                  </div>
+                )}
+              </div>
             </Card>
           </div>
         ) : (

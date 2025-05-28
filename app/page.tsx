@@ -307,8 +307,8 @@ function TaskDashboard() {
             )}
           </div>
         ) : (
-          <div className="space-y-3 sm:space-y-4">
-            {filteredTasks.map((task) => {
+          <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+            {filteredTasks.map((task, index) => {
               // Use different components based on task type
               if (task.category === 'TT') {
                 return (
@@ -320,11 +320,12 @@ function TaskDashboard() {
                 );
               } else {
                 return (
-                  <TaskCard 
-                    key={task.id} 
-                    task={task as Task} 
-                    onTaskUpdated={refreshTasks}
-                  />
+                  <div key={task.id} className="border-b border-gray-200 last:border-b-0">
+                    <TaskCard 
+                      task={task as Task} 
+                      onTaskUpdated={refreshTasks}
+                    />
+                  </div>
                 );
               }
             })}
