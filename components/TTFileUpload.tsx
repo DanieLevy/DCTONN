@@ -192,10 +192,10 @@ export function TTFileUpload({ onTaskCreated, onClose }: TTFileUploadProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 flex-shrink-0">
-          <CardTitle className="text-xl font-semibold">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
+      <Card className="w-full max-w-2xl h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 sm:pb-4 flex-shrink-0">
+          <CardTitle className="text-lg sm:text-xl font-semibold">
             Create Test Track Task
           </CardTitle>
           <Button variant="ghost" size="sm" onClick={onClose}>
@@ -203,10 +203,10 @@ export function TTFileUpload({ onTaskCreated, onClose }: TTFileUploadProps) {
           </Button>
         </CardHeader>
 
-        <CardContent className="space-y-6 overflow-y-auto flex-1">
+        <CardContent className="space-y-4 sm:space-y-6 overflow-y-auto flex-1 px-4 sm:px-6">
           {/* File Upload Section */}
           {!uploadResult?.success && (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               <div>
                 <Label className="text-sm font-medium">Upload CSV/XLSX File</Label>
                 <p className="text-xs text-gray-600 mt-1">
@@ -215,7 +215,7 @@ export function TTFileUpload({ onTaskCreated, onClose }: TTFileUploadProps) {
               </div>
 
               <div
-                className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                className={`border-2 border-dashed rounded-lg p-6 sm:p-8 text-center transition-colors ${
                   isDragOver 
                     ? 'border-blue-500 bg-blue-50' 
                     : 'border-gray-300 hover:border-gray-400'
@@ -226,20 +226,21 @@ export function TTFileUpload({ onTaskCreated, onClose }: TTFileUploadProps) {
               >
                 {isProcessing ? (
                   <div className="space-y-2">
-                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-600" />
+                    <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin mx-auto text-blue-600" />
                     <p className="text-sm text-gray-600">Processing file...</p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    <Upload className="h-12 w-12 mx-auto text-gray-400" />
+                  <div className="space-y-3 sm:space-y-4">
+                    <Upload className="h-8 w-8 sm:h-12 sm:w-12 mx-auto text-gray-400" />
                     <div>
-                      <p className="text-lg font-medium">Drop your file here</p>
+                      <p className="text-base sm:text-lg font-medium">Drop your file here</p>
                       <p className="text-sm text-gray-600">or click to browse</p>
                     </div>
                     <Button
                       variant="outline"
                       onClick={() => fileInputRef.current?.click()}
                       disabled={isProcessing}
+                      size="sm"
                     >
                       <FileText className="h-4 w-4 mr-2" />
                       Select File
@@ -264,7 +265,7 @@ export function TTFileUpload({ onTaskCreated, onClose }: TTFileUploadProps) {
                   variant="ghost" 
                   size="sm" 
                   onClick={downloadSampleCSV}
-                  className="text-blue-600 hover:text-blue-700"
+                  className="text-blue-600 hover:text-blue-700 h-auto py-1 px-2"
                 >
                   <Download className="h-3 w-3 mr-1" />
                   Download Sample
@@ -275,13 +276,13 @@ export function TTFileUpload({ onTaskCreated, onClose }: TTFileUploadProps) {
 
           {/* Upload Result */}
           {uploadResult && (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {uploadResult.success ? (
-                <div className="flex items-start space-x-3 p-4 bg-green-50 border border-green-200 rounded-lg">
-                  <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
-                  <div className="flex-1">
-                    <h3 className="font-medium text-green-900">File processed successfully!</h3>
-                    <p className="text-sm text-green-700 mt-1">
+                <div className="flex items-start space-x-3 p-3 sm:p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-medium text-green-900 text-sm sm:text-base">File processed successfully!</h3>
+                    <p className="text-xs sm:text-sm text-green-700 mt-1 break-words">
                       Found {uploadResult.totalRows} valid subtasks in "{uploadResult.fileName}"
                     </p>
                   </div>
@@ -289,23 +290,23 @@ export function TTFileUpload({ onTaskCreated, onClose }: TTFileUploadProps) {
                     variant="ghost" 
                     size="sm" 
                     onClick={resetUpload}
-                    className="text-green-700 hover:text-green-800"
+                    className="text-green-700 hover:text-green-800 text-xs h-auto py-1 px-2 flex-shrink-0"
                   >
                     Upload Different File
                   </Button>
                 </div>
               ) : (
-                <div className="flex items-start space-x-3 p-4 bg-red-50 border border-red-200 rounded-lg">
-                  <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
-                  <div className="flex-1">
-                    <h3 className="font-medium text-red-900">Upload failed</h3>
-                    <p className="text-sm text-red-700 mt-1">{uploadResult.error}</p>
+                <div className="flex items-start space-x-3 p-3 sm:p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-red-600 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-medium text-red-900 text-sm sm:text-base">Upload failed</h3>
+                    <p className="text-xs sm:text-sm text-red-700 mt-1 break-words">{uploadResult.error}</p>
                   </div>
                   <Button 
                     variant="ghost" 
                     size="sm" 
                     onClick={resetUpload}
-                    className="text-red-700 hover:text-red-800"
+                    className="text-red-700 hover:text-red-800 text-xs h-auto py-1 px-2 flex-shrink-0"
                   >
                     Try Again
                   </Button>
@@ -316,36 +317,38 @@ export function TTFileUpload({ onTaskCreated, onClose }: TTFileUploadProps) {
 
           {/* Task Details Form */}
           {uploadResult?.success && (
-            <div className="space-y-4 border-t pt-6">
-              <h3 className="font-medium text-gray-900">Task Details</h3>
+            <div className="space-y-3 sm:space-y-4 border-t pt-4 sm:pt-6">
+              <h3 className="font-medium text-gray-900 text-sm sm:text-base">Task Details</h3>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-3 sm:gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="title">Task Title *</Label>
+                  <Label htmlFor="title" className="text-sm">Task Title *</Label>
                   <Input
                     id="title"
                     value={taskData.title}
                     onChange={(e) => setTaskData(prev => ({ ...prev, title: e.target.value }))}
                     placeholder="Enter task title"
                     required
+                    className="text-sm"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="version">Version *</Label>
+                  <Label htmlFor="version" className="text-sm">Version *</Label>
                   <Input
                     id="version"
                     value={taskData.version}
                     onChange={(e) => setTaskData(prev => ({ ...prev, version: e.target.value }))}
                     placeholder="e.g., 1.0, 2.1, etc."
                     required
+                    className="text-sm"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="priority">Priority</Label>
+                  <Label htmlFor="priority" className="text-sm">Priority</Label>
                   <select
                     id="priority"
                     value={taskData.priority}
@@ -362,7 +365,7 @@ export function TTFileUpload({ onTaskCreated, onClose }: TTFileUploadProps) {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="location">Location</Label>
+                  <Label htmlFor="location" className="text-sm">Location</Label>
                   <select
                     id="location"
                     value={taskData.location}
@@ -377,20 +380,21 @@ export function TTFileUpload({ onTaskCreated, onClose }: TTFileUploadProps) {
               </div>
 
               <div className="space-y-2">
-                <Label>Subtasks</Label>
-                <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm text-gray-700">
+                <Label className="text-sm">Subtasks</Label>
+                <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-xs sm:text-sm text-gray-700">
                   {uploadResult.totalRows} subtasks loaded with JIRA numbers (DATACO-10223 onwards)
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description">Description (Optional)</Label>
+                <Label htmlFor="description" className="text-sm">Description (Optional)</Label>
                 <Textarea
                   id="description"
                   value={taskData.description}
                   onChange={(e) => setTaskData(prev => ({ ...prev, description: e.target.value }))}
                   placeholder="Enter task description"
-                  rows={3}
+                  rows={2}
+                  className="text-sm resize-none"
                 />
               </div>
             </div>
@@ -398,14 +402,15 @@ export function TTFileUpload({ onTaskCreated, onClose }: TTFileUploadProps) {
         </CardContent>
 
         {/* Action Buttons - Fixed at bottom */}
-        <div className="flex justify-end space-x-3 pt-6 pb-6 px-6 border-t bg-white flex-shrink-0">
-          <Button variant="outline" onClick={onClose} disabled={isCreating}>
+        <div className="flex justify-end space-x-3 pt-3 sm:pt-6 pb-3 sm:pb-6 px-4 sm:px-6 border-t bg-white flex-shrink-0">
+          <Button variant="outline" onClick={onClose} disabled={isCreating} size="sm">
             Cancel
           </Button>
           {uploadResult?.success && (
             <Button 
               onClick={handleCreateTask} 
               disabled={isCreating || !taskData.title.trim()}
+              size="sm"
             >
               {isCreating ? (
                 <>

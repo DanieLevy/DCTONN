@@ -23,9 +23,28 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              // Prevent hydration errors from simulator modifications
+              if (typeof window !== 'undefined') {
+                // Remove any simulator-added attributes that could cause hydration errors
+                document.addEventListener('DOMContentLoaded', function() {
+                  const body = document.body;
+                  if (body.hasAttribute('data-js')) {
+                    body.removeAttribute('data-js');
+                  }
+                });
+              }
+            `,
+          }}
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50 text-gray-900`}
+        suppressHydrationWarning
       >
         {children}
       </body>

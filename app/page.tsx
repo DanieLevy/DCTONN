@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AuthProvider, useAuth } from '@/lib/auth-context';
 import { LoginForm } from '@/components/LoginForm';
@@ -14,6 +14,51 @@ import { Dashboard } from '@/components/Dashboard';
 import { QRScanner } from '@/components/QRScanner';
 import { Task, TTTask, TaskFilters as TaskFiltersType } from '@/lib/types';
 import { MessageCircle, QrCode } from 'lucide-react';
+
+// Error Boundary Component
+interface ErrorBoundaryProps {
+  children: React.ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+}
+
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('Error caught by boundary:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Something went wrong</h2>
+            <p className="text-gray-600 mb-4">Please refresh the page to continue.</p>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Refresh Page
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 function TaskDashboard() {
   const { user, token, loading } = useAuth();
@@ -30,9 +75,15 @@ function TaskDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [isQRScannerOpen, setIsQRScannerOpen] = useState(false);
   const [qrScanResult, setQrScanResult] = useState<string | null>(null);
+  const [isClient, setIsClient] = useState(false);
 
   // Get current section from URL params, default to TT
   const currentSection = (searchParams.get('section') as 'DC' | 'TT' | 'management') || 'TT';
+
+  // Handle client-side mounting
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   useEffect(() => {
     if (user && token) {
@@ -214,7 +265,7 @@ function TaskDashboard() {
     }
   }, [user, token]);
 
-  if (loading) {
+  if (loading || !isClient) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -404,16 +455,18 @@ function TaskDashboard() {
 export default function Home() {
   return (
     <AuthProvider>
-      <Suspense fallback={
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading...</p>
+      <ErrorBoundary>
+        <Suspense fallback={
+          <div className="min-h-screen flex items-center justify-center bg-gray-50" suppressHydrationWarning>
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
+              <p className="mt-4 text-gray-600">Loading...</p>
+            </div>
           </div>
-        </div>
-      }>
-        <TaskDashboard />
-      </Suspense>
+        }>
+          <TaskDashboard />
+        </Suspense>
+      </ErrorBoundary>
     </AuthProvider>
   );
 }
