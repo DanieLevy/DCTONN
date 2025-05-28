@@ -11,8 +11,9 @@ import { TTTaskRow } from '@/components/TTTaskRow';
 import { TaskFilters } from '@/components/TaskFilters';
 import { ChatInterface } from '@/components/ChatInterface';
 import { Dashboard } from '@/components/Dashboard';
+import { QRScanner } from '@/components/QRScanner';
 import { Task, TTTask, TaskFilters as TaskFiltersType } from '@/lib/types';
-import { MessageCircle } from 'lucide-react';
+import { MessageCircle, QrCode } from 'lucide-react';
 
 function TaskDashboard() {
   const { user, token, loading } = useAuth();
@@ -27,6 +28,8 @@ function TaskDashboard() {
   const [taskCounts, setTaskCounts] = useState<{ DC: number; TT: number }>({ DC: 0, TT: 0 });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isQRScannerOpen, setIsQRScannerOpen] = useState(false);
+  const [qrScanResult, setQrScanResult] = useState<string | null>(null);
 
   // Get current section from URL params, default to TT
   const currentSection = (searchParams.get('section') as 'DC' | 'TT' | 'management') || 'TT';
@@ -195,6 +198,15 @@ function TaskDashboard() {
     // For DC tasks, we could implement a similar page later
   };
 
+  const handleQRScanResult = (result: string) => {
+    console.log('[QR Scanner] Scan result:', result);
+    setQrScanResult(result);
+    setIsQRScannerOpen(false);
+    
+    // Show result for now - later implement functionality
+    alert(`QR Code Scanned!\n\nResult: ${result}\n\n(Functionality will be implemented here)`);
+  };
+
   useEffect(() => {
     if (user && token) {
       console.log('[Dashboard] User authenticated, fetching task counts');
@@ -258,19 +270,33 @@ function TaskDashboard() {
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
             {currentSection === 'DC' ? 'Data Collection Tasks' : 'Test Track Tasks'}
           </h2>
-          <p className="text-sm sm:text-base text-gray-600">
-            {filteredTasks.length} task{filteredTasks.length !== 1 ? 's' : ''} available
-            {(() => {
-              if (filteredTasks.length === 0) return '';
-              const taskLocations = [...new Set(filteredTasks.map(task => task.location))];
-              if (taskLocations.length === 1) {
-                return ` in ${taskLocations[0]}`;
-              } else if (taskLocations.length > 1) {
-                return ` across ${taskLocations.join(', ')}`;
-              }
-              return '';
-            })()}
-          </p>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <p className="text-sm sm:text-base text-gray-600">
+              {filteredTasks.length} task{filteredTasks.length !== 1 ? 's' : ''} available
+              {(() => {
+                if (filteredTasks.length === 0) return '';
+                const taskLocations = [...new Set(filteredTasks.map(task => task.location))];
+                if (taskLocations.length === 1) {
+                  return ` in ${taskLocations[0]}`;
+                } else if (taskLocations.length > 1) {
+                  return ` across ${taskLocations.join(', ')}`;
+                }
+                return '';
+              })()}
+            </p>
+            
+            {/* QR Scanner Button - Only show for TT tasks */}
+            {currentSection === 'TT' && (
+              <button
+                onClick={() => setIsQRScannerOpen(true)}
+                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 touch-manipulation text-sm font-medium"
+                title="Scan QR Code"
+              >
+                <QrCode className="h-4 w-4" />
+                <span>Scan QR Code</span>
+              </button>
+            )}
+          </div>
           {error && (
             <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
               <p className="text-red-600 text-sm">Error: {error}</p>
@@ -363,6 +389,13 @@ function TaskDashboard() {
       <ChatInterface 
         isOpen={isChatOpen} 
         onClose={() => setIsChatOpen(false)} 
+      />
+
+      {/* QR Code Scanner */}
+      <QRScanner
+        isOpen={isQRScannerOpen}
+        onClose={() => setIsQRScannerOpen(false)}
+        onScanResult={handleQRScanResult}
       />
     </div>
   );
