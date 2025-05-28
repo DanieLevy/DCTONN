@@ -12,45 +12,123 @@ import { TaskFilters } from '@/components/TaskFilters';
 import { ChatInterface } from '@/components/ChatInterface';
 import { Dashboard } from '@/components/Dashboard';
 import { QRScanner } from '@/components/QRScanner';
+import { ClientOnlyHandler } from '@/components/ClientOnlyHandler';
 import { Task, TTTask, TaskFilters as TaskFiltersType } from '@/lib/types';
 import { MessageCircle, QrCode } from 'lucide-react';
 
-// Error Boundary Component
-interface ErrorBoundaryProps {
-  children: React.ReactNode;
-}
+// Enhanced Error Boundary for handling simulator and DOM conflicts
+class SimpleErrorBoundary extends React.Component<
+  { children: React.ReactNode; fallback?: React.ReactNode },
+  { hasError: boolean; error?: Error; errorInfo?: string }
+> {
+  private retryCount = 0;
+  private maxRetries = 2;
 
-interface ErrorBoundaryState {
-  hasError: boolean;
-}
-
-class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  constructor(props: ErrorBoundaryProps) {
+  constructor(props: any) {
     super(props);
     this.state = { hasError: false };
   }
 
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    return { hasError: true };
+  static getDerivedStateFromError(error: Error) {
+    // Check if this is a DOM manipulation error (common with simulators)
+    const isDOMError = error.message.includes('removeChild') || 
+                      error.message.includes('Hydration') ||
+                      error.name === 'NotFoundError';
+    
+    return { 
+      hasError: true, 
+      error,
+      errorInfo: isDOMError ? 'dom-conflict' : 'general'
+    };
   }
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('Error caught by boundary:', error, errorInfo);
+  componentDidCatch(error: Error, errorInfo: any) {
+    // Log error in development only
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[Error Boundary] Caught error:', error.message);
+      
+      // Check if this is a DOM manipulation error
+      if (error.message.includes('removeChild') || error.message.includes('Hydration')) {
+        console.warn('[Error Boundary] DOM conflict detected - likely mobile simulator issue');
+      }
+    }
   }
+
+  handleRetry = () => {
+    if (this.retryCount < this.maxRetries) {
+      this.retryCount++;
+      this.setState({ hasError: false, error: undefined, errorInfo: undefined });
+      
+      // Clear any problematic DOM attributes before retrying
+      setTimeout(() => {
+        try {
+          const body = document.body;
+          const html = document.documentElement;
+          
+          ['data-js', 'data-simulator', 'class'].forEach(attr => {
+            if (body.hasAttribute(attr)) {
+              const value = body.getAttribute(attr);
+              if (value?.includes('simulator')) {
+                body.removeAttribute(attr);
+              }
+            }
+            if (html.hasAttribute(attr)) {
+              const value = html.getAttribute(attr);
+              if (value?.includes('simulator')) {
+                html.removeAttribute(attr);
+              }
+            }
+          });
+        } catch (e) {
+          console.warn('[Error Boundary] Could not clean DOM:', e);
+        }
+      }, 100);
+    } else {
+      // Max retries reached, force reload
+      window.location.reload();
+    }
+  };
 
   render() {
     if (this.state.hasError) {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Something went wrong</h2>
-            <p className="text-gray-600 mb-4">Please refresh the page to continue.</p>
-            <button 
-              onClick={() => window.location.reload()} 
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              Refresh Page
-            </button>
+      const isDOMError = this.state.errorInfo === 'dom-conflict';
+      
+      return this.props.fallback || (
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+          <div className="text-center max-w-md">
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              {isDOMError ? 'Display Issue Detected' : 'Something went wrong'}
+            </h2>
+            <p className="text-gray-600 mb-4">
+              {isDOMError 
+                ? 'This appears to be a mobile simulator compatibility issue. Try refreshing or switching to a real device.'
+                : 'Please refresh the page to try again.'
+              }
+            </p>
+            <div className="space-y-3">
+              {this.retryCount < this.maxRetries ? (
+                <button
+                  onClick={this.handleRetry}
+                  className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Try Again ({this.maxRetries - this.retryCount} attempts left)
+                </button>
+              ) : null}
+              <button
+                onClick={() => window.location.reload()}
+                className="w-full bg-gray-900 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors"
+              >
+                Refresh Page
+              </button>
+            </div>
+            {process.env.NODE_ENV === 'development' && (
+              <details className="mt-4 text-left">
+                <summary className="text-sm text-gray-500 cursor-pointer">Error Details</summary>
+                <pre className="text-xs text-gray-400 mt-2 bg-gray-100 p-2 rounded overflow-auto">
+                  {this.state.error?.message}
+                </pre>
+              </details>
+            )}
           </div>
         </div>
       );
@@ -453,20 +531,40 @@ function TaskDashboard() {
 }
 
 export default function Home() {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    // Simple mounting check without complex DOM manipulation
+    setMounted(true);
+  }, []);
+
+  // Show loading state until mounted
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <AuthProvider>
-      <ErrorBoundary>
+    <SimpleErrorBoundary>
+      <ClientOnlyHandler />
+      <AuthProvider>
         <Suspense fallback={
-          <div className="min-h-screen flex items-center justify-center bg-gray-50" suppressHydrationWarning>
+          <div className="min-h-screen bg-gray-50 flex items-center justify-center">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
-              <p className="mt-4 text-gray-600">Loading...</p>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading...</p>
             </div>
           </div>
         }>
           <TaskDashboard />
         </Suspense>
-      </ErrorBoundary>
-    </AuthProvider>
+      </AuthProvider>
+    </SimpleErrorBoundary>
   );
 }

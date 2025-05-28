@@ -175,84 +175,20 @@
   }
 }
 
-/* iOS-specific fixes to prevent zoom */
-@supports (-webkit-touch-callout: none) {
-  /* Target only iOS devices */
-  input[type="text"],
-  input[type="email"],
-  input[type="password"],
-  input[type="number"],
-  input[type="search"],
-  input[type="tel"],
-  input[type="url"],
-  textarea,
-  select {
-    font-size: 16px !important;
-    -webkit-transform: scale(1);
-    transform: scale(1);
-    -webkit-transition: none;
-    transition: none;
-  }
-  
-  input:focus,
-  textarea:focus,
-  select:focus {
-    font-size: 16px !important;
-    -webkit-transform: scale(1);
-    transform: scale(1);
-    outline: none;
-  }
-}
-
-/* Universal input improvements */
+/* Simple iOS zoom prevention - only the essential fix */
 input, textarea, select {
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  appearance: none;
-  border-radius: 6px;
-  font-family: inherit;
-  -webkit-tap-highlight-color: transparent;
-  -webkit-touch-callout: none;
-  -webkit-user-select: text;
-  user-select: text;
-}
-
-/* Prevent zoom on input focus for all devices */
-input[type="text"],
-input[type="email"], 
-input[type="password"],
-input[type="number"],
-input[type="search"],
-input[type="tel"],
-input[type="url"],
-textarea {
-  font-size: max(16px, 1rem);
-}
-
-/* Override Tailwind's default focus styles to prevent zoom */
-.input-no-zoom {
   font-size: 16px !important;
 }
 
-.input-no-zoom:focus {
-  font-size: 16px !important;
-  transform: scale(1) !important;
-}
-
-/* Better touch targets for mobile */
+/* Ensure proper touch targets on mobile */
 @media (max-width: 768px) {
   button, 
   input[type="submit"], 
-  input[type="button"],
-  .btn {
-    min-height: 44px; /* Apple's recommended minimum touch target */
+  input[type="button"], 
+  .touch-target,
+  .touch-manipulation {
+    min-height: 44px;
     min-width: 44px;
-  }
-  
-  /* Better spacing for form elements */
-  input, textarea, select {
-    padding: 12px 16px;
-    line-height: 1.5;
   }
 }
 
