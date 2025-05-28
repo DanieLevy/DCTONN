@@ -400,6 +400,182 @@ function EditSubtaskModal({ subtask, isOpen, onClose, onSave }: EditSubtaskModal
   );
 }
 
+// Modal component for editing users
+interface EditUserModalProps {
+  user: User | null;
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (user: User) => void;
+}
+
+function EditUserModal({ user, isOpen, onClose, onSave }: EditUserModalProps) {
+  const [formData, setFormData] = useState<Record<string, any>>({});
+  const [showPasswordField, setShowPasswordField] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        location: user.location,
+        permissions: user.permissions,
+        password: '' // Don't pre-fill password
+      });
+      setShowPasswordField(false);
+    }
+  }, [user]);
+
+  const handleSave = () => {
+    if (user) {
+      const updateData = {
+        ...formData,
+        id: user.id
+      };
+      
+      // Only include password if it was changed
+      if (!showPasswordField || !formData.password?.trim()) {
+        delete updateData.password;
+      }
+      
+      onSave(updateData as User);
+    }
+  };
+
+  const handlePermissionChange = (location: string, checked: boolean) => {
+    const currentPermissions = Array.isArray(formData.permissions) ? formData.permissions : [];
+    let newPermissions;
+    
+    if (checked) {
+      newPermissions = [...new Set([...currentPermissions, location])];
+    } else {
+      newPermissions = currentPermissions.filter((p: string) => p !== location);
+    }
+    
+    setFormData(prev => ({ ...prev, permissions: newPermissions }));
+  };
+
+  if (!isOpen || !user) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-semibold">Edit User</h2>
+            <Button variant="ghost" size="sm" onClick={onClose}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        <div className="p-6 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+              <Input
+                value={formData.username || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
+                placeholder="Username"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <Input
+                type="email"
+                value={formData.email || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                placeholder="Email address"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+              <select
+                value={formData.role || 'viewer'}
+                onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="viewer">Viewer</option>
+                <option value="data_manager">Data Manager</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Primary Location</label>
+              <select
+                value={formData.location || 'EU'}
+                onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="EU">EU</option>
+                <option value="USA">USA</option>
+                <option value="IL">IL</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Permissions */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Permissions</label>
+            <div className="space-y-2">
+              {['EU', 'USA', 'IL'].map((location) => (
+                <label key={location} className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={(formData.permissions || []).includes(location)}
+                    onChange={(e) => handlePermissionChange(location, e.target.checked)}
+                    className="mr-2"
+                  />
+                  <span className="text-sm">{location}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Password Section */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-gray-700">Password</label>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowPasswordField(!showPasswordField)}
+              >
+                {showPasswordField ? 'Keep Current Password' : 'Change Password'}
+              </Button>
+            </div>
+            {showPasswordField && (
+              <Input
+                type="password"
+                value={formData.password || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                placeholder="New password (leave empty to keep current)"
+              />
+            )}
+          </div>
+        </div>
+
+        <div className="p-6 border-t border-gray-200 flex justify-end space-x-3">
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleSave} 
+            disabled={!formData.username || !formData.email}
+          >
+            <Save className="h-4 w-4 mr-2" />
+            Save Changes
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function Dashboard({ onBackToTasks, onRefreshTasks }: DashboardProps) {
   const { user, token } = useAuth();
   const [activeTab, setActiveTab] = useState<'dc-tasks' | 'tt-tasks' | 'users'>('dc-tasks');
@@ -410,6 +586,7 @@ export function Dashboard({ onBackToTasks, onRefreshTasks }: DashboardProps) {
   const [editingTask, setEditingTask] = useState<Task | TTTask | null>(null);
   const [editingSubtask, setEditingSubtask] = useState<any>(null);
   const [editingTTTask, setEditingTTTask] = useState<TTTask | null>(null);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
   const [selectedTTTask, setSelectedTTTask] = useState<TTTask | null>(null);
   const [expandedSubtasks, setExpandedSubtasks] = useState<Set<string>>(new Set());
   const [isCreatingTask, setIsCreatingTask] = useState(false);
@@ -727,6 +904,82 @@ export function Dashboard({ onBackToTasks, onRefreshTasks }: DashboardProps) {
       }
     } catch (error) {
       console.error('Failed to create user:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleEditUser = (userToEdit: User) => {
+    setEditingUser(userToEdit);
+  };
+
+  const handleSaveUser = async (updatedUser: User) => {
+    try {
+      setIsLoading(true);
+      const response = await fetch(`/api/admin/users/${updatedUser.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(updatedUser),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          await loadUsers();
+          setEditingUser(null);
+        } else {
+          console.error('Failed to update user:', data.error);
+          alert('Error: ' + data.error);
+        }
+      } else {
+        const errorData = await response.json();
+        console.error('Failed to update user:', errorData.error);
+        alert('Error: ' + errorData.error);
+      }
+    } catch (error) {
+      console.error('Failed to update user:', error);
+      alert('Failed to update user. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    const userToDelete = users.find(u => u.id === userId);
+    if (!userToDelete) return;
+
+    // Confirmation dialog
+    const confirmMessage = `Are you sure you want to delete user "${userToDelete.username}"?\n\nThis action cannot be undone.`;
+    if (!confirm(confirmMessage)) return;
+
+    try {
+      setIsLoading(true);
+      const response = await fetch(`/api/admin/users/${userId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          await loadUsers();
+        } else {
+          console.error('Failed to delete user:', data.error);
+          alert('Error: ' + data.error);
+        }
+      } else {
+        const errorData = await response.json();
+        console.error('Failed to delete user:', errorData.error);
+        alert('Error: ' + errorData.error);
+      }
+    } catch (error) {
+      console.error('Failed to delete user:', error);
+      alert('Failed to delete user. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -1293,10 +1546,10 @@ export function Dashboard({ onBackToTasks, onRefreshTasks }: DashboardProps) {
                         </p>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <Button variant="ghost" size="sm">
+                        <Button variant="ghost" size="sm" onClick={() => handleEditUser(userItem)}>
                           <Edit3 className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="sm">
+                        <Button variant="ghost" size="sm" onClick={() => handleDeleteUser(userItem.id)}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
@@ -1331,6 +1584,13 @@ export function Dashboard({ onBackToTasks, onRefreshTasks }: DashboardProps) {
         isOpen={!!editingSubtask}
         onClose={() => setEditingSubtask(null)}
         onSave={handleSaveSubtask}
+      />
+
+      <EditUserModal
+        user={editingUser}
+        isOpen={!!editingUser}
+        onClose={() => setEditingUser(null)}
+        onSave={handleSaveUser}
       />
 
       {/* TT File Upload Modal */}

@@ -6,7 +6,11 @@
       "email": "admin@company.com",
       "role": "admin",
       "location": "EU",
-      "permissions": ["EU", "USA", "IL"],
+      "permissions": [
+        "EU",
+        "USA",
+        "IL"
+      ],
       "hashedPassword": "$2a$10$K.L.DEMO.HASH.FOR.DEVELOPMENT",
       "createdAt": "2024-01-01T00:00:00Z",
       "updatedAt": "2024-01-01T00:00:00Z"
@@ -17,7 +21,9 @@
       "email": "manager.eu@company.com",
       "role": "data_manager",
       "location": "EU",
-      "permissions": ["EU"],
+      "permissions": [
+        "EU"
+      ],
       "hashedPassword": "$2a$10$K.L.DEMO.HASH.FOR.DEVELOPMENT",
       "createdAt": "2024-01-01T00:00:00Z",
       "updatedAt": "2024-01-01T00:00:00Z"
@@ -28,7 +34,9 @@
       "email": "manager.usa@company.com",
       "role": "data_manager",
       "location": "USA",
-      "permissions": ["USA"],
+      "permissions": [
+        "USA"
+      ],
       "hashedPassword": "$2a$10$K.L.DEMO.HASH.FOR.DEVELOPMENT",
       "createdAt": "2024-01-01T00:00:00Z",
       "updatedAt": "2024-01-01T00:00:00Z"
@@ -39,7 +47,9 @@
       "email": "manager.il@company.com",
       "role": "data_manager",
       "location": "IL",
-      "permissions": ["IL"],
+      "permissions": [
+        "IL"
+      ],
       "hashedPassword": "$2a$10$K.L.DEMO.HASH.FOR.DEVELOPMENT",
       "createdAt": "2024-01-01T00:00:00Z",
       "updatedAt": "2024-01-01T00:00:00Z"
@@ -50,7 +60,9 @@
       "email": "viewer.eu@company.com",
       "role": "viewer",
       "location": "EU",
-      "permissions": ["EU"],
+      "permissions": [
+        "EU"
+      ],
       "hashedPassword": "$2a$10$K.L.DEMO.HASH.FOR.DEVELOPMENT",
       "createdAt": "2024-01-01T00:00:00Z",
       "updatedAt": "2024-01-01T00:00:00Z"
@@ -61,7 +73,9 @@
       "email": "viewer.usa@company.com",
       "role": "viewer",
       "location": "USA",
-      "permissions": ["USA"],
+      "permissions": [
+        "USA"
+      ],
       "hashedPassword": "$2a$10$K.L.DEMO.HASH.FOR.DEVELOPMENT",
       "createdAt": "2024-01-01T00:00:00Z",
       "updatedAt": "2024-01-01T00:00:00Z"
@@ -72,10 +86,25 @@
       "email": "viewer.il@company.com",
       "role": "viewer",
       "location": "IL",
-      "permissions": ["IL"],
+      "permissions": [
+        "IL"
+      ],
       "hashedPassword": "$2a$10$K.L.DEMO.HASH.FOR.DEVELOPMENT",
       "createdAt": "2024-01-01T00:00:00Z",
       "updatedAt": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": "mb8i7usr0z6hlu6g5dm",
+      "username": "daniel",
+      "email": "daniellofficial@gmail.com",
+      "role": "admin",
+      "location": "EU",
+      "permissions": [
+        "EU"
+      ],
+      "hashedPassword": "$2b$10$JFusT8lRumARpwvH5a9S4OsJmoY01lSV4E4uj7Z6q9T6QqcR0as2S",
+      "createdAt": "2025-05-28T22:15:44.811Z",
+      "updatedAt": "2025-05-28T22:15:44.811Z"
     }
   ],
   "locations": [
@@ -98,4 +127,4 @@
       "taskCount": 1
     }
   ]
-} 
+}

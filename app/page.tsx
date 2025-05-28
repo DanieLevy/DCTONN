@@ -396,42 +396,46 @@ function TaskDashboard() {
       
       <main className="py-6">
         <div className="container mx-auto px-4 mb-6">
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
-            {currentSection === 'DC' ? 'Data Collection Tasks' : 'Test Track Tasks'}
-          </h2>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <p className="text-sm sm:text-base text-gray-600">
-              {filteredTasks.length} task{filteredTasks.length !== 1 ? 's' : ''} available
-              {(() => {
-                if (filteredTasks.length === 0) return '';
-                const taskLocations = [...new Set(filteredTasks.map(task => task.location))];
-                if (taskLocations.length === 1) {
-                  return ` in ${taskLocations[0]}`;
-                } else if (taskLocations.length > 1) {
-                  return ` across ${taskLocations.join(', ')}`;
-                }
-                return '';
-              })()}
-            </p>
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">
+                {currentSection === 'DC' ? 'Data Collection Tasks' : 'Test Track Tasks'}
+              </h2>
+              <p className="text-sm sm:text-base text-gray-600">
+                {filteredTasks.length} task{filteredTasks.length !== 1 ? 's' : ''} available
+                {(() => {
+                  if (filteredTasks.length === 0) return '';
+                  const taskLocations = [...new Set(filteredTasks.map(task => task.location))];
+                  if (taskLocations.length === 1) {
+                    return ` in ${taskLocations[0]}`;
+                  } else if (taskLocations.length > 1) {
+                    return ` across ${taskLocations.join(', ')}`;
+                  }
+                  return '';
+                })()}
+              </p>
+            </div>
             
             {/* QR Scanner Button - Only show for TT tasks */}
             {currentSection === 'TT' && (
               <button
                 onClick={() => setIsQRScannerOpen(true)}
-                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 touch-manipulation text-sm font-medium"
+                className="flex items-center space-x-2 px-4 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-200 touch-manipulation text-sm font-medium shadow-sm hover:shadow-md flex-shrink-0"
                 title="Scan QR Code"
               >
                 <QrCode className="h-4 w-4" />
-                <span>Scan QR Code</span>
+                <span className="hidden sm:inline">Scan QR Code</span>
+                <span className="sm:hidden">Scan</span>
               </button>
             )}
           </div>
+          
           {error && (
-            <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-600 text-sm">Error: {error}</p>
+            <div className="mt-3 p-4 bg-red-50 border border-red-200 rounded-xl">
+              <p className="text-red-600 text-sm font-medium">Error: {error}</p>
               <button 
                 onClick={fetchTasks}
-                className="text-red-700 underline text-sm mt-2 touch-manipulation"
+                className="text-red-700 underline text-sm mt-2 touch-manipulation font-medium"
               >
                 Try again
               </button>
@@ -466,7 +470,7 @@ function TaskDashboard() {
             </div>
           </div>
         ) : (
-          <div className="space-y-0">
+          <div className="pb-4">
             {filteredTasks.map((task, index) => {
               // Use different components based on task type
               if (task.category === 'TT') {
@@ -479,7 +483,7 @@ function TaskDashboard() {
                 );
               } else {
                 return (
-                  <div key={task.id} className="border-b border-gray-200 last:border-b-0">
+                  <div key={task.id} className="mx-4 mb-4">
                     <TaskCard 
                       task={task as Task} 
                       onTaskUpdated={refreshTasks}
