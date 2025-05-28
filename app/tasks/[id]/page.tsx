@@ -129,6 +129,51 @@ function TimelineCalendar({ selectedDate, onDateSelect, view, onViewChange }: Ti
 
   return (
     <Card className="p-4">
+      {/* View Switcher - Moved to top */}
+      <div className="flex items-center justify-center mb-6">
+        <div className="flex bg-gray-100 rounded-lg p-1 gap-1">
+          <Button
+            variant={view === 'carousel' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => onViewChange('carousel')}
+            className={`h-8 px-4 rounded-md transition-all ${
+              view === 'carousel' 
+                ? 'bg-white shadow-sm border border-gray-200 text-gray-900 hover:bg-gray-50' 
+                : 'hover:bg-gray-200 text-gray-700'
+            }`}
+          >
+            <CalendarRange className="h-3 w-3 mr-2" />
+            Days
+          </Button>
+          <Button
+            variant={view === 'week' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => onViewChange('week')}
+            className={`h-8 px-4 rounded-md transition-all ${
+              view === 'week' 
+                ? 'bg-white shadow-sm border border-gray-200 text-gray-900 hover:bg-gray-50' 
+                : 'hover:bg-gray-200 text-gray-700'
+            }`}
+          >
+            <CalendarDays className="h-3 w-3 mr-2" />
+            Week
+          </Button>
+          <Button
+            variant={view === 'month' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => onViewChange('month')}
+            className={`h-8 px-4 rounded-md transition-all ${
+              view === 'month' 
+                ? 'bg-white shadow-sm border border-gray-200 text-gray-900 hover:bg-gray-50' 
+                : 'hover:bg-gray-200 text-gray-700'
+            }`}
+          >
+            <Grid3X3 className="h-3 w-3 mr-2" />
+            Month
+          </Button>
+        </div>
+      </div>
+
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-2">
           <Calendar className="h-5 w-5 text-blue-600" />
@@ -154,49 +199,6 @@ function TimelineCalendar({ selectedDate, onDateSelect, view, onViewChange }: Ti
           <Button variant="ghost" size="sm" onClick={() => navigateDate('next')}>
             <ChevronRight className="h-4 w-4" />
           </Button>
-          
-          {/* View Switcher */}
-          <div className="flex bg-gray-100 rounded-lg p-1 gap-1">
-            <Button
-              variant={view === 'carousel' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => onViewChange('carousel')}
-              className={`h-8 px-3 rounded-md transition-all ${
-                view === 'carousel' 
-                  ? 'bg-white shadow-sm border border-gray-200 text-gray-900 hover:bg-gray-50' 
-                  : 'hover:bg-gray-200 text-gray-700'
-              }`}
-            >
-              <CalendarRange className="h-3 w-3 mr-1" />
-              Days
-            </Button>
-            <Button
-              variant={view === 'week' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => onViewChange('week')}
-              className={`h-8 px-3 rounded-md transition-all ${
-                view === 'week' 
-                  ? 'bg-white shadow-sm border border-gray-200 text-gray-900 hover:bg-gray-50' 
-                  : 'hover:bg-gray-200 text-gray-700'
-              }`}
-            >
-              <CalendarDays className="h-3 w-3 mr-1" />
-              Week
-            </Button>
-            <Button
-              variant={view === 'month' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => onViewChange('month')}
-              className={`h-8 px-3 rounded-md transition-all ${
-                view === 'month' 
-                  ? 'bg-white shadow-sm border border-gray-200 text-gray-900 hover:bg-gray-50' 
-                  : 'hover:bg-gray-200 text-gray-700'
-              }`}
-            >
-              <Grid3X3 className="h-3 w-3 mr-1" />
-              Month
-            </Button>
-          </div>
         </div>
       </div>
 
@@ -303,7 +305,155 @@ interface SubtaskRowProps {
   onEdit?: (subtask: any) => void;
 }
 
-function SubtaskRow({ subtask, isExpanded, onToggle, onEdit }: SubtaskRowProps) {
+// New interface for scenario groups
+interface ScenarioGroupProps {
+  scenario: string;
+  subtasks: any[];
+  isExpanded: boolean;
+  onToggle: () => void;
+  onEditSubtask?: (subtask: any) => void;
+}
+
+function ScenarioGroupRow({ scenario, subtasks, isExpanded, onToggle, onEditSubtask }: ScenarioGroupProps) {
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'completed': return <Check className="h-4 w-4 text-green-600" />;
+      case 'in_progress': return <Play className="h-4 w-4 text-blue-600" />;
+      case 'paused': return <Pause className="h-4 w-4 text-yellow-600" />;
+      default: return <div className="h-4 w-4 rounded-full bg-gray-300" />;
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed': return 'bg-green-100 text-green-800';
+      case 'in_progress': return 'bg-blue-100 text-blue-800';
+      case 'paused': return 'bg-yellow-100 text-yellow-800';
+      case 'pending': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getPriorityColor = (priority: string | number) => {
+    const priorityNum = typeof priority === 'string' ? parseInt(priority) : priority;
+    switch (priorityNum) {
+      case 1: return 'bg-red-100 text-red-800';
+      case 2: return 'bg-yellow-100 text-yellow-800';
+      case 3: return 'bg-green-100 text-green-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getPriorityLabel = (priority: string | number) => {
+    const priorityNum = typeof priority === 'string' ? parseInt(priority) : priority;
+    switch (priorityNum) {
+      case 1: return 'High';
+      case 2: return 'Medium';
+      case 3: return 'Low';
+      default: return 'Unknown';
+    }
+  };
+
+  // Calculate combined statistics
+  const totalRuns = subtasks.reduce((sum, s) => sum + (s.number_of_runs || 0), 0);
+  const executedRuns = subtasks.reduce((sum, s) => sum + (s.executedRuns || 0), 0);
+  const completedCount = subtasks.filter(s => s.status === 'completed').length;
+  const inProgressCount = subtasks.filter(s => s.status === 'in_progress').length;
+  const pausedCount = subtasks.filter(s => s.status === 'paused').length;
+  const pendingCount = subtasks.filter(s => s.status === 'pending').length;
+
+  // Get dominant status
+  const statusCounts = { completed: completedCount, in_progress: inProgressCount, paused: pausedCount, pending: pendingCount };
+  const dominantStatus = Object.entries(statusCounts).reduce((a, b) => statusCounts[a[0] as keyof typeof statusCounts] > statusCounts[b[0] as keyof typeof statusCounts] ? a : b)[0] as keyof typeof statusCounts;
+
+  // Get dominant priority (lowest number = highest priority)
+  const dominantPriority = Math.min(...subtasks.map(s => s.priority || 3));
+
+  // Get unique categories
+  const categories = [...new Set(subtasks.map(s => s.category).filter(Boolean))];
+
+  return (
+    <>
+      {/* Scenario Group Row */}
+      <tr className="border-b border-gray-200 hover:bg-gray-50 cursor-pointer group bg-blue-50" onClick={onToggle}>
+        <td className="px-4 py-3 text-sm">
+          <div className="flex items-center space-x-2">
+            {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+            <span className="font-medium text-sm">{scenario || 'Unknown Scenario'}</span>
+            <Badge variant="outline" className="text-xs bg-blue-100 text-blue-800">
+              {subtasks.length} subtasks
+            </Badge>
+          </div>
+        </td>
+        <td className="px-4 py-3 text-sm">
+          <div className="flex items-center space-x-2">
+            {getStatusIcon(dominantStatus)}
+            <Badge variant="outline" className={`text-xs ${getStatusColor(dominantStatus)}`}>
+              {dominantStatus}
+            </Badge>
+            {subtasks.length > 1 && (
+              <span className="text-xs text-gray-500">
+                ({completedCount}C, {inProgressCount}P, {pausedCount}Pa, {pendingCount}Pe)
+              </span>
+            )}
+          </div>
+        </td>
+        <td className="px-4 py-3 text-sm">
+          <Badge variant="outline" className={`text-xs ${getPriorityColor(dominantPriority)}`}>
+            {getPriorityLabel(dominantPriority)}
+          </Badge>
+        </td>
+        <td className="px-4 py-3 text-sm">
+          <div className="text-sm text-gray-600">
+            Combined scenario with {subtasks.length} variations
+          </div>
+        </td>
+        <td className="px-4 py-3 text-sm hidden md:table-cell">
+          <div className="flex flex-wrap gap-1">
+            {categories.slice(0, 2).map(category => (
+              <Badge key={category} variant="outline" className="text-xs">
+                {category}
+              </Badge>
+            ))}
+            {categories.length > 2 && (
+              <Badge variant="outline" className="text-xs">
+                +{categories.length - 2}
+              </Badge>
+            )}
+          </div>
+        </td>
+        <td className="px-4 py-3 text-sm hidden lg:table-cell">
+          <div className="text-center">
+            <div className="text-lg font-bold text-blue-600">{executedRuns}</div>
+            <div className="text-xs text-gray-500">/ {totalRuns}</div>
+          </div>
+        </td>
+        <td className="px-4 py-3 text-sm hidden xl:table-cell">
+          <div className="text-sm text-gray-600">Multiple</div>
+        </td>
+        <td className="px-4 py-3 text-sm">
+          <div className="text-xs text-gray-500">
+            {subtasks.length} items
+          </div>
+        </td>
+      </tr>
+
+      {/* Expanded Individual Subtasks */}
+      {isExpanded && subtasks.map((subtask, index) => (
+        <SubtaskRow
+          key={subtask.id || index}
+          subtask={subtask}
+          isExpanded={false}
+          onToggle={() => {}}
+          onEdit={onEditSubtask}
+          isGrouped={true}
+        />
+      ))}
+    </>
+  );
+}
+
+function SubtaskRow({ subtask, isExpanded, onToggle, onEdit, isGrouped = false }: SubtaskRowProps & { isGrouped?: boolean }) {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'completed': return <Check className="h-4 w-4 text-green-600" />;
@@ -346,7 +496,6 @@ function SubtaskRow({ subtask, isExpanded, onToggle, onEdit }: SubtaskRowProps) 
   // Build scenario description from actual JSON structure
   const getScenarioDescription = () => {
     const parts = [];
-    if (subtask.scenario) parts.push(subtask.scenario);
     if (subtask.lighting) parts.push(subtask.lighting);
     if (subtask.overlap) parts.push(`${subtask.overlap}% overlap`);
     if (subtask.target_speed) parts.push(`Target: ${subtask.target_speed}km/h`);
@@ -357,11 +506,15 @@ function SubtaskRow({ subtask, isExpanded, onToggle, onEdit }: SubtaskRowProps) 
   return (
     <>
       {/* Main Row */}
-      <tr className="border-b border-gray-200 hover:bg-gray-50 cursor-pointer group" onClick={onToggle}>
+      <tr className={`border-b border-gray-200 hover:bg-gray-50 cursor-pointer group ${isGrouped ? 'bg-gray-25 pl-8' : ''}`} onClick={onToggle}>
         <td className="px-4 py-3 text-sm">
           <div className="flex items-center space-x-2">
-            {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-            <span className="font-medium font-mono text-xs">{subtask.id || 'N/A'}</span>
+            {!isGrouped && (isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />)}
+            {isGrouped && <div className="w-4 h-4 ml-4"></div>}
+            <span className="font-medium text-xs">{subtask.scenario || 'Unknown Scenario'}</span>
+            {isGrouped && (
+              <span className="font-mono text-xs text-gray-500">({subtask.id})</span>
+            )}
           </div>
         </td>
         <td className="px-4 py-3 text-sm">
@@ -409,8 +562,8 @@ function SubtaskRow({ subtask, isExpanded, onToggle, onEdit }: SubtaskRowProps) 
         </td>
       </tr>
 
-      {/* Expanded Row */}
-      {isExpanded && (
+      {/* Expanded Row - only for non-grouped items */}
+      {!isGrouped && isExpanded && (
         <tr className="bg-gray-50">
           <td colSpan={8} className="px-4 py-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
@@ -649,8 +802,26 @@ function TaskPageContent() {
     return matchesSearch && matchesStatus && matchesPriority && matchesCategory;
   }) || [];
 
+  // Group subtasks by scenario
+  const groupedSubtasks = filteredSubtasks.reduce((groups, subtask) => {
+    const scenario = subtask.scenario || 'Unknown Scenario';
+    if (!groups[scenario]) {
+      groups[scenario] = [];
+    }
+    groups[scenario].push(subtask);
+    return groups;
+  }, {} as Record<string, any[]>);
+
+  // Convert to array for rendering
+  const scenarioGroups = Object.entries(groupedSubtasks).map(([scenario, subtasks]) => ({
+    scenario,
+    subtasks,
+    // Generate a unique ID for the group
+    id: scenario.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()
+  }));
+
   // Get unique categories for filter
-  const categories = [...new Set(task?.subtasks?.map(s => s.category).filter(Boolean))] || [];
+  const categories = [...new Set(task?.subtasks?.map(s => s.category).filter(Boolean) || [])];
 
   if (loading) {
     return (
@@ -811,7 +982,7 @@ function TaskPageContent() {
             <Card className="p-6">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                 <h2 className="text-xl font-semibold text-gray-900">
-                  Subtasks ({filteredSubtasks.length} of {task.totalSubtasks})
+                  Subtasks ({filteredSubtasks.length} items in {scenarioGroups.length} scenarios)
                 </h2>
                 <div className="flex flex-wrap items-center gap-2">
                   <Button
@@ -884,7 +1055,7 @@ function TaskPageContent() {
                       <thead className="bg-gray-50 border-b border-gray-200">
                         <tr>
                           <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Subtask ID
+                            Scenario
                           </th>
                           <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Status
@@ -893,7 +1064,7 @@ function TaskPageContent() {
                             Priority
                           </th>
                           <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Scenario
+                            Scenario Description
                           </th>
                           <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
                             Category
@@ -910,26 +1081,27 @@ function TaskPageContent() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200">
-                        {filteredSubtasks.map((subtask, index) => (
-                          <SubtaskRow
-                            key={subtask.id || index}
-                            subtask={subtask}
-                            isExpanded={expandedRows.has(subtask.id || index.toString())}
-                            onToggle={() => handleRowToggle(subtask.id || index.toString())}
-                            onEdit={(subtask) => console.log('Edit subtask:', subtask)}
+                        {scenarioGroups.map(({ scenario, subtasks }) => (
+                          <ScenarioGroupRow
+                            key={scenario}
+                            scenario={scenario}
+                            subtasks={subtasks}
+                            isExpanded={expandedRows.has(scenario)}
+                            onToggle={() => handleRowToggle(scenario)}
+                            onEditSubtask={(subtask) => console.log('Edit subtask:', subtask)}
                           />
                         ))}
                       </tbody>
                     </table>
                   </div>
 
-                  {filteredSubtasks.length === 0 && (
+                  {scenarioGroups.length === 0 && (
                     <div className="text-center py-8">
                       <TestTube className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">No Subtasks Found</h3>
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">No Scenarios Found</h3>
                       <p className="text-gray-600">
                         {searchTerm || statusFilter !== 'all' || priorityFilter !== 'all'
-                          ? 'Try adjusting your filters to see more subtasks.'
+                          ? 'Try adjusting your filters to see more scenarios.'
                           : 'This task has no subtasks yet.'}
                       </p>
                     </div>
@@ -940,9 +1112,9 @@ function TaskPageContent() {
               {!showSubtasks && (
                 <div className="text-center py-8">
                   <TestTube className="h-16 w-16 text-gray-400 mx-auto mb-4 opacity-50" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Subtask Management</h3>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Scenario Management</h3>
                   <p className="text-gray-600 mb-4">
-                    Click "Show Table" to view and manage {task.totalSubtasks} subtasks with detailed progress tracking.
+                    Click "Show Table" to view and manage {task.totalSubtasks} subtasks grouped by {Object.keys(groupedSubtasks).length} scenarios.
                   </p>
                 </div>
               )}

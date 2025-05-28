@@ -14,8 +14,8 @@ interface ChatMessage {
   timestamp: Date;
   source?: string;
   error?: boolean;
-  imageData?: string; // Base64 image data for preview
-  imageName?: string; // Original filename
+  imageData?: string | null; // Base64 image data for preview
+  imageName?: string | null; // Original filename
 }
 
 interface ChatInterfaceProps {

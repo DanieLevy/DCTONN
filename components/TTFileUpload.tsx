@@ -81,7 +81,7 @@ export function TTFileUpload({ onTaskCreated, onClose }: TTFileUploadProps) {
         if (!taskData.title && result.fileName) {
           setTaskData(prev => ({
             ...prev,
-            title: result.fileName.replace(/\.(csv|xlsx|xls)$/i, '')
+            title: result.fileName!.replace(/\.(csv|xlsx|xls)$/i, '')
           }));
         }
       }
@@ -336,7 +336,7 @@ export function TTFileUpload({ onTaskCreated, onClose }: TTFileUploadProps) {
                   <select
                     id="location"
                     value={taskData.location}
-                    onChange={(e) => setTaskData(prev => ({ ...prev, location: e.target.value }))}
+                    onChange={(e) => setTaskData(prev => ({ ...prev, location: e.target.value as "EU" | "USA" | "IL" }))}
                     className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     {user?.permissions?.map(location => (

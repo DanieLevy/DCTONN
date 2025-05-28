@@ -48,7 +48,7 @@ interface EditTaskModalProps {
 }
 
 function EditTaskModal({ task, isOpen, onClose, onSave, type }: EditTaskModalProps) {
-  const [formData, setFormData] = useState<any>({});
+  const [formData, setFormData] = useState<Record<string, any>>({});
 
   useEffect(() => {
     if (task) {
@@ -58,7 +58,7 @@ function EditTaskModal({ task, isOpen, onClose, onSave, type }: EditTaskModalPro
 
   const handleSave = () => {
     if (task) {
-      onSave({ ...task, ...formData });
+      onSave({ ...task, ...formData } as Task | TTTask);
     }
   };
 
@@ -234,7 +234,7 @@ interface EditSubtaskModalProps {
 }
 
 function EditSubtaskModal({ subtask, isOpen, onClose, onSave }: EditSubtaskModalProps) {
-  const [formData, setFormData] = useState<any>({});
+  const [formData, setFormData] = useState<Record<string, any>>({});
 
   useEffect(() => {
     if (subtask) {
@@ -244,7 +244,7 @@ function EditSubtaskModal({ subtask, isOpen, onClose, onSave }: EditSubtaskModal
 
   const handleSave = () => {
     if (subtask) {
-      onSave({ ...subtask, ...formData });
+      onSave({ ...subtask, ...formData } as any);
     }
   };
 
@@ -545,10 +545,11 @@ export function Dashboard({ onBackToTasks, onRefreshTasks }: DashboardProps) {
     setEditingTTTask(task);
   };
 
-  const handleSaveDCTask = async (updatedTask: Task) => {
+  const handleSaveDCTask = async (updatedTask: Task | TTTask) => {
+    if (!editingTask || !token) return;
+
     try {
-      setIsLoading(true);
-      const response = await fetch(`/api/tasks/${updatedTask.id}`, {
+      const response = await fetch(`/api/tasks/${editingTask.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -558,21 +559,22 @@ export function Dashboard({ onBackToTasks, onRefreshTasks }: DashboardProps) {
       });
 
       if (response.ok) {
-        await loadDCTasks();
         setEditingTask(null);
+        await loadDCTasks();
         onRefreshTasks?.();
+      } else {
+        console.error('Failed to update DC task');
       }
     } catch (error) {
-      console.error('Failed to update DC task:', error);
-    } finally {
-      setIsLoading(false);
+      console.error('Error updating DC task:', error);
     }
   };
 
-  const handleSaveTTTask = async (updatedTask: TTTask) => {
+  const handleSaveTTTask = async (updatedTask: Task | TTTask) => {
+    if (!editingTTTask || !token) return;
+
     try {
-      setIsLoading(true);
-      const response = await fetch(`/api/tasks/tt/${updatedTask.id}`, {
+      const response = await fetch(`/api/tasks/tt/${editingTTTask.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -582,14 +584,14 @@ export function Dashboard({ onBackToTasks, onRefreshTasks }: DashboardProps) {
       });
 
       if (response.ok) {
-        await loadTTTasks();
         setEditingTTTask(null);
+        await loadTTTasks();
         onRefreshTasks?.();
+      } else {
+        console.error('Failed to update TT task');
       }
     } catch (error) {
-      console.error('Failed to update TT task:', error);
-    } finally {
-      setIsLoading(false);
+      console.error('Error updating TT task:', error);
     }
   };
 
@@ -840,7 +842,6 @@ export function Dashboard({ onBackToTasks, onRefreshTasks }: DashboardProps) {
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="container mx-auto px-4 py-6">
         {/* Tabs */}
         <div className="mb-6">
@@ -872,6 +873,7 @@ export function Dashboard({ onBackToTasks, onRefreshTasks }: DashboardProps) {
                   <span>TT Tasks ({ttTasks.length})</span>
                 </div>
               </button>
+              
               {user?.role === 'admin' && (
                 <button
                   onClick={() => setActiveTab('users')}
@@ -933,7 +935,7 @@ export function Dashboard({ onBackToTasks, onRefreshTasks }: DashboardProps) {
                     />
                     <select
                       value={taskForm.location}
-                      onChange={(e) => setTaskForm(prev => ({ ...prev, location: e.target.value }))}
+                      onChange={(e) => setTaskForm(prev => ({ ...prev, location: e.target.value as "EU" | "USA" | "IL" }))}
                       className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                       {user?.permissions?.map(location => (
@@ -949,32 +951,12 @@ export function Dashboard({ onBackToTasks, onRefreshTasks }: DashboardProps) {
                       <option value="medium">Medium Priority</option>
                       <option value="high">High Priority</option>
                     </select>
-                    <Input
-                      placeholder="Target Car"
-                      value={taskForm.targetCar}
-                      onChange={(e) => setTaskForm(prev => ({ ...prev, targetCar: e.target.value }))}
-                    />
-                    <Input
-                      placeholder="Weather Conditions"
-                      value={taskForm.weather}
-                      onChange={(e) => setTaskForm(prev => ({ ...prev, weather: e.target.value }))}
-                    />
                   </div>
-                  <div className="flex justify-end space-x-2 mt-4">
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setIsCreatingTask(false);
-                        resetTaskForm();
-                      }}
-                    >
-                      <X className="h-4 w-4 mr-2" />
+                  <div className="mt-4 flex justify-end space-x-3">
+                    <Button variant="outline" onClick={() => setIsCreatingTask(false)}>
                       Cancel
                     </Button>
-                    <Button
-                      onClick={handleCreateTask}
-                      disabled={!taskForm.title || !taskForm.type || isLoading}
-                    >
+                    <Button onClick={handleCreateTask} disabled={isLoading || !taskForm.title || !taskForm.type}>
                       <Save className="h-4 w-4 mr-2" />
                       Create Task
                     </Button>
@@ -991,10 +973,10 @@ export function Dashboard({ onBackToTasks, onRefreshTasks }: DashboardProps) {
                         <div className="flex-1">
                           <div className="flex items-center space-x-2 mb-2">
                             <h4 className="font-semibold text-gray-900">{task.title}</h4>
-                            <Badge className={getPriorityColor(task.priority)}>
+                            <Badge className={getPriorityColor(task.priority)} variant="outline">
                               {task.priority}
                             </Badge>
-                            <Badge className={getStatusColor(task.status)}>
+                            <Badge className={getStatusColor(task.status)} variant="outline">
                               {task.status}
                             </Badge>
                             <Badge variant="outline">{task.location}</Badge>
@@ -1002,8 +984,8 @@ export function Dashboard({ onBackToTasks, onRefreshTasks }: DashboardProps) {
                           </div>
                           <p className="text-sm text-gray-600 mb-1">
                             <strong>Type:</strong> {task.type} | 
-                            <strong> Car:</strong> {task.targetCar} | 
-                            <strong> Weather:</strong> {task.weather}
+                            <strong> Target:</strong> {task.targetCar || 'N/A'} | 
+                            <strong> Weather:</strong> {task.weather || 'N/A'}
                           </p>
                           <p className="text-xs text-gray-500">
                             Created: {new Date(task.createdAt).toLocaleDateString()} by {task.createdBy}
@@ -1011,10 +993,10 @@ export function Dashboard({ onBackToTasks, onRefreshTasks }: DashboardProps) {
                         </div>
                         {(user?.role === 'admin' || user?.role === 'data_manager') && (
                           <div className="flex items-center space-x-2">
-                            <Button variant="ghost" size="sm">
+                            <Button variant="ghost" size="sm" onClick={() => handleEditDCTask(task)}>
                               <Edit3 className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="sm">
+                            <Button variant="ghost" size="sm" onClick={() => handleDeleteDCTask(task.id)}>
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
@@ -1068,10 +1050,10 @@ export function Dashboard({ onBackToTasks, onRefreshTasks }: DashboardProps) {
                         <div className="flex-1">
                           <div className="flex items-center space-x-2 mb-2">
                             <h4 className="font-semibold text-gray-900">{task.title}</h4>
-                            <Badge className={getPriorityColor(task.priority)}>
+                            <Badge className={getPriorityColor(task.priority)} variant="outline">
                               {task.priority}
                             </Badge>
-                            <Badge className={getStatusColor(task.status)}>
+                            <Badge className={getStatusColor(task.status)} variant="outline">
                               {task.status}
                             </Badge>
                             <Badge variant="outline">{task.location}</Badge>
@@ -1090,7 +1072,8 @@ export function Dashboard({ onBackToTasks, onRefreshTasks }: DashboardProps) {
                             )}
                           </p>
                         </div>
-                        <div className="flex items-center space-x-2">
+                        
+                        <div className="flex items-center space-x-4">
                           {/* Progress indicator */}
                           <div className="hidden md:block w-24">
                             <div className="text-xs text-gray-600 mb-1 text-center">
@@ -1105,16 +1088,96 @@ export function Dashboard({ onBackToTasks, onRefreshTasks }: DashboardProps) {
                           </div>
                           {(user?.role === 'admin' || user?.role === 'data_manager') && (
                             <div className="flex items-center space-x-2">
-                              <Button variant="ghost" size="sm">
+                              <Button variant="ghost" size="sm" onClick={() => loadTTTaskDetails(task.id)}>
                                 <Eye className="h-4 w-4" />
                               </Button>
-                              <Button variant="ghost" size="sm">
+                              <Button variant="ghost" size="sm" onClick={() => handleEditTTTask(task)}>
                                 <Edit3 className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="sm" onClick={() => handleDeleteTTTask(task.id)}>
+                                <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
                           )}
                         </div>
                       </div>
+
+                      {/* Expanded Subtasks View */}
+                      {selectedTTTask && selectedTTTask.id === task.id && (
+                        <div className="mt-4 pt-4 border-t border-gray-200">
+                          <div className="flex justify-between items-center mb-4">
+                            <h5 className="font-medium text-gray-900">
+                              Subtasks ({selectedTTTask.subtasks?.length || 0})
+                            </h5>
+                            <Button variant="ghost" size="sm" onClick={() => setSelectedTTTask(null)}>
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+
+                          {selectedTTTask.subtasks && selectedTTTask.subtasks.length > 0 ? (
+                            <div className="space-y-2 max-h-96 overflow-y-auto">
+                              {selectedTTTask.subtasks.slice(0, 20).map((subtask, index) => (
+                                <div key={subtask.id || index} className="border border-gray-200 rounded-lg">
+                                  <div 
+                                    className="p-3 cursor-pointer hover:bg-gray-50 flex items-center justify-between"
+                                    onClick={() => toggleSubtaskExpansion(subtask.id || index.toString())}
+                                  >
+                                    <div className="flex items-center space-x-3">
+                                      {expandedSubtasks.has(subtask.id || index.toString()) ? 
+                                        <ChevronDown className="h-4 w-4" /> : 
+                                        <ChevronRight className="h-4 w-4" />
+                                      }
+                                      {getStatusIcon(subtask.status)}
+                                      <span className="font-mono text-sm">{subtask.id}</span>
+                                      <Badge className={getStatusColor(subtask.status)} variant="outline">
+                                        {subtask.status}
+                                      </Badge>
+                                      <Badge className={getPriorityColor(subtask.priority || 3)} variant="outline">
+                                        P{subtask.priority || 3}
+                                      </Badge>
+                                    </div>
+                                    {(user?.role === 'admin' || user?.role === 'data_manager') && (
+                                      <Button 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setEditingSubtask(subtask);
+                                        }}
+                                      >
+                                        <Edit className="h-3 w-3" />
+                                      </Button>
+                                    )}
+                                  </div>
+
+                                  {/* Expanded Subtask Details */}
+                                  {expandedSubtasks.has(subtask.id || index.toString()) && (
+                                    <div className="px-3 pb-3 bg-gray-50 border-t border-gray-200">
+                                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm">
+                                        <div><strong>Scenario:</strong> {subtask.scenario || 'N/A'}</div>
+                                        <div><strong>Category:</strong> {subtask.category || 'N/A'}</div>
+                                        <div><strong>Lighting:</strong> {subtask.lighting || 'N/A'}</div>
+                                        <div><strong>Target Speed:</strong> {subtask.target_speed || 'N/A'} km/h</div>
+                                        <div><strong>Ego Speed:</strong> {subtask.ego_speed || 'N/A'} km/h</div>
+                                        <div><strong>Runs:</strong> {subtask.executedRuns || 0}/{subtask.number_of_runs || 0}</div>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                              {selectedTTTask.subtasks.length > 20 && (
+                                <div className="text-center text-gray-500 text-sm py-2">
+                                  Showing first 20 of {selectedTTTask.subtasks.length} subtasks
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="text-center text-gray-500 py-4">
+                              No subtasks available
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </Card>
                   ))
                 ) : (
@@ -1159,7 +1222,7 @@ export function Dashboard({ onBackToTasks, onRefreshTasks }: DashboardProps) {
                     <h4 className="text-md font-medium text-gray-900">Create New User</h4>
                     <p className="text-sm text-gray-600 mt-1">Add a new user to the system</p>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                     <Input
                       placeholder="Username"
                       value={userForm.username}
@@ -1196,21 +1259,11 @@ export function Dashboard({ onBackToTasks, onRefreshTasks }: DashboardProps) {
                       <option value="IL">IL</option>
                     </select>
                   </div>
-                  <div className="flex justify-end space-x-2 mt-4">
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setIsCreatingUser(false);
-                        resetUserForm();
-                      }}
-                    >
-                      <X className="h-4 w-4 mr-2" />
+                  <div className="mt-4 flex justify-end space-x-3">
+                    <Button variant="outline" onClick={() => setIsCreatingUser(false)}>
                       Cancel
                     </Button>
-                    <Button
-                      onClick={handleCreateUser}
-                      disabled={!userForm.username || !userForm.email || !userForm.password || isLoading}
-                    >
+                    <Button onClick={handleCreateUser} disabled={isLoading || !userForm.username || !userForm.email}>
                       <Save className="h-4 w-4 mr-2" />
                       Create User
                     </Button>
@@ -1226,7 +1279,7 @@ export function Dashboard({ onBackToTasks, onRefreshTasks }: DashboardProps) {
                       <div className="flex-1">
                         <div className="flex items-center space-x-2 mb-2">
                           <h4 className="font-semibold text-gray-900">{userItem.username}</h4>
-                          <Badge className={getRoleColor(userItem.role)}>
+                          <Badge className={getRoleColor(userItem.role)} variant="outline">
                             {userItem.role}
                           </Badge>
                           <Badge variant="outline">{userItem.location}</Badge>
@@ -1255,6 +1308,30 @@ export function Dashboard({ onBackToTasks, onRefreshTasks }: DashboardProps) {
           )}
         </div>
       </div>
+
+      {/* Modals */}
+      <EditTaskModal
+        task={editingTask}
+        isOpen={!!editingTask}
+        onClose={() => setEditingTask(null)}
+        onSave={handleSaveDCTask}
+        type="DC"
+      />
+
+      <EditTaskModal
+        task={editingTTTask}
+        isOpen={!!editingTTTask}
+        onClose={() => setEditingTTTask(null)}
+        onSave={handleSaveTTTask}
+        type="TT"
+      />
+
+      <EditSubtaskModal
+        subtask={editingSubtask}
+        isOpen={!!editingSubtask}
+        onClose={() => setEditingSubtask(null)}
+        onSave={handleSaveSubtask}
+      />
 
       {/* TT File Upload Modal */}
       {showTTUpload && (

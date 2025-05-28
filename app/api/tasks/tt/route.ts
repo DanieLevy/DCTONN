@@ -24,7 +24,7 @@ async function loadTTTasks(): Promise<TTTask[]> {
     const data = await fs.readFile(TT_TASKS_FILE, 'utf-8');
     return JSON.parse(data);
   } catch (error) {
-    console.error('[TT Tasks] Error loading tasks:', error);
+    console.error('[TT Tasks API] Error loading tasks:', error);
     return [];
   }
 }
@@ -218,7 +218,7 @@ export async function POST(request: NextRequest) {
       changeLog: [{
         id: generateId(),
         timestamp: now,
-        userId: user.id,
+        userId: user.userId,
         userName: user.username,
         changeType: 'task_updated',
         targetId: '',
@@ -325,7 +325,7 @@ export async function PUT(request: NextRequest) {
           changeLogEntries.push({
             id: generateId(),
             timestamp: now,
-            userId: user.id,
+            userId: user.userId,
             userName: user.username,
             changeType: 'task_updated',
             targetId: taskId,
@@ -367,7 +367,7 @@ export async function PUT(request: NextRequest) {
           changeLogEntries.push({
             id: generateId(),
             timestamp: now,
-            userId: user.id,
+            userId: user.userId,
             userName: user.username,
             changeType: 'subtask_updated',
             targetId: subtaskId,

@@ -48,6 +48,25 @@ export function getTokenFromRequest(request: Request): string | null {
   return authHeader.substring(7);
 }
 
+// Combined auth verification function for API routes
+export async function verifyAuth(request: Request): Promise<{ user: JWTPayload | null; success: boolean }> {
+  try {
+    const token = getTokenFromRequest(request);
+    if (!token) {
+      return { user: null, success: false };
+    }
+    
+    const user = verifyToken(token);
+    if (!user) {
+      return { user: null, success: false };
+    }
+    
+    return { user, success: true };
+  } catch (error) {
+    return { user: null, success: false };
+  }
+}
+
 // Helper functions for role-based access control
 export function hasPermission(userPayload: JWTPayload, requiredPermission: string): boolean {
   return userPayload.permissions.includes(requiredPermission) || userPayload.role === 'admin';
