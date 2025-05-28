@@ -1,0 +1,101 @@
+{
+  "users": [
+    {
+      "id": "admin_001",
+      "username": "admin",
+      "email": "admin@company.com",
+      "role": "admin",
+      "location": "EU",
+      "permissions": ["EU", "USA", "IL"],
+      "hashedPassword": "$2a$10$K.L.DEMO.HASH.FOR.DEVELOPMENT",
+      "createdAt": "2024-01-01T00:00:00Z",
+      "updatedAt": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": "manager_eu",
+      "username": "eu_manager",
+      "email": "manager.eu@company.com",
+      "role": "data_manager",
+      "location": "EU",
+      "permissions": ["EU"],
+      "hashedPassword": "$2a$10$K.L.DEMO.HASH.FOR.DEVELOPMENT",
+      "createdAt": "2024-01-01T00:00:00Z",
+      "updatedAt": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": "manager_usa",
+      "username": "usa_manager",
+      "email": "manager.usa@company.com",
+      "role": "data_manager",
+      "location": "USA",
+      "permissions": ["USA"],
+      "hashedPassword": "$2a$10$K.L.DEMO.HASH.FOR.DEVELOPMENT",
+      "createdAt": "2024-01-01T00:00:00Z",
+      "updatedAt": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": "manager_il",
+      "username": "il_manager",
+      "email": "manager.il@company.com",
+      "role": "data_manager",
+      "location": "IL",
+      "permissions": ["IL"],
+      "hashedPassword": "$2a$10$K.L.DEMO.HASH.FOR.DEVELOPMENT",
+      "createdAt": "2024-01-01T00:00:00Z",
+      "updatedAt": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": "viewer_eu_001",
+      "username": "eu_viewer",
+      "email": "viewer.eu@company.com",
+      "role": "viewer",
+      "location": "EU",
+      "permissions": ["EU"],
+      "hashedPassword": "$2a$10$K.L.DEMO.HASH.FOR.DEVELOPMENT",
+      "createdAt": "2024-01-01T00:00:00Z",
+      "updatedAt": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": "viewer_usa_001",
+      "username": "usa_viewer",
+      "email": "viewer.usa@company.com",
+      "role": "viewer",
+      "location": "USA",
+      "permissions": ["USA"],
+      "hashedPassword": "$2a$10$K.L.DEMO.HASH.FOR.DEVELOPMENT",
+      "createdAt": "2024-01-01T00:00:00Z",
+      "updatedAt": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": "viewer_il_001",
+      "username": "il_viewer",
+      "email": "viewer.il@company.com",
+      "role": "viewer",
+      "location": "IL",
+      "permissions": ["IL"],
+      "hashedPassword": "$2a$10$K.L.DEMO.HASH.FOR.DEVELOPMENT",
+      "createdAt": "2024-01-01T00:00:00Z",
+      "updatedAt": "2024-01-01T00:00:00Z"
+    }
+  ],
+  "locations": [
+    {
+      "code": "EU",
+      "name": "European Operations",
+      "dataManager": "manager_eu",
+      "taskCount": 1
+    },
+    {
+      "code": "USA",
+      "name": "United States Operations",
+      "dataManager": "manager_usa",
+      "taskCount": 1
+    },
+    {
+      "code": "IL",
+      "name": "Israel Operations",
+      "dataManager": "manager_il",
+      "taskCount": 1
+    }
+  ]
+} 

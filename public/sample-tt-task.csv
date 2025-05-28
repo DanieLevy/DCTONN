@@ -1,0 +1,11 @@
+category,regulation,scenario,lighting,street_lights,beam,overlap,target_speed,ego_speed,number_of_runs,headway,brake,priority
+A1,REG001,Highway merge,daylight,on,high,50,60,80,5,2.5,hard,high
+A2,REG002,Urban intersection,night,off,low,40,50,100,3,1.5,medium,medium
+B1,REG003,Parking scenario,dusk,on,medium,N/A,70,120,4,,soft,low
+A3,REG004,Emergency stop,daylight,on,high,60,80,150,2,1.0,hard,high
+C1,REG005,Lane change,dawn,off,low,45,65,200,6,3.0,medium,medium
+B2,REG006,Roundabout entry,daylight,on,medium,55,75,80,4,2.0,soft,low
+A4,REG007,Speed bump,night,on,high,30,40,100,8,1.5,hard,high
+D1,REG008,Construction zone,daylight,off,low,35,45,150,5,2.5,medium,medium
+C2,REG009,School zone,dawn,on,medium,25,35,200,10,1.0,soft,high
+B3,REG010,Tunnel entry,night,off,high,50,60,120,3,2.0,hard,medium 
