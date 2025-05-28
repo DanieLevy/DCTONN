@@ -403,10 +403,10 @@ This specification provides a comprehensive foundation for developing your AI-po
 2025-05-28 16:37:02 [INFO]
 [LM STUDIO SERVER] Supported endpoints:
 2025-05-28 16:37:02 [INFO]
-[LM STUDIO SERVER] -> GET http://192.168.5.9:1234/v1/models
+[LM STUDIO SERVER] -> GET http://localhost:1234/v1/models
 2025-05-28 16:37:02 [INFO]
-[LM STUDIO SERVER] -> POST http://192.168.5.9:1234/v1/chat/completions
+[LM STUDIO SERVER] -> POST http://localhost:1234/v1/chat/completions
 2025-05-28 16:37:02 [INFO]
-[LM STUDIO SERVER] -> POST http://192.168.5.9:1234/v1/completions
+[LM STUDIO SERVER] -> POST http://localhost:1234/v1/completions
 2025-05-28 16:37:02 [INFO]
-[LM STUDIO SERVER] -> POST http://192.168.5.9:1234/v1/embeddings
+[LM STUDIO SERVER] -> POST http://localhost:1234/v1/embeddings

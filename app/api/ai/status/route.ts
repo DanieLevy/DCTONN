@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken, getTokenFromRequest } from '@/lib/auth';
 
-const LM_STUDIO_URL = process.env.LM_STUDIO_URL || 'http://192.168.5.9:1234';
+const LM_STUDIO_URL = process.env.LM_STUDIO_URL || 'http://localhost:1234';
 
 export async function GET(request: NextRequest) {
   try {

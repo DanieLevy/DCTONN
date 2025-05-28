@@ -7,7 +7,7 @@ export const maxDuration = 300; // 5 minutes
 export const runtime = 'nodejs';
 
 // LM Studio configuration
-const LM_STUDIO_URL = process.env.LM_STUDIO_URL || 'http://192.168.5.9:1234';
+const LM_STUDIO_URL = process.env.LM_STUDIO_URL || 'http://localhost:1234';
 
 // Helper function to get vision model
 async function getVisionModel(): Promise<{ connected: boolean; model?: string; error?: string }> {

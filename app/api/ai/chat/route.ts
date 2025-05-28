@@ -3,7 +3,7 @@ import { verifyToken, getTokenFromRequest } from '@/lib/auth';
 import { loadTasks } from '@/lib/data-store';
 
 // LM Studio configuration from the specification
-const LM_STUDIO_URL = process.env.LM_STUDIO_URL || 'http://192.168.5.9:1234';
+const LM_STUDIO_URL = process.env.LM_STUDIO_URL || 'http://localhost:1234';
 
 // Helper function to test LM Studio connection and get the best model
 async function getLMStudioModel(): Promise<{ connected: boolean; model?: string; embeddingModel?: string; error?: string }> {
