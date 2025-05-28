@@ -307,7 +307,7 @@ function TaskDashboard() {
             )}
           </div>
         ) : (
-          <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+          <div className="space-y-0">
             {filteredTasks.map((task, index) => {
               // Use different components based on task type
               if (task.category === 'TT') {

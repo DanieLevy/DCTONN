@@ -1124,11 +1124,13 @@ function TaskPageContent() {
                       <Badge variant="outline" className="text-xs">
                         🏁 TT
                       </Badge>
-                      <Badge variant="outline" className="text-xs">
-                        v{task.version}
-                      </Badge>
                     </div>
                   </div>
+                      {task.version && (
+                        <Badge variant="outline" className="text-xs">
+                          {task.version}
+                        </Badge>
+                      )}
                   {task.description && (
                     <p className="text-gray-600 mb-4">{task.description}</p>
                   )}
@@ -1190,13 +1192,13 @@ function TaskPageContent() {
                     <div>{formatDate(task.updatedAt)}</div>
                   </div>
                 </div>
-                <div className="flex items-center space-x-2 text-sm text-gray-600">
+                {/* <div className="flex items-center space-x-2 text-sm text-gray-600">
                   <FileText className="h-4 w-4 flex-shrink-0" />
                   <div>
                     <div className="font-medium">CSV File</div>
                     <div className="truncate">{task.csvFileName}</div>
                   </div>
-                </div>
+                </div> */}
                 <div className="flex items-center space-x-2 text-sm text-gray-600">
                   <div className="w-4 h-4 bg-blue-100 rounded flex-shrink-0 flex items-center justify-center">
                     <span className="text-blue-600 text-xs font-bold">{task.createdBy.charAt(0).toUpperCase()}</span>

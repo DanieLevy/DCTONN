@@ -47,7 +47,7 @@ export function TTTaskRow({ task, onClick }: TTTaskRowProps) {
   return (
     <div 
       onClick={onClick}
-      className="bg-white border-b border-gray-200 px-6 py-5 hover:bg-gray-50 cursor-pointer transition-all duration-200 group first:border-t"
+      className="bg-white border-t border-b border-gray-200 px-6 py-5 hover:bg-gray-50 cursor-pointer transition-all duration-200 group -mb-px"
     >
       {/* Desktop Layout */}
       <div className="hidden lg:grid lg:grid-cols-12 lg:gap-6 lg:items-center">
