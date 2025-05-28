@@ -27,12 +27,13 @@ export async function GET(
     const fileContent = fs.readFileSync(TT_TASKS_FILE, 'utf-8');
     const data = JSON.parse(fileContent);
 
-    if (!data.ttTasks || !Array.isArray(data.ttTasks)) {
-      console.log('[TT Task Detail] Invalid TT tasks data structure');
+    // The file contains a plain array of tasks, not wrapped in an object
+    if (!Array.isArray(data)) {
+      console.log('[TT Task Detail] Invalid TT tasks data structure - expected array, got:', typeof data);
       return NextResponse.json({ success: false, error: 'Invalid TT tasks data' }, { status: 500 });
     }
 
-    const task = data.ttTasks.find((t: any) => t.id === taskId);
+    const task = data.find((t: any) => t.id === taskId);
     if (!task) {
       console.log('[TT Task Detail] Task not found:', taskId);
       return NextResponse.json({ success: false, error: 'TT task not found' }, { status: 404 });
@@ -76,16 +77,18 @@ export async function PUT(
     const fileContent = fs.readFileSync(TT_TASKS_FILE, 'utf-8');
     const data = JSON.parse(fileContent);
     
-    if (!data.ttTasks || !Array.isArray(data.ttTasks)) {
+    // The file contains a plain array of tasks, not wrapped in an object
+    if (!Array.isArray(data)) {
+      console.log('[TT Tasks API] Invalid TT tasks data structure - expected array, got:', typeof data);
       return NextResponse.json({ success: false, error: 'Invalid TT tasks data' }, { status: 500 });
     }
 
-    const taskIndex = data.ttTasks.findIndex((t: any) => t.id === id);
+    const taskIndex = data.findIndex((t: any) => t.id === id);
     if (taskIndex === -1) {
       return NextResponse.json({ success: false, error: 'TT task not found' }, { status: 404 });
     }
 
-    const existingTask = data.ttTasks[taskIndex];
+    const existingTask = data[taskIndex];
     
     // Check user permissions
     const userPermissions = user.permissions || [user.location];
@@ -104,7 +107,7 @@ export async function PUT(
       lastEditedBy: user.username
     };
 
-    data.ttTasks[taskIndex] = updatedTask;
+    data[taskIndex] = updatedTask;
 
     // Write back to file
     fs.writeFileSync(TT_TASKS_FILE, JSON.stringify(data, null, 2));
@@ -139,16 +142,18 @@ export async function DELETE(
     const fileContent = fs.readFileSync(TT_TASKS_FILE, 'utf-8');
     const data = JSON.parse(fileContent);
     
-    if (!data.ttTasks || !Array.isArray(data.ttTasks)) {
+    // The file contains a plain array of tasks, not wrapped in an object
+    if (!Array.isArray(data)) {
+      console.log('[TT Tasks API] Invalid TT tasks data structure - expected array, got:', typeof data);
       return NextResponse.json({ success: false, error: 'Invalid TT tasks data' }, { status: 500 });
     }
 
-    const taskIndex = data.ttTasks.findIndex((t: any) => t.id === id);
+    const taskIndex = data.findIndex((t: any) => t.id === id);
     if (taskIndex === -1) {
       return NextResponse.json({ success: false, error: 'TT task not found' }, { status: 404 });
     }
 
-    const task = data.ttTasks[taskIndex];
+    const task = data[taskIndex];
     
     // Check user permissions
     const userPermissions = user.permissions || [user.location];
@@ -157,7 +162,7 @@ export async function DELETE(
     }
 
     // Remove task
-    data.ttTasks.splice(taskIndex, 1);
+    data.splice(taskIndex, 1);
 
     // Write back to file
     fs.writeFileSync(TT_TASKS_FILE, JSON.stringify(data, null, 2));

@@ -354,9 +354,17 @@ function ScenarioGroupRow({ scenario, subtasks, isExpanded, onToggle, onEditSubt
     }
   };
 
-  // Calculate combined statistics
-  const totalRuns = subtasks.reduce((sum, s) => sum + (s.number_of_runs || 0), 0);
-  const executedRuns = subtasks.reduce((sum, s) => sum + (s.executedRuns || 0), 0);
+  // Calculate combined statistics with proper null/undefined handling
+  const totalRuns = subtasks.reduce((sum, s) => {
+    const runs = parseInt(s.number_of_runs) || 0;
+    return sum + runs;
+  }, 0);
+  
+  const executedRuns = subtasks.reduce((sum, s) => {
+    const execRuns = parseInt(s.executedRuns) || 0;
+    return sum + execRuns;
+  }, 0);
+
   const completedCount = subtasks.filter(s => s.status === 'completed').length;
   const inProgressCount = subtasks.filter(s => s.status === 'in_progress').length;
   const pausedCount = subtasks.filter(s => s.status === 'paused').length;
@@ -367,73 +375,72 @@ function ScenarioGroupRow({ scenario, subtasks, isExpanded, onToggle, onEditSubt
   const dominantStatus = Object.entries(statusCounts).reduce((a, b) => statusCounts[a[0] as keyof typeof statusCounts] > statusCounts[b[0] as keyof typeof statusCounts] ? a : b)[0] as keyof typeof statusCounts;
 
   // Get dominant priority (lowest number = highest priority)
-  const dominantPriority = Math.min(...subtasks.map(s => s.priority || 3));
+  const priorities = subtasks.map(s => parseInt(s.priority) || 3);
+  const dominantPriority = Math.min(...priorities);
 
-  // Get unique categories
-  const categories = [...new Set(subtasks.map(s => s.category).filter(Boolean))];
+  // Calculate completion percentage
+  const completionPercentage = totalRuns > 0 ? Math.round((executedRuns / totalRuns) * 100) : 0;
 
   return (
     <>
       {/* Scenario Group Row */}
       <tr className="border-b border-gray-200 hover:bg-gray-50 cursor-pointer group bg-blue-50" onClick={onToggle}>
-        <td className="px-4 py-3 text-sm">
-          <div className="flex items-center space-x-2">
-            {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-            <span className="font-medium text-sm">{scenario || 'Unknown Scenario'}</span>
-            <Badge variant="outline" className="text-xs bg-blue-100 text-blue-800">
-              {subtasks.length} subtasks
-            </Badge>
+        <td className="px-3 py-3 text-sm">
+          <div className="flex flex-col space-y-1">
+            <div className="flex items-center space-x-2">
+              {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+              <span className="font-medium text-sm">{scenario || 'Unknown Scenario'}</span>
+              <Badge variant="outline" className="text-xs bg-blue-100 text-blue-800">
+                {subtasks.length}
+              </Badge>
+            </div>
+            {/* Mobile-only status and priority info */}
+            <div className="flex items-center space-x-2 sm:hidden">
+              {getStatusIcon(dominantStatus)}
+              <Badge variant="outline" className={`text-xs ${getStatusColor(dominantStatus)}`}>
+                {dominantStatus}
+              </Badge>
+              <Badge variant="outline" className={`text-xs ${getPriorityColor(dominantPriority)}`}>
+                P{dominantPriority}
+              </Badge>
+            </div>
           </div>
         </td>
-        <td className="px-4 py-3 text-sm">
+        <td className="px-3 py-3 text-sm hidden sm:table-cell">
           <div className="flex items-center space-x-2">
             {getStatusIcon(dominantStatus)}
             <Badge variant="outline" className={`text-xs ${getStatusColor(dominantStatus)}`}>
               {dominantStatus}
             </Badge>
             {subtasks.length > 1 && (
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-gray-500 hidden lg:inline">
                 ({completedCount}C, {inProgressCount}P, {pausedCount}Pa, {pendingCount}Pe)
               </span>
             )}
           </div>
         </td>
-        <td className="px-4 py-3 text-sm">
+        <td className="px-3 py-3 text-sm hidden md:table-cell">
           <Badge variant="outline" className={`text-xs ${getPriorityColor(dominantPriority)}`}>
             {getPriorityLabel(dominantPriority)}
           </Badge>
         </td>
-        <td className="px-4 py-3 text-sm">
-          <div className="text-sm text-gray-600">
-            Combined scenario with {subtasks.length} variations
-          </div>
-        </td>
-        <td className="px-4 py-3 text-sm hidden md:table-cell">
-          <div className="flex flex-wrap gap-1">
-            {categories.slice(0, 2).map(category => (
-              <Badge key={category} variant="outline" className="text-xs">
-                {category}
-              </Badge>
-            ))}
-            {categories.length > 2 && (
-              <Badge variant="outline" className="text-xs">
-                +{categories.length - 2}
-              </Badge>
-            )}
-          </div>
-        </td>
-        <td className="px-4 py-3 text-sm hidden lg:table-cell">
-          <div className="text-center">
-            <div className="text-lg font-bold text-blue-600">{executedRuns}</div>
-            <div className="text-xs text-gray-500">/ {totalRuns}</div>
-          </div>
-        </td>
-        <td className="px-4 py-3 text-sm hidden xl:table-cell">
-          <div className="text-sm text-gray-600">Multiple</div>
-        </td>
-        <td className="px-4 py-3 text-sm">
-          <div className="text-xs text-gray-500">
-            {subtasks.length} items
+        <td className="px-3 py-3 text-sm">
+          <div className="flex items-center space-x-2">
+            <div className="flex-1 min-w-0">
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-xs text-gray-600 hidden sm:inline">Progress</span>
+                <span className="text-xs font-medium">{executedRuns}/{totalRuns}</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                  style={{ width: `${completionPercentage}%` }}
+                ></div>
+              </div>
+              <div className="text-xs text-gray-500 mt-1">
+                {completionPercentage}% complete
+              </div>
+            </div>
           </div>
         </td>
       </tr>
@@ -445,7 +452,7 @@ function ScenarioGroupRow({ scenario, subtasks, isExpanded, onToggle, onEditSubt
           subtask={subtask}
           isExpanded={false}
           onToggle={() => {}}
-          onEdit={onEditSubtask}
+          onEdit={() => onEditSubtask?.(subtask)}
           isGrouped={true}
         />
       ))}
@@ -503,117 +510,306 @@ function SubtaskRow({ subtask, isExpanded, onToggle, onEdit, isGrouped = false }
     return parts.join(' • ') || 'No description';
   };
 
+  const executedRuns = parseInt(subtask.executedRuns) || 0;
+  const totalRuns = parseInt(subtask.number_of_runs) || 0;
+  const completionPercentage = totalRuns > 0 ? Math.round((executedRuns / totalRuns) * 100) : 0;
+
   return (
-    <>
-      {/* Main Row */}
-      <tr className={`border-b border-gray-200 hover:bg-gray-50 cursor-pointer group ${isGrouped ? 'bg-gray-25 pl-8' : ''}`} onClick={onToggle}>
-        <td className="px-4 py-3 text-sm">
+    <tr 
+      className={`border-b border-gray-200 hover:bg-gray-50 cursor-pointer group ${isGrouped ? 'bg-gray-25' : ''}`} 
+      onClick={() => onEdit?.()}
+    >
+      <td className="px-3 py-3 text-sm">
+        <div className="flex flex-col space-y-1">
           <div className="flex items-center space-x-2">
-            {!isGrouped && (isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />)}
             {isGrouped && <div className="w-4 h-4 ml-4"></div>}
-            <span className="font-medium text-xs">{subtask.scenario || 'Unknown Scenario'}</span>
+            <span className="font-medium text-xs truncate">{subtask.scenario || 'Unknown Scenario'}</span>
             {isGrouped && (
               <span className="font-mono text-xs text-gray-500">({subtask.id})</span>
             )}
           </div>
-        </td>
-        <td className="px-4 py-3 text-sm">
-          <div className="flex items-center space-x-2">
+          {/* Mobile-only status and priority info */}
+          <div className="flex items-center space-x-2 sm:hidden">
             {getStatusIcon(subtask.status)}
             <Badge variant="outline" className={`text-xs ${getStatusColor(subtask.status)}`}>
               {subtask.status}
             </Badge>
+            <Badge variant="outline" className={`text-xs ${getPriorityColor(subtask.priority || 3)}`}>
+              P{subtask.priority || 3}
+            </Badge>
           </div>
-        </td>
-        <td className="px-4 py-3 text-sm">
-          <Badge variant="outline" className={`text-xs ${getPriorityColor(subtask.priority || 3)}`}>
-            {getPriorityLabel(subtask.priority || 3)}
+        </div>
+      </td>
+      <td className="px-3 py-3 text-sm hidden sm:table-cell">
+        <div className="flex items-center space-x-2">
+          {getStatusIcon(subtask.status)}
+          <Badge variant="outline" className={`text-xs ${getStatusColor(subtask.status)}`}>
+            {subtask.status}
           </Badge>
-        </td>
-        <td className="px-4 py-3 text-sm truncate max-w-xs" title={getScenarioDescription()}>
-          {getScenarioDescription()}
-        </td>
-        <td className="px-4 py-3 text-sm hidden md:table-cell">
-          <Badge variant="outline" className="text-xs">
-            {subtask.category || 'General'}
-          </Badge>
-        </td>
-        <td className="px-4 py-3 text-sm hidden lg:table-cell">
-          <div className="text-center">
-            <div className="text-lg font-bold text-blue-600">{subtask.executedRuns || 0}</div>
-            <div className="text-xs text-gray-500">/ {subtask.number_of_runs || 0}</div>
+        </div>
+      </td>
+      <td className="px-3 py-3 text-sm hidden md:table-cell">
+        <Badge variant="outline" className={`text-xs ${getPriorityColor(subtask.priority || 3)}`}>
+          {getPriorityLabel(subtask.priority || 3)}
+        </Badge>
+      </td>
+      <td className="px-3 py-3 text-sm">
+        <div className="flex items-center space-x-2">
+          <div className="flex-1 min-w-0">
+            <div className="flex justify-between items-center mb-1">
+              <span className="text-xs text-gray-600 hidden sm:inline">Progress</span>
+              <span className="text-xs font-medium">{executedRuns}/{totalRuns}</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div 
+                className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                style={{ width: `${completionPercentage}%` }}
+              ></div>
+            </div>
+            <div className="text-xs text-gray-500 mt-1">
+              {completionPercentage}% complete
+            </div>
           </div>
-        </td>
-        <td className="px-4 py-3 text-sm hidden xl:table-cell">
-          {subtask.regulation || 'N/A'}
-        </td>
-        <td className="px-4 py-3 text-sm">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit?.(subtask);
-            }}
-            className="opacity-0 group-hover:opacity-100 transition-opacity"
-          >
-            <Edit className="h-3 w-3" />
-          </Button>
-        </td>
-      </tr>
+        </div>
+      </td>
+    </tr>
+  );
+}
 
-      {/* Expanded Row - only for non-grouped items */}
-      {!isGrouped && isExpanded && (
-        <tr className="bg-gray-50">
-          <td colSpan={8} className="px-4 py-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
-              <div>
-                <span className="font-medium text-gray-700">Test Details:</span>
-                <div className="text-gray-600 mt-1 space-y-1">
-                  <div><strong>Category:</strong> {subtask.category || 'N/A'}</div>
-                  <div><strong>Regulation:</strong> {subtask.regulation || 'N/A'}</div>
-                  <div><strong>Scenario:</strong> {subtask.scenario || 'N/A'}</div>
-                  <div><strong>Lighting:</strong> {subtask.lighting || 'N/A'}</div>
-                </div>
+// New interface for subtask detail modal
+interface SubtaskDetailModalProps {
+  subtask: any;
+  isOpen: boolean;
+  onClose: () => void;
+  onEdit?: (subtask: any) => void;
+}
+
+function SubtaskDetailModal({ subtask, isOpen, onClose, onEdit }: SubtaskDetailModalProps) {
+  if (!isOpen || !subtask) return null;
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'completed': return <Check className="h-5 w-5 text-green-600" />;
+      case 'in_progress': return <Play className="h-5 w-5 text-blue-600" />;
+      case 'paused': return <Pause className="h-5 w-5 text-yellow-600" />;
+      default: return <div className="h-5 w-5 rounded-full bg-gray-300" />;
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed': return 'bg-green-100 text-green-800';
+      case 'in_progress': return 'bg-blue-100 text-blue-800';
+      case 'paused': return 'bg-yellow-100 text-yellow-800';
+      case 'pending': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getPriorityColor = (priority: string | number) => {
+    const priorityNum = typeof priority === 'string' ? parseInt(priority) : priority;
+    switch (priorityNum) {
+      case 1: return 'bg-red-100 text-red-800';
+      case 2: return 'bg-yellow-100 text-yellow-800';
+      case 3: return 'bg-green-100 text-green-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getPriorityLabel = (priority: string | number) => {
+    const priorityNum = typeof priority === 'string' ? parseInt(priority) : priority;
+    switch (priorityNum) {
+      case 1: return 'High Priority';
+      case 2: return 'Medium Priority';
+      case 3: return 'Low Priority';
+      default: return 'Unknown Priority';
+    }
+  };
+
+  const completionPercentage = subtask.number_of_runs > 0 
+    ? Math.round((subtask.executedRuns / subtask.number_of_runs) * 100) 
+    : 0;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex justify-between items-start">
+            <div className="flex-1">
+              <div className="flex items-center space-x-3 mb-2">
+                {getStatusIcon(subtask.status)}
+                <h2 className="text-xl font-semibold text-gray-900">{subtask.scenario || 'Subtask Details'}</h2>
+                <Badge variant="outline" className={`${getStatusColor(subtask.status)}`}>
+                  {subtask.status}
+                </Badge>
               </div>
-              <div>
-                <span className="font-medium text-gray-700">Speed & Performance:</span>
-                <div className="text-gray-600 mt-1 space-y-1">
-                  <div><strong>Target Speed:</strong> {subtask.target_speed || 'N/A'} km/h</div>
-                  <div><strong>Ego Speed:</strong> {subtask.ego_speed || 'N/A'} km/h</div>
-                  <div><strong>Overlap:</strong> {subtask.overlap || 'N/A'}%</div>
-                  <div><strong>Brake:</strong> {subtask.brake || 'N/A'}</div>
-                </div>
+              <p className="text-sm text-gray-600">Subtask ID: {subtask.id}</p>
+            </div>
+            <Button variant="ghost" size="sm" onClick={onClose}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        <div className="p-6">
+          {/* Key Metrics */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="bg-blue-50 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-blue-700">Execution Progress</span>
+                <span className="text-lg font-bold text-blue-900">{completionPercentage}%</span>
               </div>
-              <div>
-                <span className="font-medium text-gray-700">Execution Status:</span>
-                <div className="text-gray-600 mt-1 space-y-1">
-                  <div><strong>Runs:</strong> {subtask.executedRuns || 0} / {subtask.number_of_runs || 0}</div>
-                  <div><strong>Headway:</strong> {subtask.headway || 'N/A'}</div>
-                  <div><strong>Street Lights:</strong> {subtask.street_lights || 'N/A'}</div>
-                  <div><strong>Beam:</strong> {subtask.beam || 'N/A'}</div>
-                </div>
+              <div className="w-full bg-blue-200 rounded-full h-2 mb-2">
+                <div 
+                  className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                  style={{ width: `${completionPercentage}%` }}
+                ></div>
               </div>
-              {/* Show additional info for mobile */}
-              <div className="md:hidden">
-                <span className="font-medium text-gray-700">Mobile Info:</span>
-                <div className="text-gray-600 mt-1">
-                  <div><strong>Category:</strong> {subtask.category || 'General'}</div>
-                  <div><strong>Runs Progress:</strong> {subtask.executedRuns || 0} / {subtask.number_of_runs || 0}</div>
-                  <div><strong>Regulation:</strong> {subtask.regulation || 'N/A'}</div>
+              <div className="text-xs text-blue-600">
+                {subtask.executedRuns || 0} of {subtask.number_of_runs || 0} runs completed
+              </div>
+            </div>
+
+            <div className="bg-gray-50 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-700">Priority</span>
+                <Badge className={getPriorityColor(subtask.priority || 3)} variant="outline">
+                  P{subtask.priority || 3}
+                </Badge>
+              </div>
+              <div className="text-xs text-gray-600">
+                {getPriorityLabel(subtask.priority || 3)}
+              </div>
+            </div>
+
+            <div className="bg-green-50 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-green-700">Category</span>
+                <Badge variant="outline" className="bg-green-100 text-green-800">
+                  {subtask.category || 'General'}
+                </Badge>
+              </div>
+              <div className="text-xs text-green-600">
+                Test category classification
+              </div>
+            </div>
+          </div>
+
+          {/* Detailed Information */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Test Configuration */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">
+                Test Configuration
+              </h3>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                  <span className="text-sm font-medium text-gray-700">Scenario:</span>
+                  <span className="text-sm text-gray-900">{subtask.scenario || 'N/A'}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                  <span className="text-sm font-medium text-gray-700">Regulation:</span>
+                  <span className="text-sm text-gray-900">{subtask.regulation || 'N/A'}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                  <span className="text-sm font-medium text-gray-700">Lighting Conditions:</span>
+                  <span className="text-sm text-gray-900">{subtask.lighting || 'N/A'}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                  <span className="text-sm font-medium text-gray-700">Overlap Percentage:</span>
+                  <span className="text-sm text-gray-900">{subtask.overlap || 'N/A'}%</span>
                 </div>
               </div>
             </div>
-            <div className="mt-3 pt-3 border-t border-gray-200 text-xs text-gray-500">
-              <div className="flex justify-between">
-                <span>Created: {new Date(subtask.createdAt).toLocaleDateString()}</span>
-                <span>Updated: {new Date(subtask.updatedAt).toLocaleDateString()}</span>
+
+            {/* Speed & Performance */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">
+                Speed & Performance
+              </h3>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                  <span className="text-sm font-medium text-gray-700">Target Speed:</span>
+                  <span className="text-sm text-gray-900">{subtask.target_speed || 'N/A'} km/h</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                  <span className="text-sm font-medium text-gray-700">Ego Speed:</span>
+                  <span className="text-sm text-gray-900">{subtask.ego_speed || 'N/A'} km/h</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                  <span className="text-sm font-medium text-gray-700">Brake Setting:</span>
+                  <span className="text-sm text-gray-900">{subtask.brake || 'N/A'}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                  <span className="text-sm font-medium text-gray-700">Headway:</span>
+                  <span className="text-sm text-gray-900">{subtask.headway || 'N/A'}</span>
+                </div>
               </div>
             </div>
-          </td>
-        </tr>
-      )}
-    </>
+
+            {/* Environmental Conditions */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">
+                Environmental Conditions
+              </h3>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                  <span className="text-sm font-medium text-gray-700">Street Lights:</span>
+                  <span className="text-sm text-gray-900">{subtask.street_lights || 'N/A'}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                  <span className="text-sm font-medium text-gray-700">Beam Type:</span>
+                  <span className="text-sm text-gray-900">{subtask.beam || 'N/A'}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Execution Details */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">
+                Execution Details
+              </h3>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                  <span className="text-sm font-medium text-gray-700">Total Runs:</span>
+                  <span className="text-sm text-gray-900">{subtask.number_of_runs || 0}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                  <span className="text-sm font-medium text-gray-700">Executed Runs:</span>
+                  <span className="text-sm text-gray-900">{subtask.executedRuns || 0}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                  <span className="text-sm font-medium text-gray-700">Completion Rate:</span>
+                  <span className="text-sm text-gray-900">{completionPercentage}%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Timestamps */}
+          <div className="mt-6 pt-4 border-t border-gray-200">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-gray-500">
+              <div>
+                <strong>Created:</strong> {subtask.createdAt ? new Date(subtask.createdAt).toLocaleString() : 'N/A'}
+              </div>
+              <div>
+                <strong>Last Updated:</strong> {subtask.updatedAt ? new Date(subtask.updatedAt).toLocaleString() : 'N/A'}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-6 border-t border-gray-200 flex justify-end space-x-3">
+          <Button variant="outline" onClick={onClose}>Close</Button>
+          {onEdit && (
+            <Button onClick={() => onEdit(subtask)}>
+              <Edit className="h-4 w-4 mr-2" />
+              Edit Subtask
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -632,6 +828,7 @@ function TaskPageContent() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [selectedSubtask, setSelectedSubtask] = useState<any>(null);
   
   // Timeline state
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -823,6 +1020,13 @@ function TaskPageContent() {
   // Get unique categories for filter
   const categories = [...new Set(task?.subtasks?.map(s => s.category).filter(Boolean) || [])];
 
+  // Handle redirect when user is not authenticated
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/');
+    }
+  }, [loading, user, router]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -835,8 +1039,14 @@ function TaskPageContent() {
   }
 
   if (!user) {
-    router.push('/');
-    return null;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Redirecting...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -1004,6 +1214,15 @@ function TaskPageContent() {
 
               {showSubtasks && (
                 <div className="space-y-4">
+                  {/* Instructions for mobile/tablet users */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      <span className="font-medium">Tip:</span>
+                      <span>Click on any scenario or subtask row to view detailed information</span>
+                    </div>
+                  </div>
+
                   {/* Filters and Search */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                     <div className="relative col-span-1 sm:col-span-2">
@@ -1054,29 +1273,17 @@ function TaskPageContent() {
                     <table className="min-w-full bg-white">
                       <thead className="bg-gray-50 border-b border-gray-200">
                         <tr>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Scenario
                           </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
                             Status
                           </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
                             Priority
                           </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Scenario Description
-                          </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
-                            Category
-                          </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
-                            Runs
-                          </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden xl:table-cell">
-                            Regulation
-                          </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Actions
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Progress
                           </th>
                         </tr>
                       </thead>
@@ -1088,7 +1295,7 @@ function TaskPageContent() {
                             subtasks={subtasks}
                             isExpanded={expandedRows.has(scenario)}
                             onToggle={() => handleRowToggle(scenario)}
-                            onEditSubtask={(subtask) => console.log('Edit subtask:', subtask)}
+                            onEditSubtask={(subtask) => setSelectedSubtask(subtask)}
                           />
                         ))}
                       </tbody>
@@ -1138,6 +1345,15 @@ function TaskPageContent() {
         onSectionChange={handleSectionChange}
         taskCounts={taskCounts}
       />
+
+      {/* Subtask Detail Modal */}
+      {selectedSubtask && (
+        <SubtaskDetailModal
+          subtask={selectedSubtask}
+          isOpen={!!selectedSubtask}
+          onClose={() => setSelectedSubtask(null)}
+        />
+      )}
     </div>
   );
 }
