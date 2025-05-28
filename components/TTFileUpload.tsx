@@ -193,8 +193,8 @@ export function TTFileUpload({ onTaskCreated, onClose }: TTFileUploadProps) {
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+      <Card className="w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 flex-shrink-0">
           <CardTitle className="text-xl font-semibold">
             Create Test Track Task
           </CardTitle>
@@ -203,7 +203,7 @@ export function TTFileUpload({ onTaskCreated, onClose }: TTFileUploadProps) {
           </Button>
         </CardHeader>
 
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-6 overflow-y-auto flex-1">
           {/* File Upload Section */}
           {!uploadResult?.success && (
             <div className="space-y-4">
@@ -379,7 +379,7 @@ export function TTFileUpload({ onTaskCreated, onClose }: TTFileUploadProps) {
               <div className="space-y-2">
                 <Label>Subtasks</Label>
                 <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm text-gray-700">
-                  {uploadResult.totalRows} subtasks loaded
+                  {uploadResult.totalRows} subtasks loaded with JIRA numbers (DATACO-10223 onwards)
                 </div>
               </div>
 
@@ -395,29 +395,29 @@ export function TTFileUpload({ onTaskCreated, onClose }: TTFileUploadProps) {
               </div>
             </div>
           )}
-
-          {/* Action Buttons */}
-          <div className="flex justify-end space-x-3 pt-6 border-t">
-            <Button variant="outline" onClick={onClose} disabled={isCreating}>
-              Cancel
-            </Button>
-            {uploadResult?.success && (
-              <Button 
-                onClick={handleCreateTask} 
-                disabled={isCreating || !taskData.title.trim()}
-              >
-                {isCreating ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    Creating Task...
-                  </>
-                ) : (
-                  'Create Task'
-                )}
-              </Button>
-            )}
-          </div>
         </CardContent>
+
+        {/* Action Buttons - Fixed at bottom */}
+        <div className="flex justify-end space-x-3 pt-6 pb-6 px-6 border-t bg-white flex-shrink-0">
+          <Button variant="outline" onClick={onClose} disabled={isCreating}>
+            Cancel
+          </Button>
+          {uploadResult?.success && (
+            <Button 
+              onClick={handleCreateTask} 
+              disabled={isCreating || !taskData.title.trim()}
+            >
+              {isCreating ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Creating Task...
+                </>
+              ) : (
+                'Create Task'
+              )}
+            </Button>
+          )}
+        </div>
       </Card>
     </div>
   );

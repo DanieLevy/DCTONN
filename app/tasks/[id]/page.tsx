@@ -1128,7 +1128,7 @@ function TaskPageContent() {
                   </div>
                       {task.version && (
                         <Badge variant="outline" className="text-xs">
-                          {task.version}
+                          v{task.version}
                         </Badge>
                       )}
                   {task.description && (
