@@ -130,12 +130,21 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ 
       success: true, 
-      data: filteredTasks.map(task => ({
-        ...task,
-        // Only include subtask count for performance, not all subtasks
-        subtasks: undefined,
-        subtaskCount: task.totalSubtasks
-      }))
+      data: filteredTasks.map(task => {
+        // Recalculate progress based on current subtask status
+        const completedSubtasks = task.subtasks.filter(s => s.isExecuted || s.status === 'completed').length;
+        const actualProgress = task.totalSubtasks > 0 ? Math.round((completedSubtasks / task.totalSubtasks) * 100) : 0;
+        
+        return {
+          ...task,
+          // Update progress values with current calculations
+          completedSubtasks,
+          progress: actualProgress,
+          // Only include subtask count for performance, not all subtasks
+          subtasks: undefined,
+          subtaskCount: task.totalSubtasks
+        };
+      })
     });
 
   } catch (error: any) {

@@ -63,8 +63,13 @@ export function TTTaskRow({ task, onClick }: TTTaskRowProps) {
   };
 
   // Calculate actual progress based on isExecuted and completed status
-  const completedSubtasks = task.subtasks.filter(s => s.isExecuted || s.status === 'completed').length;
-  const actualProgress = task.totalSubtasks > 0 ? Math.round((completedSubtasks / task.totalSubtasks) * 100) : 0;
+  // Handle case where subtasks might be undefined (in list views for performance)
+  const completedSubtasks = task.subtasks 
+    ? task.subtasks.filter(s => s.isExecuted || s.status === 'completed').length
+    : task.completedSubtasks || 0;
+  const actualProgress = task.subtasks
+    ? (task.totalSubtasks > 0 ? Math.round((completedSubtasks / task.totalSubtasks) * 100) : 0)
+    : task.progress || 0;
 
   return (
     <div 
