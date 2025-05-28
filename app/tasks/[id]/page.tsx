@@ -71,15 +71,40 @@ function DayMissionsModal({
   const [selectedSubtasks, setSelectedSubtasks] = useState<string[]>([]);
   const [assignmentNotes, setAssignmentNotes] = useState('');
   const [showAssignModal, setShowAssignModal] = useState(false);
+  const [showAlreadyAssigned, setShowAlreadyAssigned] = useState(false);
   
   const dateString = selectedDate.toISOString().split('T')[0];
   const todayAssignments = assignments.filter(a => a.date === dateString);
   const assignedSubtaskIds = todayAssignments.flatMap(a => a.subtaskIds);
   const assignedSubtasks = allSubtasks.filter(s => assignedSubtaskIds.includes(s.id));
+  
+  // Get available and already assigned subtasks for assignment modal
   const availableSubtasks = allSubtasks.filter(s => 
     !assignedSubtaskIds.includes(s.id) && 
     !(s.isExecuted || s.status === 'completed') // Exclude completed tasks
   );
+  
+  const alreadyAssignedSubtasks = allSubtasks.filter(s => 
+    !assignedSubtaskIds.includes(s.id) && 
+    s.assignedDate && 
+    s.assignedDate !== dateString &&
+    !(s.isExecuted || s.status === 'completed') // Exclude completed tasks
+  );
+  
+  // Group subtasks by scenario for assignment modal
+  const groupSubtasksByScenario = (subtasks: TTSubtask[]) => {
+    return subtasks.reduce((groups, subtask) => {
+      const scenario = subtask.scenario;
+      if (!groups[scenario]) {
+        groups[scenario] = [];
+      }
+      groups[scenario].push(subtask);
+      return groups;
+    }, {} as Record<string, TTSubtask[]>);
+  };
+  
+  const availableByScenario = groupSubtasksByScenario(availableSubtasks);
+  const alreadyAssignedByScenario = groupSubtasksByScenario(alreadyAssignedSubtasks);
   
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('en-US', { 
@@ -240,48 +265,151 @@ function DayMissionsModal({
         {/* Task Assignment Modal */}
         {showAssignModal && canManage && (
           <div className="absolute inset-0 bg-black/50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+            <div className="bg-white rounded-lg w-full max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
               <div className="p-4 border-b border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-900">Assign Tasks to {formatDate(selectedDate)}</h3>
+                <div className="flex items-center space-x-4 mt-2">
+                  <button
+                    onClick={() => setShowAlreadyAssigned(false)}
+                    className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                      !showAlreadyAssigned 
+                        ? 'bg-blue-100 text-blue-800' 
+                        : 'text-gray-600 hover:text-gray-800'
+                    }`}
+                  >
+                    Available ({availableSubtasks.length})
+                  </button>
+                  <button
+                    onClick={() => setShowAlreadyAssigned(true)}
+                    className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                      showAlreadyAssigned 
+                        ? 'bg-amber-100 text-amber-800' 
+                        : 'text-gray-600 hover:text-gray-800'
+                    }`}
+                  >
+                    Already Assigned ({alreadyAssignedSubtasks.length})
+                  </button>
+                </div>
               </div>
               
               <div className="flex-1 overflow-y-auto p-4">
-                <div className="mb-4">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <Checkbox
-                      checked={selectedSubtasks.length === availableSubtasks.length && availableSubtasks.length > 0}
-                      onCheckedChange={handleSelectAll}
-                    />
-                    <Label className="text-sm font-medium">
-                      Select All ({availableSubtasks.length} available)
-                    </Label>
-                  </div>
-                </div>
-
-                <div className="space-y-2 mb-4 max-h-64 overflow-y-auto">
-                  {availableSubtasks.map((subtask) => (
-                    <div key={subtask.id} className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded">
-                      <Checkbox
-                        checked={selectedSubtasks.includes(subtask.id)}
-                        onCheckedChange={(checked) => handleSelectSubtask(subtask.id, checked as boolean)}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center space-x-2">
-                          <span className="text-sm font-medium text-gray-900">
-                            {subtask.jira_subtask_number || subtask.id}
-                          </span>
-                          <Badge variant="outline" className="text-xs">
-                            {subtask.category}
-                          </Badge>
-                        </div>
-                        <div className="text-xs text-gray-600 truncate">
-                          {subtask.scenario} • {subtask.lighting}
-                        </div>
+                {!showAlreadyAssigned ? (
+                  <>
+                    {/* Available Tasks */}
+                    <div className="mb-4">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <Checkbox
+                          checked={selectedSubtasks.length === availableSubtasks.length && availableSubtasks.length > 0}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedSubtasks(availableSubtasks.map(s => s.id));
+                            } else {
+                              setSelectedSubtasks([]);
+                            }
+                          }}
+                        />
+                        <Label className="text-sm font-medium">
+                          Select All Available ({availableSubtasks.length} tasks)
+                        </Label>
                       </div>
                     </div>
-                  ))}
-                </div>
 
+                    {/* Available scenarios */}
+                    <div className="space-y-4 mb-4 max-h-64 overflow-y-auto">
+                      {Object.entries(availableByScenario).map(([scenario, scenarioSubtasks]) => (
+                        <div key={scenario} className="border border-gray-200 rounded-lg p-3">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <Checkbox
+                              checked={scenarioSubtasks.every(s => selectedSubtasks.includes(s.id))}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setSelectedSubtasks(prev => [...new Set([...prev, ...scenarioSubtasks.map(s => s.id)])]);
+                                } else {
+                                  setSelectedSubtasks(prev => prev.filter(id => !scenarioSubtasks.some(s => s.id === id)));
+                                }
+                              }}
+                            />
+                            <Label className="font-medium text-gray-900">
+                              {scenario} ({scenarioSubtasks.length} tasks)
+                            </Label>
+                          </div>
+                          <div className="ml-6 space-y-1">
+                            {scenarioSubtasks.map((subtask) => (
+                              <div key={subtask.id} className="flex items-center space-x-2 text-sm">
+                                <Checkbox
+                                  checked={selectedSubtasks.includes(subtask.id)}
+                                  onCheckedChange={(checked) => {
+                                    if (checked) {
+                                      setSelectedSubtasks(prev => [...prev, subtask.id]);
+                                    } else {
+                                      setSelectedSubtasks(prev => prev.filter(id => id !== subtask.id));
+                                    }
+                                  }}
+                                />
+                                <span className="font-mono text-blue-600 font-medium">
+                                  {subtask.jira_subtask_number || subtask.id}
+                                </span>
+                                <span className="text-gray-600">•</span>
+                                <Badge variant="outline" className="text-xs">{subtask.category}</Badge>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {/* Already Assigned Tasks */}
+                    <div className="space-y-4 mb-4 max-h-64 overflow-y-auto">
+                      {Object.entries(alreadyAssignedByScenario).map(([scenario, scenarioSubtasks]) => (
+                        <div key={scenario} className="border border-amber-200 rounded-lg p-3 bg-amber-50">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <Checkbox
+                              checked={scenarioSubtasks.every(s => selectedSubtasks.includes(s.id))}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setSelectedSubtasks(prev => [...new Set([...prev, ...scenarioSubtasks.map(s => s.id)])]);
+                                } else {
+                                  setSelectedSubtasks(prev => prev.filter(id => !scenarioSubtasks.some(s => s.id === id)));
+                                }
+                              }}
+                            />
+                            <Label className="font-medium text-amber-900">
+                              {scenario} ({scenarioSubtasks.length} tasks)
+                            </Label>
+                          </div>
+                          <div className="ml-6 space-y-1">
+                            {scenarioSubtasks.map((subtask) => (
+                              <div key={subtask.id} className="flex items-center space-x-2 text-sm">
+                                <Checkbox
+                                  checked={selectedSubtasks.includes(subtask.id)}
+                                  onCheckedChange={(checked) => {
+                                    if (checked) {
+                                      setSelectedSubtasks(prev => [...prev, subtask.id]);
+                                    } else {
+                                      setSelectedSubtasks(prev => prev.filter(id => id !== subtask.id));
+                                    }
+                                  }}
+                                />
+                                <span className="font-mono text-blue-600 font-medium">
+                                  {subtask.jira_subtask_number || subtask.id}
+                                </span>
+                                <span className="text-amber-600">•</span>
+                                <Badge variant="outline" className="text-xs">{subtask.category}</Badge>
+                                <span className="text-xs text-amber-700 bg-amber-200 px-2 py-1 rounded">
+                                  📅 {new Date(subtask.assignedDate!).toLocaleDateString()}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {/* Notes section */}
                 <div className="space-y-2">
                   <Label htmlFor="notes" className="text-sm font-medium">Notes (Optional)</Label>
                   <Textarea
@@ -464,29 +592,59 @@ function TimelineCalendar({
   const renderDateButton = (date: Date, className: string) => {
     const assignmentInfo = getDateAssignmentInfo(date);
     
-    // Add status-based styling
-    let statusClass = '';
-    let borderClass = '';
+    // Enhanced styling for today
+    const isSelectedDate = isSelected(date);
+    const isTodayDate = isToday(date);
     
-    switch (assignmentInfo.dayStatus) {
-      case 'completed':
-        statusClass = 'bg-green-50 border-green-300';
-        borderClass = 'ring-2 ring-green-200';
-        break;
-      case 'partial':
-        statusClass = 'bg-blue-50 border-blue-300';
-        borderClass = 'ring-2 ring-blue-200';
-        break;
-      case 'pending_future':
-        statusClass = 'bg-orange-50 border-orange-300';
-        borderClass = 'ring-1 ring-orange-200';
-        break;
-      case 'pending_past':
-        statusClass = 'bg-red-50 border-red-300';
-        borderClass = 'ring-2 ring-red-200';
-        break;
-      default:
-        statusClass = 'bg-gray-50 border-gray-200';
+    // Base styling
+    let baseClass = 'relative transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1';
+    let dateClass = '';
+    let textClass = '';
+    let borderClass = '';
+    let bgClass = '';
+    
+    // Today styling - most prominent
+    if (isTodayDate) {
+      borderClass = 'ring-3 ring-orange-400 ring-offset-2';
+      bgClass = 'bg-gradient-to-br from-orange-50 to-orange-100 border-2 border-orange-400';
+      textClass = 'text-orange-900 font-bold';
+      dateClass = 'shadow-lg';
+    }
+    // Selected styling - secondary prominence
+    else if (isSelectedDate) {
+      borderClass = 'ring-2 ring-blue-400 ring-offset-1';
+      bgClass = 'bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-400';
+      textClass = 'text-blue-900 font-semibold';
+      dateClass = 'shadow-md';
+    }
+    // Assignment status styling
+    else {
+      switch (assignmentInfo.dayStatus) {
+        case 'completed':
+          bgClass = 'bg-gradient-to-br from-green-50 to-green-100 border border-green-200';
+          textClass = 'text-green-900';
+          borderClass = 'hover:ring-1 hover:ring-green-300';
+          break;
+        case 'partial':
+          bgClass = 'bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200';
+          textClass = 'text-blue-900';
+          borderClass = 'hover:ring-1 hover:ring-blue-300';
+          break;
+        case 'pending_future':
+          bgClass = 'bg-gradient-to-br from-amber-50 to-amber-100 border border-amber-200';
+          textClass = 'text-amber-900';
+          borderClass = 'hover:ring-1 hover:ring-amber-300';
+          break;
+        case 'pending_past':
+          bgClass = 'bg-gradient-to-br from-red-50 to-red-100 border border-red-200';
+          textClass = 'text-red-900';
+          borderClass = 'hover:ring-1 hover:ring-red-300';
+          break;
+        default:
+          bgClass = 'bg-white border border-gray-200';
+          textClass = 'text-gray-700';
+          borderClass = 'hover:border-gray-300 hover:shadow-sm';
+      }
     }
     
     return (
@@ -496,51 +654,63 @@ function TimelineCalendar({
           onDateSelect(date);
           onDateClick(date);
         }}
-        className={`${className} relative ${statusClass} ${borderClass}`}
+        className={`${className} ${baseClass} ${bgClass} ${borderClass} ${dateClass}`}
         title={getDateTooltip(assignmentInfo, date)}
       >
-        <div className="text-center p-1">
-          <div className={`text-xs font-medium ${
-            isSelected(date) ? 'text-blue-700' : isToday(date) ? 'text-orange-700' : 'text-gray-600'
-          }`}>
-            {view === 'carousel' && formatDate(date, 'day')}
-          </div>
-          <div className={`text-lg font-bold ${
-            isSelected(date) ? 'text-blue-900' : isToday(date) ? 'text-orange-900' : 'text-gray-900'
-          }`}>
+        <div className="text-center p-2">
+          {/* Day label for carousel view */}
+          {view === 'carousel' && (
+            <div className={`text-xs font-medium mb-1 ${textClass.replace('font-bold', 'font-medium').replace('font-semibold', 'font-medium')}`}>
+              {formatDate(date, 'day')}
+            </div>
+          )}
+          
+          {/* Date number - main focus */}
+          <div className={`text-lg ${isTodayDate ? 'text-2xl font-black' : isSelectedDate ? 'text-xl font-bold' : 'font-semibold'} ${textClass}`}>
             {formatDate(date, 'dayNum')}
           </div>
+          
+          {/* Today indicator */}
+          {isTodayDate && (
+            <div className="text-xs font-bold text-orange-700 mt-1 animate-pulse">
+              TODAY
+            </div>
+          )}
         </div>
         
         {/* Enhanced assignment indicators */}
         {assignmentInfo.hasAssignments && (
-          <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2">
-            <div className="flex items-center space-x-1">
-              {assignmentInfo.dayStatus === 'completed' && (
-                <div className="w-3 h-3 bg-green-500 rounded-full flex items-center justify-center">
-                  <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
-                </div>
-              )}
-              {assignmentInfo.dayStatus === 'partial' && (
-                <div className="w-3 h-3 bg-blue-500 rounded-full relative">
-                  <div className="absolute inset-0 flex">
-                    <div className="w-1/2 bg-green-400 rounded-l-full"></div>
-                    <div className="w-1/2 bg-blue-400 rounded-r-full"></div>
+          <div className="absolute -bottom-1 -right-1">
+            <div className="relative">
+              {/* Status indicator */}
+              <div className="w-4 h-4 rounded-full shadow-sm border-2 border-white">
+                {assignmentInfo.dayStatus === 'completed' && (
+                  <div className="w-full h-full bg-green-500 rounded-full flex items-center justify-center">
+                    <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
                   </div>
-                </div>
-              )}
-              {assignmentInfo.dayStatus === 'pending_future' && (
-                <div className="w-3 h-3 bg-orange-400 rounded-full"></div>
-              )}
-              {assignmentInfo.dayStatus === 'pending_past' && (
-                <div className="w-3 h-3 bg-red-500 rounded-full flex items-center justify-center">
-                  <div className="w-1 h-1 bg-white rounded-full"></div>
-                </div>
-              )}
-            </div>
-            {/* Task count badge */}
-            <div className="absolute -top-1 -right-1 w-4 h-4 bg-gray-600 text-white text-xs rounded-full flex items-center justify-center font-bold">
-              {assignmentInfo.totalAssigned}
+                )}
+                {assignmentInfo.dayStatus === 'partial' && (
+                  <div className="w-full h-full bg-blue-500 rounded-full relative overflow-hidden">
+                    <div className="absolute inset-0 flex">
+                      <div className="w-1/2 bg-green-400"></div>
+                      <div className="w-1/2 bg-blue-400"></div>
+                    </div>
+                  </div>
+                )}
+                {assignmentInfo.dayStatus === 'pending_future' && (
+                  <div className="w-full h-full bg-amber-400 rounded-full"></div>
+                )}
+                {assignmentInfo.dayStatus === 'pending_past' && (
+                  <div className="w-full h-full bg-red-500 rounded-full flex items-center justify-center">
+                    <div className="w-1 h-1 bg-white rounded-full"></div>
+                  </div>
+                )}
+              </div>
+              
+              {/* Task count badge */}
+              <div className="absolute -top-2 -left-2 w-5 h-5 bg-gray-800 text-white text-xs rounded-full flex items-center justify-center font-bold shadow-sm">
+                {assignmentInfo.totalAssigned}
+              </div>
             </div>
           </div>
         )}
@@ -578,18 +748,18 @@ function TimelineCalendar({
   };
 
   return (
-    <Card className="p-4">
+    <Card className="border-0 shadow-sm bg-white">
       {/* View Switcher */}
-      <div className="flex items-center justify-center mb-6">
-        <div className="flex bg-gray-100 rounded-lg p-1 gap-1">
+      <div className="flex items-center justify-center mb-6 px-6 pt-6">
+        <div className="flex bg-gray-50 rounded-lg p-1 gap-1">
           <Button
             variant={view === 'carousel' ? 'default' : 'ghost'}
             size="sm"
             onClick={() => onViewChange('carousel')}
             className={`h-8 px-4 rounded-md transition-all ${
               view === 'carousel' 
-                ? 'bg-white shadow-sm border border-gray-200 text-gray-900 hover:bg-gray-50' 
-                : 'hover:bg-gray-200 text-gray-700'
+                ? 'bg-white shadow-sm border-0 text-gray-900 hover:bg-gray-50' 
+                : 'hover:bg-gray-100 text-gray-600 border-0'
             }`}
           >
             <CalendarRange className="h-3 w-3 mr-2" />
@@ -601,8 +771,8 @@ function TimelineCalendar({
             onClick={() => onViewChange('week')}
             className={`h-8 px-4 rounded-md transition-all ${
               view === 'week' 
-                ? 'bg-white shadow-sm border border-gray-200 text-gray-900 hover:bg-gray-50' 
-                : 'hover:bg-gray-200 text-gray-700'
+                ? 'bg-white shadow-sm border-0 text-gray-900 hover:bg-gray-50' 
+                : 'hover:bg-gray-100 text-gray-600 border-0'
             }`}
           >
             <CalendarDays className="h-3 w-3 mr-2" />
@@ -614,8 +784,8 @@ function TimelineCalendar({
             onClick={() => onViewChange('month')}
             className={`h-8 px-4 rounded-md transition-all ${
               view === 'month' 
-                ? 'bg-white shadow-sm border border-gray-200 text-gray-900 hover:bg-gray-50' 
-                : 'hover:bg-gray-200 text-gray-700'
+                ? 'bg-white shadow-sm border-0 text-gray-900 hover:bg-gray-50' 
+                : 'hover:bg-gray-100 text-gray-600 border-0'
             }`}
           >
             <Grid3X3 className="h-3 w-3 mr-2" />
@@ -624,7 +794,7 @@ function TimelineCalendar({
         </div>
       </div>
 
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-6 px-6">
         <div className="flex items-center space-x-2">
           <Calendar className="h-5 w-5 text-blue-600" />
           <h3 className="text-lg font-semibold text-gray-900">Timeline</h3>
@@ -634,27 +804,23 @@ function TimelineCalendar({
         </div>
         
         <div className="flex items-center space-x-2">
-          {/* Legend */}
-          <div className="hidden sm:flex items-center space-x-4 text-xs text-gray-500 mr-4">
+          {/* Simplified Legend */}
+          <div className="hidden sm:flex items-center space-x-3 text-xs text-gray-500 mr-4">
             <div className="flex items-center space-x-1">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span>All Completed</span>
+              <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+              <span>Done</span>
             </div>
             <div className="flex items-center space-x-1">
-              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-              <span>Partial/In Progress</span>
+              <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+              <span>Progress</span>
             </div>
             <div className="flex items-center space-x-1">
-              <div className="w-2 h-2 bg-orange-400 rounded-full"></div>
-              <span>Scheduled</span>
+              <div className="w-2 h-2 bg-amber-400 rounded-full"></div>
+              <span>Planned</span>
             </div>
             <div className="flex items-center space-x-1">
-              <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+              <div className="w-2 h-2 bg-red-400 rounded-full"></div>
               <span>Overdue</span>
-            </div>
-            <div className="flex items-center space-x-1">
-              <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-              <span>No Tasks</span>
             </div>
           </div>
           
@@ -666,7 +832,7 @@ function TimelineCalendar({
             variant="ghost" 
             size="sm" 
             onClick={() => onDateSelect(new Date())}
-            className="text-blue-600 hover:text-blue-700"
+            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
           >
             Today
           </Button>
@@ -677,70 +843,155 @@ function TimelineCalendar({
       </div>
 
       {/* Calendar Content */}
-      {view === 'carousel' && (
-        <div className="flex space-x-2 overflow-x-auto pb-2">
-          {generateCarouselDays().map((date, index) => {
-            const baseClass = `flex-shrink-0 w-16 h-20 rounded-lg border-2 transition-all ${
-              isSelected(date)
-                ? 'border-blue-500 bg-blue-50'
-                : isToday(date)
-                ? 'border-orange-400 bg-orange-50'
-                : 'border-gray-200 bg-white hover:border-gray-300'
-            }`;
-            return renderDateButton(date, baseClass);
-          })}
-        </div>
-      )}
+      <div className="px-6 pb-6">
+        {view === 'carousel' && (
+          <div className="flex space-x-2 overflow-x-auto pb-2 px-1">
+            {generateCarouselDays().map((date, index) => {
+              const baseClass = `flex-shrink-0 w-16 h-20 bg-white border border-gray-200 rounded-lg transition-all hover:border-gray-300 hover:shadow-sm flex items-center justify-center relative`;
+              return renderDateButton(date, baseClass);
+            })}
+          </div>
+        )}
 
-      {view === 'week' && (
-        <div className="grid grid-cols-7 gap-2">
-          {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, index) => (
-            <div key={index} className="text-center text-xs font-medium text-gray-500 py-2">
-              {day}
+        {view === 'week' && (
+          <div className="bg-white">
+            {/* Clean week grid */}
+            <div className="space-y-1">
+              {/* Day headers */}
+              <div className="grid grid-cols-7 gap-px bg-gray-100 p-px rounded-lg mb-2">
+                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, index) => (
+                  <div key={index} className="bg-white text-center text-xs font-medium text-gray-500 py-3 first:rounded-l-md last:rounded-r-md">
+                    {day}
+                  </div>
+                ))}
+              </div>
+              
+              {/* Week days */}
+              <div className="grid grid-cols-7 gap-px bg-gray-100 p-px rounded-lg">
+                {generateWeekDays().map((date, index) => {
+                  const baseClass = `min-h-[80px] bg-white relative cursor-pointer transition-all duration-200 hover:bg-gray-50 flex items-center justify-center 
+                    ${index === 0 ? 'rounded-l-lg' : ''} ${index === 6 ? 'rounded-r-lg' : ''}`;
+                  return renderDateButton(date, baseClass);
+                })}
+              </div>
             </div>
-          ))}
-          {generateWeekDays().map((date, index) => {
-            const baseClass = `h-16 rounded-lg border transition-all ${
-              isSelected(date)
-                ? 'border-blue-500 bg-blue-50 text-blue-900'
-                : isToday(date)
-                ? 'border-orange-400 bg-orange-50 text-orange-900'
-                : 'border-gray-200 bg-white hover:border-gray-300 text-gray-900'
-            }`;
-            return renderDateButton(date, baseClass);
-          })}
-        </div>
-      )}
+          </div>
+        )}
 
-      {view === 'month' && (
-        <div className="grid grid-cols-7 gap-1">
-          {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, index) => (
-            <div key={index} className="text-center text-xs font-medium text-gray-500 py-2">
-              {day}
+        {view === 'month' && (
+          <div className="bg-white">
+            {/* Clean month grid */}
+            <div className="space-y-1">
+              {/* Day headers */}
+              <div className="grid grid-cols-7 gap-px bg-gray-100 p-px rounded-lg mb-2">
+                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, index) => (
+                  <div key={index} className="bg-white text-center text-xs font-medium text-gray-500 py-3 first:rounded-l-md last:rounded-r-md">
+                    {day}
+                  </div>
+                ))}
+              </div>
+              
+              {/* Calendar days */}
+              <div className="grid grid-cols-7 gap-px bg-gray-100 p-px rounded-lg">
+                {generateMonthDays().map((date, index) => {
+                  const isTodayDate = isToday(date);
+                  const isSelectedDate = isSelected(date);
+                  const isCurrentMonthDate = isCurrentMonth(date);
+                  const assignmentInfo = getDateAssignmentInfo(date);
+                  
+                  // Minimal styling approach
+                  let dayClass = 'bg-white min-h-[60px] relative group cursor-pointer transition-all duration-200 hover:bg-gray-50 flex flex-col';
+                  let textClass = 'text-sm font-medium text-gray-700';
+                  let dateNumClass = 'text-sm';
+                  
+                  // Rounded corners for first/last items
+                  if (index < 7) { // First row
+                    if (index === 0) dayClass += ' rounded-tl-md';
+                    if (index === 6) dayClass += ' rounded-tr-md';
+                  }
+                  if (index >= 35) { // Last row
+                    if (index === 35) dayClass += ' rounded-bl-md';
+                    if (index === 41) dayClass += ' rounded-br-md';
+                  }
+                  
+                  // Today styling - clean and prominent
+                  if (isTodayDate) {
+                    dayClass = dayClass.replace('bg-white', 'bg-blue-500 text-white');
+                    textClass = 'text-white font-semibold';
+                    dateNumClass = 'text-white font-bold';
+                  }
+                  // Selected styling - subtle
+                  else if (isSelectedDate) {
+                    dayClass = dayClass.replace('bg-white', 'bg-blue-50');
+                    dayClass = dayClass.replace('hover:bg-gray-50', 'hover:bg-blue-100');
+                    textClass = 'text-blue-700 font-medium';
+                  }
+                  // Other month dates - muted
+                  else if (!isCurrentMonthDate) {
+                    textClass = 'text-gray-400';
+                    dayClass = dayClass.replace('hover:bg-gray-50', 'hover:bg-gray-25');
+                  }
+                  
+                  return (
+                    <button
+                      key={date.toISOString()}
+                      onClick={() => {
+                        onDateSelect(date);
+                        onDateClick(date);
+                      }}
+                      className={dayClass}
+                      title={getDateTooltip(assignmentInfo, date)}
+                    >
+                      <div className="p-3 flex-1 flex flex-col">
+                        {/* Date number */}
+                        <div className={`${dateNumClass} mb-1`}>
+                          {formatDate(date, 'dayNum')}
+                        </div>
+                        
+                        {/* Today badge */}
+                        {isTodayDate && (
+                          <div className="text-xs font-medium opacity-90">
+                            Today
+                          </div>
+                        )}
+                        
+                        {/* Assignment indicator - minimal dot */}
+                        {assignmentInfo.hasAssignments && (
+                          <div className="mt-auto flex items-center justify-between">
+                            <div className={`w-2 h-2 rounded-full ${
+                              assignmentInfo.dayStatus === 'completed' ? 'bg-green-400' :
+                              assignmentInfo.dayStatus === 'partial' ? 'bg-blue-400' :
+                              assignmentInfo.dayStatus === 'pending_future' ? 'bg-amber-400' :
+                              assignmentInfo.dayStatus === 'pending_past' ? 'bg-red-400' : 'bg-gray-400'
+                            } ${isTodayDate ? 'bg-white bg-opacity-80' : ''}`}></div>
+                            <div className={`text-xs font-medium ${
+                              isTodayDate ? 'text-white text-opacity-90' : 
+                              isSelectedDate ? 'text-blue-600' : 'text-gray-500'
+                            }`}>
+                              {assignmentInfo.totalAssigned}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          ))}
-          {generateMonthDays().map((date, index) => {
-            const baseClass = `h-12 rounded border transition-all text-sm ${
-              isSelected(date)
-                ? 'border-blue-500 bg-blue-50 text-blue-900 font-bold'
-                : isToday(date)
-                ? 'border-orange-400 bg-orange-50 text-orange-900 font-bold'
-                : isCurrentMonth(date)
-                ? 'border-gray-200 bg-white hover:border-gray-300 text-gray-900'
-                : 'border-gray-100 bg-gray-50 text-gray-400 hover:border-gray-200'
-            }`;
-            return renderDateButton(date, baseClass);
-          })}
+          </div>
+        )}
+        
+        {/* Selected date info */}
+        <div className="mt-4 text-center">
+          <div className="text-xs text-gray-500">
+            Selected: {selectedDate.toLocaleDateString('en-US', { 
+              weekday: 'long', 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric' 
+            })}
+          </div>
         </div>
-      )}
-      
-      <div className="mt-4 text-xs text-gray-500 text-center">
-        Selected: {selectedDate.toLocaleDateString('en-US', { 
-          weekday: 'long', 
-          year: 'numeric', 
-          month: 'long', 
-          day: 'numeric' 
-        })}
       </div>
     </Card>
   );
@@ -1745,10 +1996,10 @@ function TaskPageContent() {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                 <div>
                   <h2 className="text-xl font-semibold text-gray-900">
-                    Scenarios ({Object.keys(scenarioGroups).length})
+                    Subtasks ({filteredSubtasks.length})
                   </h2>
                   <p className="text-sm text-gray-600">
-                    {filteredSubtasks.length} subtasks across {Object.keys(scenarioGroups).length} scenarios
+                    {filteredSubtasks.length} subtasks grouped by {Object.keys(scenarioGroups).length} scenarios
                   </p>
                 </div>
                 <div className="flex items-center gap-2">

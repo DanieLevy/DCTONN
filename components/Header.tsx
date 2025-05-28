@@ -102,6 +102,7 @@ export function Header({ onMenuToggle, onDashboardToggle, title }: HeaderProps) 
               alt="Mobileye" 
               width={120} 
               height={24}
+              priority
               className="h-6 w-auto"
             />
           )}

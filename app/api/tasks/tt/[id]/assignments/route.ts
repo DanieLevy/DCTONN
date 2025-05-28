@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken, getTokenFromRequest } from '@/lib/auth';
-import { loadTTTasks, saveTTTasks } from '@/lib/tt-data-store';
+import { loadTTTasks, saveTTTasks } from '@/lib/data-store';
 import { DateAssignment } from '@/lib/types';
 
 // POST - Assign tasks to a date
@@ -12,7 +12,10 @@ export async function POST(
     console.log('[TT Assignment API] POST request received');
     
     const token = getTokenFromRequest(request);
+    console.log('[TT Assignment API] Token extracted:', !!token);
+    
     const payload = verifyToken(token || '');
+    console.log('[TT Assignment API] Token verified:', !!payload, payload ? `User: ${payload.username}, Role: ${payload.role}` : 'Invalid token');
     
     if (!payload) {
       console.log('[TT Assignment API] Unauthorized request');
@@ -32,19 +35,30 @@ export async function POST(
     }
 
     const { id: taskId } = await params;
-    const { date, subtaskIds, notes } = await request.json();
+    console.log('[TT Assignment API] Task ID:', taskId);
+    
+    const requestBody = await request.json();
+    console.log('[TT Assignment API] Request body:', requestBody);
+    
+    const { date, subtaskIds, notes } = requestBody;
 
     if (!date || !Array.isArray(subtaskIds) || subtaskIds.length === 0) {
+      console.log('[TT Assignment API] Invalid request data:', { date, subtaskIds: Array.isArray(subtaskIds), subtaskIdsLength: subtaskIds?.length });
       return NextResponse.json(
         { success: false, error: 'Date and subtask IDs are required' },
         { status: 400 }
       );
     }
 
+    console.log('[TT Assignment API] Loading TT tasks...');
     const { tasks } = await loadTTTasks();
+    console.log('[TT Assignment API] Loaded tasks:', tasks.length, 'tasks');
+    
     const taskIndex = tasks.findIndex(t => t.id === taskId);
+    console.log('[TT Assignment API] Task found at index:', taskIndex);
 
     if (taskIndex === -1) {
+      console.log('[TT Assignment API] Task not found. Available task IDs:', tasks.map(t => t.id));
       return NextResponse.json(
         { success: false, error: 'Task not found' },
         { status: 404 }
@@ -52,14 +66,17 @@ export async function POST(
     }
 
     const task = tasks[taskIndex];
+    console.log('[TT Assignment API] Working with task:', task.title, 'Subtasks:', task.subtasks.length);
 
     // Initialize dateAssignments if it doesn't exist
     if (!task.dateAssignments) {
       task.dateAssignments = [];
+      console.log('[TT Assignment API] Initialized dateAssignments array');
     }
 
     // Check if assignment for this date already exists
     const existingAssignmentIndex = task.dateAssignments.findIndex(a => a.date === date);
+    console.log('[TT Assignment API] Existing assignment index for date', date, ':', existingAssignmentIndex);
     
     if (existingAssignmentIndex >= 0) {
       // Update existing assignment
@@ -73,6 +90,7 @@ export async function POST(
         assignedAt: new Date().toISOString(),
         notes: notes || existingAssignment.notes
       };
+      console.log('[TT Assignment API] Updated existing assignment with', newSubtaskIds.length, 'subtasks');
     } else {
       // Create new assignment
       const newAssignment: DateAssignment = {
@@ -84,9 +102,11 @@ export async function POST(
       };
       
       task.dateAssignments.push(newAssignment);
+      console.log('[TT Assignment API] Created new assignment with', subtaskIds.length, 'subtasks');
     }
 
     // Update subtasks with assignment information
+    let updatedSubtasks = 0;
     task.subtasks.forEach(subtask => {
       if (subtaskIds.includes(subtask.id)) {
         subtask.assignedDate = date;
@@ -94,17 +114,19 @@ export async function POST(
         subtask.executionStatus = 'assigned';
         subtask.lastEditedBy = payload.username;
         subtask.updatedAt = new Date().toISOString();
+        updatedSubtasks++;
       }
     });
+    console.log('[TT Assignment API] Updated', updatedSubtasks, 'subtasks with assignment info');
 
     // Update task metadata
     task.lastEditedBy = payload.username;
     task.updatedAt = new Date().toISOString();
 
     // Save changes
+    console.log('[TT Assignment API] Saving tasks...');
     await saveTTTasks(tasks);
-
-    console.log('[TT Assignment API] Tasks assigned successfully');
+    console.log('[TT Assignment API] Tasks saved successfully');
 
     return NextResponse.json({
       success: true,
@@ -113,6 +135,7 @@ export async function POST(
 
   } catch (error: any) {
     console.error('[TT Assignment API] Error:', error);
+    console.error('[TT Assignment API] Error stack:', error.stack);
     return NextResponse.json(
       { success: false, error: 'Internal server error: ' + error.message },
       { status: 500 }
