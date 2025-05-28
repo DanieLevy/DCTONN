@@ -97,6 +97,28 @@ export default function RootLayout({
                       }
                       lastTouchEnd = now;
                     }, false);
+                    
+                    // Apply iOS form fixes
+                    const style = document.createElement('style');
+                    style.id = 'ios-fixes';
+                    style.textContent = \`
+                      /* Additional iOS form fixes */
+                      input, textarea, select {
+                        -webkit-appearance: none !important;
+                        font-size: 16px !important;
+                        transform: scale(1) !important;
+                      }
+                      
+                      input:focus, textarea:focus, select:focus {
+                        font-size: 16px !important;
+                        transform: scale(1) !important;
+                        outline: none !important;
+                      }
+                    \`;
+                    
+                    if (!document.getElementById('ios-fixes')) {
+                      document.head.appendChild(style);
+                    }
                   }
                 });
               }
