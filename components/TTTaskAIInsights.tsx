@@ -596,144 +596,118 @@ export function TTTaskAIInsights({ task, assignments, onSuggestAssignment }: TTT
 
   const currentInsight = insights[currentInsightIndex];
 
+  // Main compact carousel display
   return (
-    <div className="space-y-4 mb-6">
-      {/* Compact Animated AI Insights Carousel */}
-      <Card className="overflow-hidden">
-        <CardContent className="p-0">
-          <div className="relative">
-            {/* Main Insight Display */}
-            <div className="p-4 bg-gradient-to-r from-purple-50 to-blue-50 border-b">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3 flex-1 min-w-0">
-                  <div className="flex-shrink-0">
-                    {getInsightIcon(currentInsight)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-gray-900 truncate">
-                      {currentInsight.shortText}
-                    </div>
-                    <div className="flex items-center space-x-2 mt-1">
-                      <Badge className={`text-xs ${getPriorityBadge(currentInsight.priority)}`}>
-                        {currentInsight.priority}
-                      </Badge>
-                      {lastAnalyzed && (
-                        <span className="text-xs text-gray-500">
-                          {lastAnalyzed.toLocaleTimeString()}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Controls */}
-                <div className="flex items-center space-x-1 ml-2">
-                  {currentInsight.action && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={currentInsight.action.onClick}
-                      className="text-xs h-7 px-2"
-                    >
-                      {currentInsight.action.label}
-                    </Button>
-                  )}
-                  
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setIsCarouselPaused(!isCarouselPaused)}
-                    className="h-7 w-7 p-0"
-                  >
-                    {isCarouselPaused ? <Play className="h-3 w-3" /> : <Pause className="h-3 w-3" />}
-                  </Button>
-                  
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setCurrentInsightIndex((prev) => (prev > 0 ? prev - 1 : insights.length - 1))}
-                    className="h-7 w-7 p-0"
-                  >
-                    <ChevronLeft className="h-3 w-3" />
-                  </Button>
-                  
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setCurrentInsightIndex((prev) => (prev + 1) % insights.length)}
-                    className="h-7 w-7 p-0"
-                  >
-                    <ChevronRight className="h-3 w-3" />
-                  </Button>
-                </div>
-              </div>
-              
-              {/* Progress indicators */}
-              {insights.length > 1 && (
-                <div className="flex space-x-1 mt-3">
-                  {insights.map((_, index) => (
-                    <div
-                      key={index}
-                      className={`h-1 rounded-full transition-all duration-300 ${
-                        index === currentInsightIndex ? 'bg-purple-600 w-6' : 'bg-gray-300 w-2'
-                      }`}
-                    />
-                  ))}
-                </div>
-              )}
+    <Card className="mb-4">
+      <CardContent className="p-3">
+        <div className="flex items-center justify-between">
+          {/* AI Brain icon and rotating insights */}
+          <div className="flex items-center space-x-3 flex-1 min-w-0">
+            <div className="flex-shrink-0">
+              <Brain className="h-5 w-5 text-purple-600" />
             </div>
+            
+            {/* Rotating insight text */}
+            <div className="flex-1 min-w-0">
+              <div className="text-sm text-gray-700 truncate">
+                {insights[currentInsightIndex]?.shortText || 'Analyzing...'}
+              </div>
+            </div>
+          </div>
 
-            {/* Quick Calendar Suggestions */}
-            {calendarSuggestions.length > 0 && (
-              <div className="p-3 border-t bg-gray-50">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center space-x-2">
-                    <CalendarDays className="h-4 w-4 text-blue-600" />
-                    <span className="text-sm font-medium text-gray-900">Quick Schedule</span>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setShowCalendarSuggestions(!showCalendarSuggestions)}
-                    className="text-xs h-6"
+          {/* Simple dot indicators */}
+          <div className="flex items-center space-x-1 ml-3">
+            {insights.map((_, index) => (
+              <div
+                key={index}
+                className={`h-1.5 w-1.5 rounded-full transition-colors ${
+                  index === currentInsightIndex ? 'bg-purple-600' : 'bg-gray-300'
+                }`}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Calendar suggestions trigger */}
+        {calendarSuggestions.length > 0 && (
+          <div className="mt-2 pt-2 border-t border-gray-100">
+            <button
+              onClick={() => setShowCalendarSuggestions(!showCalendarSuggestions)}
+              className="text-xs text-purple-600 hover:text-purple-800 font-medium"
+            >
+              {showCalendarSuggestions ? 'Hide' : 'Show'} Calendar Suggestions ({calendarSuggestions.length})
+            </button>
+            
+            {/* Calendar Suggestions Display */}
+            {showCalendarSuggestions && (
+              <div className="mt-3 space-y-2">
+                {calendarSuggestions.slice(0, 3).map((suggestion) => (
+                  <div
+                    key={suggestion.id}
+                    className="p-3 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border border-purple-100"
                   >
-                    {showCalendarSuggestions ? 'Hide' : 'Show'} ({calendarSuggestions.length})
-                  </Button>
-                </div>
-                
-                {showCalendarSuggestions && (
-                  <div className="space-y-2">
-                    {calendarSuggestions.slice(0, 3).map((suggestion) => (
-                      <div
-                        key={suggestion.id}
-                        className="flex items-center justify-between p-2 bg-white rounded border hover:shadow-sm transition-shadow"
-                      >
-                        <div className="flex-1 min-w-0">
-                          <div className="text-xs font-medium text-gray-900 truncate">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center space-x-2 mb-1">
+                          <h4 className="text-sm font-medium text-gray-900 truncate">
                             {suggestion.title}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            📅 {new Date(suggestion.date).toLocaleDateString()} • 
-                            📊 {suggestion.subtaskIds.length} tasks • 
-                            ⏱️ {suggestion.estimatedDuration}h
-                          </div>
+                          </h4>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getPriorityBadge(suggestion.priority)}`}>
+                            {suggestion.priority}
+                          </span>
                         </div>
-                        <Button
-                          size="sm"
-                          onClick={() => handleApplySuggestion(suggestion)}
-                          className="ml-2 h-6 px-2 text-xs"
-                        >
-                          Apply
-                        </Button>
+                        <p className="text-xs text-gray-600 mb-2">
+                          {suggestion.description}
+                        </p>
+                        <div className="flex items-center space-x-4 text-xs text-gray-500">
+                          <span>📅 {new Date(suggestion.date).toLocaleDateString()}</span>
+                          <span>⏱️ {suggestion.estimatedDuration.toFixed(1)}h</span>
+                          <span>📊 {suggestion.subtaskIds.length} tasks</span>
+                        </div>
+                        <div className="mt-2">
+                          <p className="text-xs text-purple-700 italic">
+                            💡 {suggestion.reason}
+                          </p>
+                        </div>
                       </div>
-                    ))}
+                      <button
+                        onClick={() => handleApplySuggestion(suggestion)}
+                        className="ml-3 px-3 py-1 bg-purple-600 text-white text-xs rounded-md hover:bg-purple-700 transition-colors flex-shrink-0"
+                      >
+                        Apply
+                      </button>
+                    </div>
+                    
+                    {/* Benefits */}
+                    {suggestion.benefits.length > 0 && (
+                      <div className="mt-2 pt-2 border-t border-purple-200">
+                        <div className="flex flex-wrap gap-1">
+                          {suggestion.benefits.map((benefit, index) => (
+                            <span
+                              key={index}
+                              className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-800"
+                            >
+                              ✓ {benefit}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+                
+                {calendarSuggestions.length > 3 && (
+                  <div className="text-center">
+                    <span className="text-xs text-gray-500">
+                      Showing 3 of {calendarSuggestions.length} suggestions
+                    </span>
                   </div>
                 )}
               </div>
             )}
           </div>
-        </CardContent>
-      </Card>
-    </div>
+        )}
+      </CardContent>
+    </Card>
   );
 } 

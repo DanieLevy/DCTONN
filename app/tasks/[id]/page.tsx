@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { AuthProvider, useAuth } from '@/lib/auth-context';
 import { TTTask, TTSubtask, DateAssignment } from '@/lib/types';
@@ -44,7 +44,9 @@ import {
   ClipboardList,
   Eye,
   Settings,
-  Target
+  Target,
+  MessageCircle,
+  Send
 } from 'lucide-react';
 
 // Day Missions Modal Component with Duration Support
@@ -95,6 +97,8 @@ function DayMissionsModal({
   const [isLoading, setIsLoading] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState<any[]>([]);
   const [showAiSuggestions, setShowAiSuggestions] = useState(true);
+  const [isApplyingAiSuggestion, setIsApplyingAiSuggestion] = useState(false);
+  const [applySuccessMessage, setApplySuccessMessage] = useState<string | null>(null);
   
   // New duration assignment states
   const [assignmentType, setAssignmentType] = useState<'single_day' | 'date_range' | 'duration_days'>('single_day');
@@ -105,6 +109,9 @@ function DayMissionsModal({
   const [showConflictDialog, setShowConflictDialog] = useState(false);
   
   const dateString = selectedDate.toISOString().split('T')[0];
+  
+  // New due time selection
+  const [selectedDueTime, setSelectedDueTime] = useState<string>('17:00');
   
   // Helper functions - moved to top to avoid hoisting issues
   const getDateRange = (start: string, end: string): string[] => {
@@ -342,30 +349,37 @@ function DayMissionsModal({
   };
 
   const handleAssignTasks = () => {
-    if (onAssignTasks && selectedSubtasks.length > 0) {
+    if (selectedSubtasks.length === 0) {
+      alert('Please select at least one subtask to assign.');
+      return;
+    }
+
+    if (onAssignTasks) {
       const assignmentData = {
-        assignmentType,
-        date: assignmentType === 'single_day' ? startDate : undefined,
-        startDate: assignmentType !== 'single_day' ? startDate : undefined,
+        assignmentType: assignmentType as 'single_day' | 'date_range' | 'duration_days',
+        date: assignmentType === 'single_day' ? dateString : undefined,
+        startDate: assignmentType === 'date_range' ? startDate : undefined,
         endDate: assignmentType === 'date_range' ? endDate : undefined,
         durationDays: assignmentType === 'duration_days' ? durationDays : undefined,
         subtaskIds: selectedSubtasks,
         notes: assignmentNotes,
-        title: assignmentTitle
+        title: assignmentTitle || `${selectedSubtasks.length} Task Assignment`,
+        overrideConflicts: false
       };
+
+      onAssignTasks(assignmentData);
       
-      try {
-        onAssignTasks(assignmentData);
-        setSelectedSubtasks([]);
-        setAssignmentNotes('');
-        setAssignmentTitle('');
-        setShowAssignModal(false);
-      } catch (error: any) {
-        if (error.conflicts) {
-          setConflicts(error.conflicts);
-          setShowConflictDialog(true);
-        }
-      }
+      // Show success and close modals
+      setApplySuccessMessage(`Assigned ${selectedSubtasks.length} tasks successfully!`);
+      setShowAssignModal(false);
+      setSelectedSubtasks([]);
+      setAssignmentNotes('');
+      setAssignmentTitle('');
+      
+      // Auto-hide success message
+      setTimeout(() => {
+        setApplySuccessMessage(null);
+      }, 3000);
     }
   };
 
@@ -423,8 +437,15 @@ function DayMissionsModal({
 
   // Generate AI suggestions when modal opens
   useEffect(() => {
-    if (isOpen && allSubtasks.length > 0) {
-      generateAISuggestions();
+    if (isOpen && allSubtasks && allSubtasks.length > 0) {
+      try {
+        generateAISuggestions();
+      } catch (error) {
+        console.error('Error generating AI suggestions:', error);
+        setAiSuggestions([]);
+      }
+    } else {
+      setAiSuggestions([]);
     }
   }, [isOpen, selectedDate, allSubtasks]);
 
@@ -432,12 +453,13 @@ function DayMissionsModal({
     const dateString = selectedDate.toISOString().split('T')[0];
     const unassignedSubtasks = allSubtasks.filter(st => !st.isAssigned && !st.isExecuted);
     
+    // Initialize suggestions array
+    const suggestions: any[] = [];
+    
     if (unassignedSubtasks.length === 0) {
       setAiSuggestions([]);
       return;
     }
-
-    const suggestions = [];
 
     // Check if this is an empty day
     const existingAssignments = getAssignmentsForDate();
@@ -554,26 +576,62 @@ function DayMissionsModal({
       }
     }
 
-    setAiSuggestions(suggestions.slice(0, 3)); // Show top 3 suggestions
+    setAiSuggestions(suggestions.slice(0, 3) || []); // Show top 3 suggestions
   };
 
-  const handleApplyAISuggestion = (suggestion: any) => {
-    const subtaskIds = suggestion.subtasks.map((st: any) => st.id);
-    setSelectedSubtasks(subtaskIds);
-    setAssignmentTitle(suggestion.title);
-    setAssignmentNotes(`AI Suggestion: ${suggestion.reason}`);
-    setShowAiSuggestions(false);
-    
-    // Auto-trigger assignment process
-    if (onAssignTasks) {
-      onAssignTasks({
-        assignmentType: 'single_day',
+  const handleApplyAiSuggestion = async (suggestion: any) => {
+    if (!suggestion || !suggestion.subtasks) {
+      console.error('Invalid suggestion data:', suggestion);
+      return;
+    }
+
+    setIsApplyingAiSuggestion(true);
+    try {
+      // Apply the AI suggestion by auto-assigning the subtasks
+      const subtaskIds = suggestion.subtasks.map((st: any) => st.id);
+      const assignmentData = {
+        assignmentType: 'single_day' as const,
         date: selectedDate.toISOString().split('T')[0],
         subtaskIds,
         title: suggestion.title,
-        notes: `AI Suggestion: ${suggestion.reason}`,
+        notes: `AI Applied: ${suggestion.reason}`,
         overrideConflicts: false
-      });
+      };
+      
+      if (onAssignTasks) {
+        onAssignTasks(assignmentData);
+      }
+      
+      // Show success message
+      setApplySuccessMessage(`Applied: ${suggestion.title}`);
+      setShowAiSuggestions(false);
+      
+      // Auto-hide success message after 3 seconds
+      setTimeout(() => {
+        setApplySuccessMessage(null);
+      }, 3000);
+      
+    } catch (error) {
+      console.error('Error applying AI suggestion:', error);
+    } finally {
+      setIsApplyingAiSuggestion(false);
+    }
+  };
+
+  const refreshTaskData = async () => {
+    // Implement refreshTaskData logic
+  };
+
+  const sendChatMessage = async () => {
+    // These functions are duplicated and should be removed
+    // if (!currentMessage.trim() || isChatLoading) return;
+    return;
+  };
+
+  const handleChatKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendChatMessage();
     }
   };
 
@@ -659,65 +717,47 @@ function DayMissionsModal({
 
         {/* Content */}
         <div className="flex-1 overflow-hidden flex flex-col">
+          {/* Success Message */}
+          {applySuccessMessage && (
+            <div className="mx-4 mt-3 mb-2 p-2 bg-green-50 border border-green-200 rounded text-xs text-green-800">
+              ✅ {applySuccessMessage}
+            </div>
+          )}
+
           {/* AI Smart Suggestions */}
-          {aiSuggestions.length > 0 && showAiSuggestions && (
-            <div className="m-4 p-4 bg-purple-50 rounded-lg border border-purple-200">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center space-x-2">
-                  <div className="h-2 w-2 bg-purple-600 rounded-full animate-pulse"></div>
-                  <h3 className="text-sm font-semibold text-purple-900">🤖 AI Smart Suggestions</h3>
+          {aiSuggestions && aiSuggestions.length > 0 && showAiSuggestions && (
+            <div className="mx-4 mb-3 p-2 bg-purple-50 rounded border border-purple-200">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center space-x-1">
+                  <div className="h-1.5 w-1.5 bg-purple-600 rounded-full"></div>
+                  <h3 className="text-xs font-medium text-purple-900">AI Suggestions</h3>
                 </div>
                 <button
                   onClick={() => setShowAiSuggestions(false)}
-                  className="text-purple-600 hover:text-purple-800 text-sm"
+                  className="text-purple-600 hover:text-purple-800 text-xs p-1"
                 >
-                  Dismiss
+                  ×
                 </button>
               </div>
               
-              <div className="space-y-2">
-                {aiSuggestions.map((suggestion) => (
-                  <div
-                    key={suggestion.id}
-                    className="bg-white rounded-md border border-purple-200 p-3 hover:shadow-md transition-shadow"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-lg">{suggestion.icon}</span>
-                        <div>
-                          <h4 className="text-sm font-medium text-gray-900">{suggestion.title}</h4>
-                          <p className="text-xs text-gray-600">{suggestion.description}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <span className="text-xs text-purple-600 font-medium">{suggestion.estimatedTime}</span>
-                        <button
-                          onClick={() => handleApplyAISuggestion(suggestion)}
-                          className="px-3 py-1 bg-purple-600 text-white text-xs rounded-md hover:bg-purple-700 transition-colors"
-                        >
-                          Apply
-                        </button>
+              <div className="space-y-1">
+                {aiSuggestions.slice(0, 1).map((suggestion) => (
+                  <div key={suggestion.id} className="flex items-center justify-between p-2 bg-white rounded border text-xs">
+                    <div className="flex-1 min-w-0 mr-2">
+                      <div className="font-medium text-gray-900 truncate">{suggestion.title}</div>
+                      <div className="text-gray-500 truncate">
+                        {suggestion.subtasks && suggestion.subtasks.length > 0 ? suggestion.subtasks.length : 0} tasks • {suggestion.estimatedTime || '0h'}
                       </div>
                     </div>
-                    
-                    <div className="flex items-center space-x-4 text-xs text-gray-500">
-                      <span>📊 {suggestion.subtasks.length} subtasks</span>
-                      <span>📋 {suggestion.reason}</span>
-                    </div>
-                    
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {suggestion.benefits.map((benefit: string, index: number) => (
-                        <span key={index} className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full">
-                          {benefit}
-                        </span>
-                      ))}
-                    </div>
+                    <button
+                      onClick={() => handleApplyAiSuggestion(suggestion)}
+                      disabled={isApplyingAiSuggestion}
+                      className="bg-purple-600 text-white px-2 py-1 rounded text-xs hover:bg-purple-700 disabled:opacity-50"
+                    >
+                      {isApplyingAiSuggestion ? '...' : 'Apply'}
+                    </button>
                   </div>
                 ))}
-              </div>
-              
-              <div className="mt-3 text-xs text-purple-700 bg-purple-100 p-2 rounded">
-                💡 <strong>Tip:</strong> AI suggestions are based on calendar availability, lighting conditions, and scenario optimization for maximum efficiency.
               </div>
             </div>
           )}
@@ -2822,6 +2862,19 @@ function TaskPageContent() {
   const [timelineView, setTimelineView] = useState<'carousel' | 'week' | 'month'>('month');
   const [showDayMissions, setShowDayMissions] = useState(false);
 
+  // Chat state
+  const [showChat, setShowChat] = useState(false);
+  const [chatMessages, setChatMessages] = useState<Array<{
+    role: 'user' | 'assistant';
+    content: string;
+    timestamp: Date;
+    id: string;
+  }>>([]);
+  const [currentMessage, setCurrentMessage] = useState('');
+  const [isChatLoading, setIsChatLoading] = useState(false);
+  const [chatError, setChatError] = useState<string | null>(null);
+  const chatMessagesEndRef = useRef<HTMLDivElement>(null);
+
   const taskId = params.id as string;
 
   // User permission checks
@@ -2834,6 +2887,45 @@ function TaskPageContent() {
       fetchTaskCounts();
     }
   }, [user, token, taskId]);
+
+  // Initialize chat with welcome message
+  useEffect(() => {
+    if (showChat && chatMessages.length === 0) {
+      setChatMessages([{
+        role: 'assistant',
+        content: `Hello! I'm your AI assistant for the TT task "${task?.title || 'this task'}". I can help you with:\n\n• Task scheduling and planning\n• Subtask prioritization\n• Timeline optimization\n• Assignment strategies\n• Progress analysis\n\nWhat would you like to know?`,
+        timestamp: new Date(),
+        id: Date.now().toString()
+      }]);
+    }
+  }, [showChat, task?.title]);
+
+  // Auto-scroll to bottom of chat
+  useEffect(() => {
+    if (chatMessagesEndRef.current) {
+      chatMessagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [chatMessages, isChatLoading]);
+
+  // Keyboard shortcuts for chat
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (showChat) {
+        // Escape to close chat
+        if (e.key === 'Escape') {
+          setShowChat(false);
+        }
+        // Ctrl+L to clear chat
+        if (e.ctrlKey && e.key === 'l') {
+          e.preventDefault();
+          clearChat();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [showChat]);
 
   const fetchTask = async () => {
     try {
@@ -2937,19 +3029,14 @@ function TaskPageContent() {
       if (response.ok && data.success) {
         await fetchTask(); // Refresh task data
       } else if (response.status === 409 && data.requiresConfirmation) {
-        // Handle conflicts - throw with conflict data to be caught by modal
-        throw { conflicts: data.conflicts };
+        // Handle conflicts - could show a conflict resolution dialog
+        alert('There are conflicts with existing assignments. Please resolve them manually.');
       } else {
         alert('Failed to assign tasks: ' + (data.error || 'Unknown error'));
       }
     } catch (error: any) {
-      if (error.conflicts) {
-        // Re-throw for modal to handle
-        throw error;
-      } else {
-        console.error('Error assigning tasks:', error);
-        alert('Failed to assign tasks');
-      }
+      console.error('Error assigning tasks:', error);
+      alert('Failed to assign tasks');
     } finally {
       setIsLoading(false);
     }
@@ -3040,6 +3127,149 @@ function TaskPageContent() {
       alert('Failed to remove legacy assignment');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const refreshTaskData = async () => {
+    // Implement refreshTaskData logic
+  };
+
+  const sendChatMessage = async () => {
+    if (!currentMessage.trim() || isChatLoading) return;
+
+    const userMessage = currentMessage.trim();
+    const messageId = Date.now().toString();
+    
+    // Add user message
+    const newUserMessage = {
+      role: 'user' as const,
+      content: userMessage,
+      timestamp: new Date(),
+      id: messageId
+    };
+
+    setChatMessages(prev => [...prev, newUserMessage]);
+    setCurrentMessage('');
+    setIsChatLoading(true);
+    setChatError(null);
+
+    try {
+      // Prepare context about the current task
+      const taskContext = {
+        title: task?.title,
+        status: task?.status,
+        totalSubtasks: task?.totalSubtasks,
+        completedSubtasks: task?.subtasks.filter(s => s.isExecuted || s.status === 'completed').length,
+        assignedSubtasks: task?.subtasks.filter(s => s.assignedDate).length,
+        priorityDistribution: {
+          high: task?.subtasks.filter(s => s.priority === '1').length,
+          medium: task?.subtasks.filter(s => s.priority === '2').length,
+          low: task?.subtasks.filter(s => s.priority === '3').length
+        },
+        scenarios: [...new Set(task?.subtasks.map(s => s.scenario))].slice(0, 10), // First 10 scenarios
+        dateAssignments: task?.dateAssignments?.length || 0,
+        location: task?.location,
+        version: task?.version
+      };
+
+      const response = await fetch('/api/ai/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          message: userMessage,
+          context: {
+            type: 'tt_task',
+            taskId: taskId,
+            taskDetails: taskContext,
+            currentDate: selectedDate.toISOString(),
+            userRole: user?.role
+          },
+          conversationHistory: chatMessages.slice(-10) // Last 10 messages for context
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to get response: ${response.status}`);
+      }
+
+      const data = await response.json();
+       
+      if (data.success && (data.response || data.data?.message)) {
+        const assistantMessage = {
+          role: 'assistant' as const,
+          content: data.response || data.data?.message || 'Sorry, I could not process your request.',
+          timestamp: new Date(),
+          id: (Date.now() + 1).toString()
+        };
+
+        setChatMessages(prev => [...prev, assistantMessage]);
+      } else {
+        throw new Error(data.error || 'Failed to get AI response');
+      }
+    } catch (error) {
+      console.error('Chat error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to send message';
+      setChatError(errorMessage);
+      
+      // Add error message to chat
+      const errorResponse = {
+        role: 'assistant' as const,
+        content: `Sorry, I encountered an error: ${errorMessage}. Please try again.`,
+        timestamp: new Date(),
+        id: (Date.now() + 2).toString()
+      };
+      
+      setChatMessages(prev => [...prev, errorResponse]);
+    } finally {
+      setIsChatLoading(false);
+    }
+  };
+
+  const handleChatKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendChatMessage();
+    }
+  };
+
+  const handleChatInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setCurrentMessage(e.target.value);
+    
+    // Auto-resize textarea
+    const textarea = e.target;
+    textarea.style.height = 'auto';
+    textarea.style.height = Math.min(textarea.scrollHeight, 100) + 'px';
+  };
+
+  const clearChat = () => {
+    setChatMessages([]);
+    setChatError(null);
+  };
+
+  const regenerateLastResponse = async () => {
+    if (chatMessages.length < 2) return;
+    
+    const lastUserMessage = [...chatMessages].reverse().find(m => m.role === 'user');
+    if (!lastUserMessage) return;
+
+    // Remove the last assistant message
+    setChatMessages(prev => prev.filter(m => m.id !== chatMessages[chatMessages.length - 1].id));
+    
+    // Temporarily set the user message as current and resend
+    setCurrentMessage(lastUserMessage.content);
+    setTimeout(() => {
+      sendChatMessage();
+    }, 100);
+  };
+
+  const retryLastMessage = () => {
+    const lastUserMessage = [...chatMessages].reverse().find(m => m.role === 'user');
+    if (lastUserMessage) {
+      setCurrentMessage(lastUserMessage.content);
+      setChatError(null);
     }
   };
 
@@ -3398,6 +3628,244 @@ function TaskPageContent() {
           onEdit={canEdit ? undefined : undefined} // TODO: Implement edit functionality
           canEdit={canEdit}
         />
+      )}
+
+      {/* Modern Minimal Chat Button */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <div className="relative group">
+          {/* Main Chat Button */}
+          <button
+            onClick={() => setShowChat(!showChat)}
+            style={{
+              backgroundColor: showChat ? '#111111' : '#000000',
+              transform: showChat ? 'scale(0.95) rotate(45deg)' : 'scale(1) rotate(0deg)',
+            }}
+            className={`
+              relative h-14 w-14 rounded-full transition-all duration-300 ease-out
+              hover:!bg-gray-800 hover:scale-105 active:scale-95
+              shadow-2xl hover:shadow-3xl border border-gray-700/50
+              flex items-center justify-center group-hover:border-gray-600/50
+              !bg-black
+            `}
+          >
+            {/* Button Content */}
+            <div className="relative">
+              {showChat ? (
+                <X className="h-5 w-5 text-white transform -rotate-45 transition-transform duration-300" />
+              ) : (
+                <MessageCircle className="h-5 w-5 text-white transition-transform duration-300 group-hover:scale-110" />
+              )}
+            </div>
+
+            {/* Status Indicator */}
+            <div className={`
+              absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full border-2 border-white
+              transition-all duration-300
+              ${isChatLoading 
+                ? 'bg-amber-400 animate-pulse' 
+                : chatError 
+                ? 'bg-red-500' 
+                : 'bg-emerald-400'
+              }
+            `}>
+              {!isChatLoading && !chatError && (
+                <div className="h-full w-full rounded-full bg-emerald-400 animate-ping opacity-20" />
+              )}
+            </div>
+
+            {/* Ripple Effect */}
+            <div className="absolute inset-0 rounded-full bg-white opacity-0 group-hover:opacity-5 group-active:opacity-10 transition-opacity duration-200" />
+          </button>
+
+          {/* Modern Tooltip */}
+          {!showChat && (
+            <div className="absolute bottom-full right-0 mb-3 opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none">
+              <div className="bg-gray-900 text-white text-sm px-3 py-2 rounded-lg shadow-xl whitespace-nowrap border border-gray-700">
+                AI Assistant
+                <div className="absolute top-full right-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900" />
+              </div>
+            </div>
+          )}
+
+          {/* Badge for unread messages (optional) */}
+          {chatMessages.length > 1 && !showChat && (
+            <div className="absolute -top-1 -left-1 h-5 w-5 bg-blue-500 text-white text-xs rounded-full flex items-center justify-center font-medium border-2 border-white shadow-lg">
+              {Math.min(chatMessages.filter(m => m.role === 'assistant').length, 9)}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Modern Minimal Chat Modal */}
+      {showChat && (
+        <div className="fixed bottom-24 right-6 w-96 h-[500px] bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 flex flex-col overflow-hidden">
+          {/* Sleek Header */}
+          <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-gray-100">
+            <div className="flex items-center space-x-3">
+              <div className="relative">
+                <div className={`w-2.5 h-2.5 rounded-full transition-colors duration-300 ${
+                  isChatLoading ? 'bg-amber-400 animate-pulse' : 
+                  chatError ? 'bg-red-400' : 'bg-emerald-400'
+                }`} />
+                {!isChatLoading && !chatError && (
+                  <div className="absolute inset-0 w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping opacity-20" />
+                )}
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900 text-sm">AI Assistant</h3>
+                <p className="text-xs text-gray-500">
+                  {isChatLoading ? 'Thinking...' : chatError ? 'Connection error' : 'Ready to help'}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-1">
+              {chatMessages.length > 1 && (
+                <button
+                  onClick={clearChat}
+                  className="p-1.5 hover:bg-gray-200 rounded-lg transition-colors duration-200"
+                  title="Clear chat"
+                >
+                  <svg className="h-3.5 w-3.5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              )}
+              <button
+                onClick={() => setShowChat(false)}
+                className="p-1.5 hover:bg-gray-200 rounded-lg transition-colors duration-200"
+              >
+                <X className="h-3.5 w-3.5 text-gray-500" />
+              </button>
+            </div>
+          </div>
+
+          {/* Minimal Error Banner */}
+          {chatError && (
+            <div className="px-4 py-2 bg-red-50 border-b border-red-100">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <div className="w-1.5 h-1.5 bg-red-400 rounded-full" />
+                  <span className="text-red-700 text-xs">{chatError}</span>
+                  <button
+                    onClick={retryLastMessage}
+                    className="text-red-600 hover:text-red-700 text-xs underline"
+                  >
+                    Retry
+                  </button>
+                </div>
+                <button onClick={() => setChatError(null)} className="text-red-400 hover:text-red-600">
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Clean Messages Area */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+            {chatMessages.map((msg, index) => (
+              <div
+                key={msg.id}
+                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                <div className="max-w-[85%] group">
+                  <div
+                    className={`px-3 py-2 rounded-2xl text-sm leading-relaxed ${
+                      msg.role === 'user'
+                        ? 'bg-black text-white rounded-br-md'
+                        : 'bg-gray-100 text-gray-900 rounded-bl-md'
+                    }`}
+                  >
+                    <div className="whitespace-pre-wrap break-words">{msg.content}</div>
+                  </div>
+                  <div className="flex items-center justify-between mt-1 px-1">
+                    <div className="text-xs text-gray-400">
+                      {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                    {msg.role === 'assistant' && index === chatMessages.length - 1 && !isChatLoading && (
+                      <button
+                        onClick={regenerateLastResponse}
+                        className="text-xs text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity p-1"
+                        title="Regenerate response"
+                      >
+                        ↻
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+            
+            {isChatLoading && (
+              <div className="flex justify-start">
+                <div className="bg-gray-100 px-3 py-2 rounded-2xl rounded-bl-md">
+                  <div className="flex items-center space-x-1">
+                    <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" />
+                    <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+                    <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <div ref={chatMessagesEndRef} />
+          </div>
+
+          {/* Smart Quick Actions */}
+          {!isChatLoading && chatMessages.length > 0 && (
+            <div className="px-4 py-2 border-t border-gray-100">
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  "📊 Progress analysis",
+                  "📅 Schedule optimization", 
+                  "⚡ Quick insights",
+                  "🎯 Priorities"
+                ].map((suggestion, index) => (
+                  <button
+                    key={index}
+                    onClick={() => {
+                      setCurrentMessage(suggestion.split(' ').slice(1).join(' '));
+                      setTimeout(sendChatMessage, 100);
+                    }}
+                    className="text-xs px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 transition-colors duration-200"
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Sleek Input Area */}
+          <div className="p-4 border-t border-gray-100 bg-gray-50/50">
+            <div className="flex space-x-3">
+              <div className="flex-1 relative">
+                <Textarea
+                  value={currentMessage}
+                  onChange={handleChatInputChange}
+                  onKeyPress={handleChatKeyPress}
+                  placeholder="Ask about your tasks..."
+                  className="min-h-[40px] max-h-[80px] text-sm resize-none pr-10 border-gray-200 rounded-xl bg-white focus:border-gray-300 focus:ring-0"
+                  disabled={isChatLoading}
+                  rows={1}
+                />
+                <div className="absolute bottom-2 right-2 text-xs text-gray-400">
+                  {currentMessage.length}
+                </div>
+              </div>
+              <button
+                onClick={sendChatMessage}
+                disabled={!currentMessage.trim() || isChatLoading || currentMessage.length > 500}
+                className="self-end h-10 w-10 bg-black hover:bg-gray-800 disabled:bg-gray-300 text-white rounded-xl transition-colors duration-200 flex items-center justify-center"
+              >
+                {isChatLoading ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -158,45 +158,31 @@ export async function POST(request: NextRequest) {
       users: aiData.users.length
     });
     
-    // Create enhanced context for AI with TT task details
-    const systemPrompt = `You are an advanced AI assistant for autonomous vehicle testing task management. You have access to comprehensive data including:
+    // Build comprehensive system prompt with limited data to prevent token overflow
+    const systemPrompt = `You are DCTON AI, an intelligent assistant for the DCTON task management system.
 
-SYSTEM OVERVIEW:
-- ${aiData.statistics.totalDCTasks} Data Collection (DC) tasks
-- ${aiData.statistics.totalTTTasks} Test Track (TT) tasks containing ${aiData.statistics.totalSubtasks} subtasks
-- Completion rate: ${aiData.statistics.completionRate.toFixed(1)}%
-- Active subtasks: ${aiData.statistics.activeSubtasks}
-- Pending subtasks: ${aiData.statistics.pendingSubtasks}
+**Current System Status:**
+- Active Tasks: ${aiData.dcTasks.length} DC tasks, ${aiData.ttTasks.length} TT tasks
+- Total Subtasks: ${aiData.allSubtasks.length}
+- Active Users: ${aiData.users.length}
 
-TT TASK CATEGORIES:
-${Object.entries(aiData.statistics.categoryBreakdown).map(([cat, count]) => `- ${cat}: ${count} subtasks`).join('\n')}
+**TT Task Summary (Limited Context):**
+${aiData.ttTasks.slice(0, 1).map((task: any) => `
+Task: ${task.title}
+- Total Subtasks: ${task.totalSubtasks}
+- Completed: ${task.subtasks?.filter((s: any) => s.isExecuted).length || 0}
+- Progress: ${task.totalSubtasks > 0 ? Math.round((task.subtasks?.filter((s: any) => s.isExecuted).length || 0) / task.totalSubtasks * 100) : 0}%
+- Sample Scenarios: ${task.subtasks?.slice(0, 3).map((s: any) => s.scenario).join(', ') || 'None'}
+`).join('\n') || 'No TT tasks available'}
 
-SCENARIOS:
-${Object.entries(aiData.statistics.scenarioBreakdown).map(([scenario, count]) => `- ${scenario}: ${count} subtasks`).join('\n')}
+**Key Capabilities:**
+- Task analysis and optimization suggestions
+- Vehicle data processing and QR code analysis  
+- Assignment scheduling and workload balancing
+- Performance tracking and bottleneck identification
+- Scenario-based testing recommendations
 
-LIGHTING CONDITIONS:
-${Object.entries(aiData.statistics.lightingBreakdown).map(([lighting, count]) => `- ${lighting}: ${count} subtasks`).join('\n')}
-
-AGENT RULES:
-${aiData.agentRules}
-
-DC TASKS SAMPLE:
-${JSON.stringify(aiData.dcTasks.slice(0, 3), null, 2)}
-
-TT TASKS SAMPLE:
-${JSON.stringify(aiData.ttTasks.slice(0, 2), null, 2)}
-
-RECENT SUBTASKS SAMPLE:
-${JSON.stringify(aiData.allSubtasks.slice(0, 5), null, 2)}
-
-You are an expert in:
-- ENCAP 2026 regulations and testing procedures
-- VRU (Vulnerable Road Users) scenarios
-- Test track execution planning
-- Calendar optimization for test scheduling
-- Performance analysis and bottleneck identification
-
-Provide detailed, actionable responses based on this comprehensive dataset. When discussing TT tasks, include specific details about scenarios, lighting conditions, speeds, and execution parameters. Always consider the full context of assigned dates, priorities, and execution status.`;
+Provide helpful, actionable responses about task management, vehicle testing, and system optimization.`;
 
     // Test LM Studio connection and get the best model
     console.log('[AI Chat] Getting LM Studio model...');

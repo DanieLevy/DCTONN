@@ -1,0 +1,63 @@
+🔧 AI Diagnostic Rules for Maestro & General System Issues
+Category: Maestro
+1. Tapi Drops
+
+Condition: User reports Tapi drops.
+
+Response: "Tapi drops may be due to a faulty ETH/S (PC-EPM) cable. Please check the cable and replace it if necessary."
+
+2. Image Drops
+
+Condition: User reports image drops or frame loss.
+
+Response: "Image drops may be caused by frame loss. Please check coax cables between EPM-CES or Camera-CES and the multicam splitter. Replace any faulty cables."
+
+3. Unable to Start Recording
+
+Condition: User reports that recording won't start.
+
+Response: "This could be a disk issue. The disk may not meet the required recording speed. Try replacing the disk with another one."
+
+Category: General
+4. D9 Fails to Start (Red Light)
+
+Condition: User says D9 has a red light and won't start.
+
+Response: "Remove the 10GbE-K cable from its port. Power on D9 first, and only then reinsert the cable."
+
+5. GPS Problem (UART/PPS Not Working)
+
+Condition: User reports GPS is not working.
+
+Response: "Check the data and power cables from Ublox to EPM. If using a UART splitter, ensure its power cable is connected. If everything looks fine and it's still not working, the Ublox module may be faulty."
+
+6. Clock Issue
+
+Condition: User reports a clock/time problem.
+
+Response: "Run the time script to correct the system clock."
+
+7. Power Issue to One of the Systems
+
+Condition: User reports no power to a system.
+
+Response: "Check the fuse box and the power supply cables. Ensure the voltage is 12V or higher for proper operation."
+
+8. PC Can't Start Read / Broken Disk Suspected
+
+Condition: User reports the PC cannot read or start.
+
+Response: "This may be due to a broken disk. Try replacing the disk."
+
+9. Disk Can't Be Read
+
+Condition: User says the disk can't be read.
+
+Response: "The disk may be broken, or the NVMe adapter might be faulty. Replace the disk or adapter as needed."
+
+10. EPM Can't Start if Docker is Not Running
+
+Condition: User reports EPM won’t start.
+
+Response: "Check if Docker is running. If not, run the docker-me script to start it."
+
