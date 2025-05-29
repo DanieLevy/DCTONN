@@ -17,7 +17,8 @@ import { ClientOnlyHandler } from '@/components/ClientOnlyHandler';
 import { Task, TTTask, TaskFilters as TaskFiltersType } from '@/lib/types';
 import { VehicleData, isValidVehicleData } from '@/lib/vehicle-types';
 import { decodeCompressedJson, isBase64, isURL, safeDecodeCompressedJson } from '@/utils/decodeCompressedJson';
-import { MessageCircle, QrCode, FileText } from 'lucide-react';
+import { MessageCircle, QrCode, FileText, Brain } from 'lucide-react';
+import { AIInsightsDashboard } from '@/components/AIInsightsDashboard';
 
 // Enhanced Error Boundary for handling simulator and DOM conflicts
 class SimpleErrorBoundary extends React.Component<
@@ -161,6 +162,9 @@ function TaskDashboard() {
   const [isVehicleDataModalOpen, setIsVehicleDataModalOpen] = useState(false);
   const [vehicleData, setVehicleData] = useState<VehicleData | null>(null);
   const [rawQRContent, setRawQRContent] = useState<string | null>(null);
+  
+  // AI Insights dashboard state
+  const [isAIInsightsOpen, setIsAIInsightsOpen] = useState(false);
 
   // Get current section from URL params, default to TT
   const currentSection = (searchParams.get('section') as 'DC' | 'TT' | 'management') || 'TT';
@@ -510,9 +514,21 @@ function TaskDashboard() {
               </p>
             </div>
             
-            {/* QR Scanner Button - Only show for TT tasks */}
-            {currentSection === 'TT' && (
-              <div className="flex items-center space-x-2">
+            {/* Action Buttons Area */}
+            <div className="flex items-center space-x-2">
+              {/* AI Insights Button */}
+              <button
+                onClick={() => setIsAIInsightsOpen(true)}
+                className="flex items-center space-x-2 px-4 py-3 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-all duration-200 touch-manipulation text-sm font-medium shadow-sm hover:shadow-md flex-shrink-0"
+                title="View AI Insights"
+              >
+                <Brain className="h-4 w-4" />
+                <span className="hidden sm:inline">AI Insights</span>
+                <span className="sm:hidden">Insights</span>
+              </button>
+              
+              {/* QR Scanner Button - Only show for TT tasks */}
+              {currentSection === 'TT' && (
                 <button
                   onClick={() => setIsQRScannerOpen(true)}
                   className="flex items-center space-x-2 px-4 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-200 touch-manipulation text-sm font-medium shadow-sm hover:shadow-md flex-shrink-0"
@@ -522,8 +538,8 @@ function TaskDashboard() {
                   <span className="hidden sm:inline">Scan QR Code</span>
                   <span className="sm:hidden">Scan</span>
                 </button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
           
           {error && (
@@ -637,6 +653,12 @@ function TaskDashboard() {
         }}
         data={vehicleData}
         rawQRContent={rawQRContent}
+      />
+
+      {/* AI Insights Dashboard */}
+      <AIInsightsDashboard
+        isOpen={isAIInsightsOpen}
+        onClose={() => setIsAIInsightsOpen(false)}
       />
     </div>
   );

@@ -114,4 +114,124 @@ export async function saveTTTasks(tasks: TTTask[]): Promise<void> {
     console.error('Error saving TT tasks:', error);
     throw new Error('Failed to save TT tasks');
   }
+}
+
+export async function loadAgentRules(): Promise<string> {
+  try {
+    const filePath = path.join(DATA_DIR, 'AgentRules.txt');
+    const fileContent = await fs.readFile(filePath, 'utf-8');
+    return fileContent;
+  } catch (error) {
+    console.error('Error loading agent rules:', error);
+    return '';
+  }
+}
+
+export interface ComprehensiveAIData {
+  dcTasks: Task[];
+  ttTasks: TTTask[];
+  allSubtasks: any[];
+  users: User[];
+  locations: Location[];
+  agentRules: string;
+  statistics: {
+    totalDCTasks: number;
+    totalTTTasks: number;
+    totalSubtasks: number;
+    completedSubtasks: number;
+    activeSubtasks: number;
+    pendingSubtasks: number;
+    completionRate: number;
+    locationBreakdown: Record<string, number>;
+    priorityBreakdown: Record<string, number>;
+    categoryBreakdown: Record<string, number>;
+    scenarioBreakdown: Record<string, number>;
+    lightingBreakdown: Record<string, number>;
+  };
+}
+
+export async function loadComprehensiveAIData(): Promise<ComprehensiveAIData> {
+  try {
+    console.log('[Data Store] Loading comprehensive AI data...');
+    
+    const [dcTasks, ttTasksData, usersData, agentRules] = await Promise.all([
+      loadTasks(),
+      loadTTTasks(),
+      loadUsers(),
+      loadAgentRules()
+    ]);
+
+    const ttTasks = ttTasksData.tasks;
+    const allSubtasks = ttTasks.flatMap(tt => tt.subtasks || []);
+    
+    // Calculate comprehensive statistics
+    const completedSubtasks = allSubtasks.filter(st => st.isExecuted || st.status === 'completed');
+    const activeSubtasks = allSubtasks.filter(st => st.status === 'in_progress' || st.isAssigned);
+    const pendingSubtasks = allSubtasks.filter(st => st.status === 'pending');
+    
+    const locationBreakdown = dcTasks.reduce((acc, task) => {
+      acc[task.location] = (acc[task.location] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    
+    const priorityBreakdown = [...dcTasks, ...allSubtasks].reduce((acc, task) => {
+      const priority = task.priority || 'medium';
+      acc[priority] = (acc[priority] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    
+    const categoryBreakdown = allSubtasks.reduce((acc, st) => {
+      acc[st.category] = (acc[st.category] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    
+    const scenarioBreakdown = allSubtasks.reduce((acc, st) => {
+      if (st.scenario) {
+        acc[st.scenario] = (acc[st.scenario] || 0) + 1;
+      }
+      return acc;
+    }, {} as Record<string, number>);
+    
+    const lightingBreakdown = allSubtasks.reduce((acc, st) => {
+      if (st.lighting) {
+        acc[st.lighting] = (acc[st.lighting] || 0) + 1;
+      }
+      return acc;
+    }, {} as Record<string, number>);
+
+    const result: ComprehensiveAIData = {
+      dcTasks,
+      ttTasks,
+      allSubtasks,
+      users: usersData.users,
+      locations: usersData.locations,
+      agentRules,
+      statistics: {
+        totalDCTasks: dcTasks.length,
+        totalTTTasks: ttTasks.length,
+        totalSubtasks: allSubtasks.length,
+        completedSubtasks: completedSubtasks.length,
+        activeSubtasks: activeSubtasks.length,
+        pendingSubtasks: pendingSubtasks.length,
+        completionRate: allSubtasks.length > 0 ? (completedSubtasks.length / allSubtasks.length) * 100 : 0,
+        locationBreakdown,
+        priorityBreakdown,
+        categoryBreakdown,
+        scenarioBreakdown,
+        lightingBreakdown
+      }
+    };
+
+    console.log('[Data Store] Comprehensive AI data loaded:', {
+      dcTasks: result.dcTasks.length,
+      ttTasks: result.ttTasks.length,
+      subtasks: result.allSubtasks.length,
+      users: result.users.length
+    });
+
+    return result;
+  } catch (error) {
+    console.error('Error loading comprehensive AI data:', error);
+    throw new Error('Failed to load comprehensive AI data');
+  }
 } 

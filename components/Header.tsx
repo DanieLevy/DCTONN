@@ -2,13 +2,15 @@
 
 import { useAuth } from '@/lib/auth-context';
 import { Button } from './ui/button';
+import { SmartNotifications } from './SmartNotifications';
 import { 
   Settings, 
   LogOut, 
   Wifi, 
   WifiOff, 
   Menu,
-  User
+  User,
+  Bell
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
@@ -27,6 +29,7 @@ export function Header({ onMenuToggle, onDashboardToggle, title, taskCounts }: H
     loading: boolean;
     error?: string;
   }>({ connected: false, loading: true });
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
   useEffect(() => {
     if (user && token) {
@@ -110,17 +113,30 @@ export function Header({ onMenuToggle, onDashboardToggle, title, taskCounts }: H
 
           {/* AI Status Indicator */}
           {user && (
-            <div className="hidden sm:flex items-center space-x-1">
-              {aiStatus.loading ? (
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div>
-              ) : aiStatus.connected ? (
-                <Wifi className="h-4 w-4 text-green-600" />
-              ) : (
-                <WifiOff className="h-4 w-4 text-orange-600" />
-              )}
-              <span className="text-xs text-gray-600">
-                {aiStatus.loading ? 'AI' : aiStatus.connected ? 'LM Studio' : 'Fallback'}
-              </span>
+            <div className="hidden sm:flex items-center space-x-3">
+              <div className="flex items-center space-x-1">
+                {aiStatus.loading ? (
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div>
+                ) : aiStatus.connected ? (
+                  <Wifi className="h-4 w-4 text-green-600" />
+                ) : (
+                  <WifiOff className="h-4 w-4 text-orange-600" />
+                )}
+                <span className="text-xs text-gray-600">
+                  {aiStatus.loading ? 'AI' : aiStatus.connected ? 'LM Studio' : 'Fallback'}
+                </span>
+              </div>
+              
+              {/* Smart Notifications */}
+              <button
+                onClick={() => setIsNotificationsOpen(true)}
+                className="relative p-2 text-gray-600 hover:text-gray-900 transition-colors"
+                title="Smart Notifications"
+              >
+                <Bell className="h-4 w-4" />
+                {/* Notification dot - you can add state management for unread count */}
+                <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+              </button>
             </div>
           )}
         </div>
@@ -167,6 +183,12 @@ export function Header({ onMenuToggle, onDashboardToggle, title, taskCounts }: H
           )}
         </div>
       </div>
+      
+      {/* Smart Notifications Component */}
+      <SmartNotifications 
+        isOpen={isNotificationsOpen}
+        onClose={() => setIsNotificationsOpen(false)}
+      />
     </header>
   );
 } 

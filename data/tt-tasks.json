@@ -8,7 +8,7 @@
     "priority": "medium",
     "createdBy": "admin",
     "createdAt": "2025-05-29T07:13:21.125Z",
-    "updatedAt": "2025-05-29T07:27:56.111Z",
+    "updatedAt": "2025-05-29T08:49:31.606Z",
     "version": 1,
     "lastEditedBy": "admin",
     "subtasks": [
@@ -58,21 +58,31 @@
         "headway": "N/A",
         "brake": "N/A",
         "priority": "3",
-        "status": "pending",
+        "status": "completed",
         "executedRuns": 0,
         "createdAt": "2025-05-29T07:13:19.152Z",
-        "updatedAt": "2025-05-29T07:27:56.111Z",
+        "updatedAt": "2025-05-29T08:49:31.606Z",
         "version": 1,
         "jira_subtask_number": "DATACO-10224",
-        "isExecuted": false,
+        "isExecuted": true,
         "isAssigned": true,
-        "executionStatus": "assigned",
+        "executionStatus": "executed",
         "lastEditedBy": "admin",
         "assignmentId": "mb91xz2np5q2lfzn6v",
         "assignmentType": "date_range",
         "assignedStartDate": "2025-05-29",
         "assignedEndDate": "2025-06-03",
-        "assignedDate": "2025-05-29"
+        "assignedDate": "2025-05-29",
+        "executionDate": "2025-05-29T08:49:31.606Z",
+        "executionNotes": "Processed from vehicle data scan - Disk: DISK-001, Session: SBS1_Wstn_290525_060000_0000",
+        "vehicleDataMetadata": {
+          "diskId": "DISK-001",
+          "sessionName": "SBS1_Wstn_290525_060000_0000",
+          "drops": 4,
+          "cores": 6,
+          "processedAt": "2025-05-29T08:49:31.606Z",
+          "processedBy": "admin"
+        }
       },
       {
         "id": "1748502799152-xjv029ql6",
@@ -89,21 +99,31 @@
         "headway": "N/A",
         "brake": "N/A",
         "priority": "3",
-        "status": "pending",
+        "status": "completed",
         "executedRuns": 0,
         "createdAt": "2025-05-29T07:13:19.152Z",
-        "updatedAt": "2025-05-29T07:27:56.111Z",
+        "updatedAt": "2025-05-29T08:49:31.606Z",
         "version": 1,
         "jira_subtask_number": "DATACO-10225",
-        "isExecuted": false,
+        "isExecuted": true,
         "isAssigned": true,
-        "executionStatus": "assigned",
+        "executionStatus": "executed",
         "lastEditedBy": "admin",
         "assignmentId": "mb91xz2np5q2lfzn6v",
         "assignmentType": "date_range",
         "assignedStartDate": "2025-05-29",
         "assignedEndDate": "2025-06-03",
-        "assignedDate": "2025-05-29"
+        "assignedDate": "2025-05-29",
+        "executionDate": "2025-05-29T08:49:31.606Z",
+        "executionNotes": "Processed from vehicle data scan - Disk: DISK-001, Session: SBS1_Wstn_290525_060000_0000",
+        "vehicleDataMetadata": {
+          "diskId": "DISK-001",
+          "sessionName": "SBS1_Wstn_290525_060000_0000",
+          "drops": 4,
+          "cores": 6,
+          "processedAt": "2025-05-29T08:49:31.606Z",
+          "processedBy": "admin"
+        }
       },
       {
         "id": "1748502799152-00kfq60ly",
@@ -120,21 +140,31 @@
         "headway": "N/A",
         "brake": "N/A",
         "priority": "3",
-        "status": "pending",
+        "status": "completed",
         "executedRuns": 0,
         "createdAt": "2025-05-29T07:13:19.152Z",
-        "updatedAt": "2025-05-29T07:27:56.111Z",
+        "updatedAt": "2025-05-29T08:49:31.606Z",
         "version": 1,
         "jira_subtask_number": "DATACO-10226",
-        "isExecuted": false,
+        "isExecuted": true,
         "isAssigned": true,
-        "executionStatus": "assigned",
+        "executionStatus": "executed",
         "lastEditedBy": "admin",
         "assignmentId": "mb91xz2np5q2lfzn6v",
         "assignmentType": "date_range",
         "assignedStartDate": "2025-05-29",
         "assignedEndDate": "2025-06-03",
-        "assignedDate": "2025-05-29"
+        "assignedDate": "2025-05-29",
+        "executionDate": "2025-05-29T08:49:31.606Z",
+        "executionNotes": "Processed from vehicle data scan - Disk: DISK-001, Session: SBS1_Wstn_290525_060000_0000",
+        "vehicleDataMetadata": {
+          "diskId": "DISK-001",
+          "sessionName": "SBS1_Wstn_290525_060000_0000",
+          "drops": 4,
+          "cores": 6,
+          "processedAt": "2025-05-29T08:49:31.606Z",
+          "processedBy": "admin"
+        }
       },
       {
         "id": "1748502799152-801n0fdb7",
@@ -151,21 +181,31 @@
         "headway": "N/A",
         "brake": "N/A",
         "priority": "3",
-        "status": "pending",
+        "status": "completed",
         "executedRuns": 0,
         "createdAt": "2025-05-29T07:13:19.152Z",
-        "updatedAt": "2025-05-29T07:27:56.111Z",
+        "updatedAt": "2025-05-29T08:49:31.606Z",
         "version": 1,
         "jira_subtask_number": "DATACO-10227",
-        "isExecuted": false,
+        "isExecuted": true,
         "isAssigned": true,
-        "executionStatus": "assigned",
+        "executionStatus": "executed",
         "lastEditedBy": "admin",
         "assignmentId": "mb91xz2np5q2lfzn6v",
         "assignmentType": "date_range",
         "assignedStartDate": "2025-05-29",
         "assignedEndDate": "2025-06-03",
-        "assignedDate": "2025-05-29"
+        "assignedDate": "2025-05-29",
+        "executionDate": "2025-05-29T08:49:31.606Z",
+        "executionNotes": "Processed from vehicle data scan - Disk: DISK-001, Session: SBS1_Wstn_290525_060000_0000",
+        "vehicleDataMetadata": {
+          "diskId": "DISK-001",
+          "sessionName": "SBS1_Wstn_290525_060000_0000",
+          "drops": 4,
+          "cores": 6,
+          "processedAt": "2025-05-29T08:49:31.606Z",
+          "processedBy": "admin"
+        }
       },
       {
         "id": "1748502799152-i4n24kljy",
@@ -182,21 +222,31 @@
         "headway": "N/A",
         "brake": "N/A",
         "priority": "3",
-        "status": "pending",
+        "status": "completed",
         "executedRuns": 0,
         "createdAt": "2025-05-29T07:13:19.152Z",
-        "updatedAt": "2025-05-29T07:27:56.111Z",
+        "updatedAt": "2025-05-29T08:49:31.606Z",
         "version": 1,
         "jira_subtask_number": "DATACO-10228",
-        "isExecuted": false,
+        "isExecuted": true,
         "isAssigned": true,
-        "executionStatus": "assigned",
+        "executionStatus": "executed",
         "lastEditedBy": "admin",
         "assignmentId": "mb91xz2np5q2lfzn6v",
         "assignmentType": "date_range",
         "assignedStartDate": "2025-05-29",
         "assignedEndDate": "2025-06-03",
-        "assignedDate": "2025-05-29"
+        "assignedDate": "2025-05-29",
+        "executionDate": "2025-05-29T08:49:31.606Z",
+        "executionNotes": "Processed from vehicle data scan - Disk: DISK-001, Session: SBS1_Wstn_290525_060000_0000",
+        "vehicleDataMetadata": {
+          "diskId": "DISK-001",
+          "sessionName": "SBS1_Wstn_290525_060000_0000",
+          "drops": 4,
+          "cores": 6,
+          "processedAt": "2025-05-29T08:49:31.606Z",
+          "processedBy": "admin"
+        }
       },
       {
         "id": "1748502799152-ee5y6v02x",
@@ -213,16 +263,26 @@
         "headway": "N/A",
         "brake": "N/A",
         "priority": "2",
-        "status": "pending",
+        "status": "completed",
         "executedRuns": 0,
         "createdAt": "2025-05-29T07:13:19.152Z",
-        "updatedAt": "2025-05-29T07:13:19.152Z",
+        "updatedAt": "2025-05-29T08:49:31.606Z",
         "version": 1,
         "jira_subtask_number": "DATACO-10229",
-        "isExecuted": false,
+        "isExecuted": true,
         "isAssigned": false,
-        "executionStatus": "not_assigned",
-        "lastEditedBy": "admin"
+        "executionStatus": "executed",
+        "lastEditedBy": "admin",
+        "executionDate": "2025-05-29T08:49:31.606Z",
+        "executionNotes": "Processed from vehicle data scan - Disk: DISK-001, Session: SBS1_Wstn_290525_060000_0000",
+        "vehicleDataMetadata": {
+          "diskId": "DISK-001",
+          "sessionName": "SBS1_Wstn_290525_060000_0000",
+          "drops": 4,
+          "cores": 6,
+          "processedAt": "2025-05-29T08:49:31.606Z",
+          "processedBy": "admin"
+        }
       },
       {
         "id": "1748502799152-gj0i9i5q1",
@@ -239,16 +299,26 @@
         "headway": "N/A",
         "brake": "N/A",
         "priority": "2",
-        "status": "pending",
+        "status": "completed",
         "executedRuns": 0,
         "createdAt": "2025-05-29T07:13:19.152Z",
-        "updatedAt": "2025-05-29T07:13:19.152Z",
+        "updatedAt": "2025-05-29T08:49:31.606Z",
         "version": 1,
         "jira_subtask_number": "DATACO-10230",
-        "isExecuted": false,
+        "isExecuted": true,
         "isAssigned": false,
-        "executionStatus": "not_assigned",
-        "lastEditedBy": "admin"
+        "executionStatus": "executed",
+        "lastEditedBy": "admin",
+        "executionDate": "2025-05-29T08:49:31.606Z",
+        "executionNotes": "Processed from vehicle data scan - Disk: DISK-001, Session: SBS1_Wstn_290525_100000_0000",
+        "vehicleDataMetadata": {
+          "diskId": "DISK-001",
+          "sessionName": "SBS1_Wstn_290525_100000_0000",
+          "drops": 5,
+          "cores": 7,
+          "processedAt": "2025-05-29T08:49:31.606Z",
+          "processedBy": "admin"
+        }
       },
       {
         "id": "1748502799152-c6f3i5f1v",
@@ -265,16 +335,26 @@
         "headway": "N/A",
         "brake": "N/A",
         "priority": "2",
-        "status": "pending",
+        "status": "completed",
         "executedRuns": 0,
         "createdAt": "2025-05-29T07:13:19.152Z",
-        "updatedAt": "2025-05-29T07:13:19.152Z",
+        "updatedAt": "2025-05-29T08:49:31.606Z",
         "version": 1,
         "jira_subtask_number": "DATACO-10231",
-        "isExecuted": false,
+        "isExecuted": true,
         "isAssigned": false,
-        "executionStatus": "not_assigned",
-        "lastEditedBy": "admin"
+        "executionStatus": "executed",
+        "lastEditedBy": "admin",
+        "executionDate": "2025-05-29T08:49:31.606Z",
+        "executionNotes": "Processed from vehicle data scan - Disk: DISK-001, Session: SBS1_Wstn_290525_100000_0000",
+        "vehicleDataMetadata": {
+          "diskId": "DISK-001",
+          "sessionName": "SBS1_Wstn_290525_100000_0000",
+          "drops": 5,
+          "cores": 7,
+          "processedAt": "2025-05-29T08:49:31.606Z",
+          "processedBy": "admin"
+        }
       },
       {
         "id": "1748502799152-jk21o5svt",
@@ -291,16 +371,26 @@
         "headway": "N/A",
         "brake": "N/A",
         "priority": "2",
-        "status": "pending",
+        "status": "completed",
         "executedRuns": 0,
         "createdAt": "2025-05-29T07:13:19.152Z",
-        "updatedAt": "2025-05-29T07:13:19.152Z",
+        "updatedAt": "2025-05-29T08:49:31.606Z",
         "version": 1,
         "jira_subtask_number": "DATACO-10232",
-        "isExecuted": false,
+        "isExecuted": true,
         "isAssigned": false,
-        "executionStatus": "not_assigned",
-        "lastEditedBy": "admin"
+        "executionStatus": "executed",
+        "lastEditedBy": "admin",
+        "executionDate": "2025-05-29T08:49:31.606Z",
+        "executionNotes": "Processed from vehicle data scan - Disk: DISK-001, Session: SBS1_Wstn_290525_100000_0000",
+        "vehicleDataMetadata": {
+          "diskId": "DISK-001",
+          "sessionName": "SBS1_Wstn_290525_100000_0000",
+          "drops": 5,
+          "cores": 7,
+          "processedAt": "2025-05-29T08:49:31.606Z",
+          "processedBy": "admin"
+        }
       },
       {
         "id": "1748502799152-fbz6z93kn",
@@ -317,16 +407,26 @@
         "headway": "N/A",
         "brake": "N/A",
         "priority": "2",
-        "status": "pending",
+        "status": "completed",
         "executedRuns": 0,
         "createdAt": "2025-05-29T07:13:19.152Z",
-        "updatedAt": "2025-05-29T07:13:19.152Z",
+        "updatedAt": "2025-05-29T08:49:31.606Z",
         "version": 1,
         "jira_subtask_number": "DATACO-10233",
-        "isExecuted": false,
+        "isExecuted": true,
         "isAssigned": false,
-        "executionStatus": "not_assigned",
-        "lastEditedBy": "admin"
+        "executionStatus": "executed",
+        "lastEditedBy": "admin",
+        "executionDate": "2025-05-29T08:49:31.606Z",
+        "executionNotes": "Processed from vehicle data scan - Disk: DISK-001, Session: SBS1_Wstn_290525_100000_0000",
+        "vehicleDataMetadata": {
+          "diskId": "DISK-001",
+          "sessionName": "SBS1_Wstn_290525_100000_0000",
+          "drops": 5,
+          "cores": 7,
+          "processedAt": "2025-05-29T08:49:31.606Z",
+          "processedBy": "admin"
+        }
       },
       {
         "id": "1748502799152-m337p85it",
@@ -343,16 +443,26 @@
         "headway": "N/A",
         "brake": "N/A",
         "priority": "2",
-        "status": "pending",
+        "status": "completed",
         "executedRuns": 0,
         "createdAt": "2025-05-29T07:13:19.152Z",
-        "updatedAt": "2025-05-29T07:13:19.152Z",
+        "updatedAt": "2025-05-29T08:49:31.606Z",
         "version": 1,
         "jira_subtask_number": "DATACO-10234",
-        "isExecuted": false,
+        "isExecuted": true,
         "isAssigned": false,
-        "executionStatus": "not_assigned",
-        "lastEditedBy": "admin"
+        "executionStatus": "executed",
+        "lastEditedBy": "admin",
+        "executionDate": "2025-05-29T08:49:31.606Z",
+        "executionNotes": "Processed from vehicle data scan - Disk: DISK-001, Session: SBS1_Wstn_290525_140000_0000",
+        "vehicleDataMetadata": {
+          "diskId": "DISK-001",
+          "sessionName": "SBS1_Wstn_290525_140000_0000",
+          "drops": 3,
+          "cores": 5,
+          "processedAt": "2025-05-29T08:49:31.606Z",
+          "processedBy": "admin"
+        }
       },
       {
         "id": "1748502799152-baeze8b7p",
@@ -369,16 +479,26 @@
         "headway": "N/A",
         "brake": "N/A",
         "priority": "2",
-        "status": "pending",
+        "status": "completed",
         "executedRuns": 0,
         "createdAt": "2025-05-29T07:13:19.152Z",
-        "updatedAt": "2025-05-29T07:13:19.152Z",
+        "updatedAt": "2025-05-29T08:49:31.606Z",
         "version": 1,
         "jira_subtask_number": "DATACO-10235",
-        "isExecuted": false,
+        "isExecuted": true,
         "isAssigned": false,
-        "executionStatus": "not_assigned",
-        "lastEditedBy": "admin"
+        "executionStatus": "executed",
+        "lastEditedBy": "admin",
+        "executionDate": "2025-05-29T08:49:31.606Z",
+        "executionNotes": "Processed from vehicle data scan - Disk: DISK-001, Session: SBS1_Wstn_290525_140000_0000",
+        "vehicleDataMetadata": {
+          "diskId": "DISK-001",
+          "sessionName": "SBS1_Wstn_290525_140000_0000",
+          "drops": 3,
+          "cores": 5,
+          "processedAt": "2025-05-29T08:49:31.606Z",
+          "processedBy": "admin"
+        }
       },
       {
         "id": "1748502799152-zgm03i89g",
@@ -395,16 +515,26 @@
         "headway": "N/A",
         "brake": "N/A",
         "priority": "2",
-        "status": "pending",
+        "status": "completed",
         "executedRuns": 0,
         "createdAt": "2025-05-29T07:13:19.152Z",
-        "updatedAt": "2025-05-29T07:13:19.152Z",
+        "updatedAt": "2025-05-29T08:49:31.606Z",
         "version": 1,
         "jira_subtask_number": "DATACO-10236",
-        "isExecuted": false,
+        "isExecuted": true,
         "isAssigned": false,
-        "executionStatus": "not_assigned",
-        "lastEditedBy": "admin"
+        "executionStatus": "executed",
+        "lastEditedBy": "admin",
+        "executionDate": "2025-05-29T08:49:31.606Z",
+        "executionNotes": "Processed from vehicle data scan - Disk: DISK-001, Session: SBS1_Wstn_290525_140000_0000",
+        "vehicleDataMetadata": {
+          "diskId": "DISK-001",
+          "sessionName": "SBS1_Wstn_290525_140000_0000",
+          "drops": 3,
+          "cores": 5,
+          "processedAt": "2025-05-29T08:49:31.606Z",
+          "processedBy": "admin"
+        }
       },
       {
         "id": "1748502799152-clj6xn0ev",
@@ -421,16 +551,26 @@
         "headway": "N/A",
         "brake": "N/A",
         "priority": "2",
-        "status": "pending",
+        "status": "completed",
         "executedRuns": 0,
         "createdAt": "2025-05-29T07:13:19.152Z",
-        "updatedAt": "2025-05-29T07:13:19.152Z",
+        "updatedAt": "2025-05-29T08:49:31.606Z",
         "version": 1,
         "jira_subtask_number": "DATACO-10237",
-        "isExecuted": false,
+        "isExecuted": true,
         "isAssigned": false,
-        "executionStatus": "not_assigned",
-        "lastEditedBy": "admin"
+        "executionStatus": "executed",
+        "lastEditedBy": "admin",
+        "executionDate": "2025-05-29T08:49:31.606Z",
+        "executionNotes": "Processed from vehicle data scan - Disk: DISK-001, Session: SBS1_Wstn_300525_060000_0000",
+        "vehicleDataMetadata": {
+          "diskId": "DISK-001",
+          "sessionName": "SBS1_Wstn_300525_060000_0000",
+          "drops": 2,
+          "cores": 4,
+          "processedAt": "2025-05-29T08:49:31.606Z",
+          "processedBy": "admin"
+        }
       },
       {
         "id": "1748502799152-m7r8vd5gt",
@@ -447,16 +587,26 @@
         "headway": "N/A",
         "brake": "N/A",
         "priority": "2",
-        "status": "pending",
+        "status": "completed",
         "executedRuns": 0,
         "createdAt": "2025-05-29T07:13:19.152Z",
-        "updatedAt": "2025-05-29T07:13:19.152Z",
+        "updatedAt": "2025-05-29T08:49:31.606Z",
         "version": 1,
         "jira_subtask_number": "DATACO-10238",
-        "isExecuted": false,
+        "isExecuted": true,
         "isAssigned": false,
-        "executionStatus": "not_assigned",
-        "lastEditedBy": "admin"
+        "executionStatus": "executed",
+        "lastEditedBy": "admin",
+        "executionDate": "2025-05-29T08:49:31.606Z",
+        "executionNotes": "Processed from vehicle data scan - Disk: DISK-001, Session: SBS1_Wstn_300525_060000_0000",
+        "vehicleDataMetadata": {
+          "diskId": "DISK-001",
+          "sessionName": "SBS1_Wstn_300525_060000_0000",
+          "drops": 2,
+          "cores": 4,
+          "processedAt": "2025-05-29T08:49:31.606Z",
+          "processedBy": "admin"
+        }
       },
       {
         "id": "1748502799152-uteooe20r",
@@ -473,16 +623,26 @@
         "headway": "N/A",
         "brake": "N/A",
         "priority": "2",
-        "status": "pending",
+        "status": "completed",
         "executedRuns": 0,
         "createdAt": "2025-05-29T07:13:19.152Z",
-        "updatedAt": "2025-05-29T07:13:19.152Z",
+        "updatedAt": "2025-05-29T08:49:31.606Z",
         "version": 1,
         "jira_subtask_number": "DATACO-10239",
-        "isExecuted": false,
+        "isExecuted": true,
         "isAssigned": false,
-        "executionStatus": "not_assigned",
-        "lastEditedBy": "admin"
+        "executionStatus": "executed",
+        "lastEditedBy": "admin",
+        "executionDate": "2025-05-29T08:49:31.606Z",
+        "executionNotes": "Processed from vehicle data scan - Disk: DISK-001, Session: SBS1_Wstn_300525_060000_0000",
+        "vehicleDataMetadata": {
+          "diskId": "DISK-001",
+          "sessionName": "SBS1_Wstn_300525_060000_0000",
+          "drops": 2,
+          "cores": 4,
+          "processedAt": "2025-05-29T08:49:31.606Z",
+          "processedBy": "admin"
+        }
       },
       {
         "id": "1748502799152-kl2umf035",
@@ -499,16 +659,26 @@
         "headway": "N/A",
         "brake": "N/A",
         "priority": "2",
-        "status": "pending",
+        "status": "completed",
         "executedRuns": 0,
         "createdAt": "2025-05-29T07:13:19.152Z",
-        "updatedAt": "2025-05-29T07:13:19.152Z",
+        "updatedAt": "2025-05-29T08:49:31.606Z",
         "version": 1,
         "jira_subtask_number": "DATACO-10240",
-        "isExecuted": false,
+        "isExecuted": true,
         "isAssigned": false,
-        "executionStatus": "not_assigned",
-        "lastEditedBy": "admin"
+        "executionStatus": "executed",
+        "lastEditedBy": "admin",
+        "executionDate": "2025-05-29T08:49:31.606Z",
+        "executionNotes": "Processed from vehicle data scan - Disk: DISK-002, Session: SBS1_Wstn_300525_100000_0000",
+        "vehicleDataMetadata": {
+          "diskId": "DISK-002",
+          "sessionName": "SBS1_Wstn_300525_100000_0000",
+          "drops": 9,
+          "cores": 8,
+          "processedAt": "2025-05-29T08:49:31.606Z",
+          "processedBy": "admin"
+        }
       },
       {
         "id": "1748502799152-ckclfb3kg",
@@ -525,16 +695,26 @@
         "headway": "N/A",
         "brake": "N/A",
         "priority": "3",
-        "status": "pending",
+        "status": "completed",
         "executedRuns": 0,
         "createdAt": "2025-05-29T07:13:19.152Z",
-        "updatedAt": "2025-05-29T07:13:19.152Z",
+        "updatedAt": "2025-05-29T08:49:31.606Z",
         "version": 1,
         "jira_subtask_number": "DATACO-10241",
-        "isExecuted": false,
+        "isExecuted": true,
         "isAssigned": false,
-        "executionStatus": "not_assigned",
-        "lastEditedBy": "admin"
+        "executionStatus": "executed",
+        "lastEditedBy": "admin",
+        "executionDate": "2025-05-29T08:49:31.606Z",
+        "executionNotes": "Processed from vehicle data scan - Disk: DISK-002, Session: SBS1_Wstn_300525_100000_0000",
+        "vehicleDataMetadata": {
+          "diskId": "DISK-002",
+          "sessionName": "SBS1_Wstn_300525_100000_0000",
+          "drops": 9,
+          "cores": 8,
+          "processedAt": "2025-05-29T08:49:31.606Z",
+          "processedBy": "admin"
+        }
       },
       {
         "id": "1748502799152-923fyzveb",
@@ -551,16 +731,26 @@
         "headway": "N/A",
         "brake": "N/A",
         "priority": "3",
-        "status": "pending",
+        "status": "completed",
         "executedRuns": 0,
         "createdAt": "2025-05-29T07:13:19.152Z",
-        "updatedAt": "2025-05-29T07:13:19.152Z",
+        "updatedAt": "2025-05-29T08:49:31.606Z",
         "version": 1,
         "jira_subtask_number": "DATACO-10242",
-        "isExecuted": false,
+        "isExecuted": true,
         "isAssigned": false,
-        "executionStatus": "not_assigned",
-        "lastEditedBy": "admin"
+        "executionStatus": "executed",
+        "lastEditedBy": "admin",
+        "executionDate": "2025-05-29T08:49:31.606Z",
+        "executionNotes": "Processed from vehicle data scan - Disk: DISK-002, Session: SBS1_Wstn_300525_100000_0000",
+        "vehicleDataMetadata": {
+          "diskId": "DISK-002",
+          "sessionName": "SBS1_Wstn_300525_100000_0000",
+          "drops": 9,
+          "cores": 8,
+          "processedAt": "2025-05-29T08:49:31.606Z",
+          "processedBy": "admin"
+        }
       },
       {
         "id": "1748502799152-o8c6gokkp",
@@ -577,16 +767,26 @@
         "headway": "N/A",
         "brake": "N/A",
         "priority": "3",
-        "status": "pending",
+        "status": "completed",
         "executedRuns": 0,
         "createdAt": "2025-05-29T07:13:19.153Z",
-        "updatedAt": "2025-05-29T07:13:19.153Z",
+        "updatedAt": "2025-05-29T08:49:31.606Z",
         "version": 1,
         "jira_subtask_number": "DATACO-10243",
-        "isExecuted": false,
+        "isExecuted": true,
         "isAssigned": false,
-        "executionStatus": "not_assigned",
-        "lastEditedBy": "admin"
+        "executionStatus": "executed",
+        "lastEditedBy": "admin",
+        "executionDate": "2025-05-29T08:49:31.606Z",
+        "executionNotes": "Processed from vehicle data scan - Disk: DISK-002, Session: SBS1_Wstn_300525_100000_0000",
+        "vehicleDataMetadata": {
+          "diskId": "DISK-002",
+          "sessionName": "SBS1_Wstn_300525_100000_0000",
+          "drops": 9,
+          "cores": 8,
+          "processedAt": "2025-05-29T08:49:31.606Z",
+          "processedBy": "admin"
+        }
       },
       {
         "id": "1748502799153-as890ecd7",
@@ -603,16 +803,26 @@
         "headway": "N/A",
         "brake": "N/A",
         "priority": "3",
-        "status": "pending",
+        "status": "completed",
         "executedRuns": 0,
         "createdAt": "2025-05-29T07:13:19.153Z",
-        "updatedAt": "2025-05-29T07:13:19.153Z",
+        "updatedAt": "2025-05-29T08:49:31.606Z",
         "version": 1,
         "jira_subtask_number": "DATACO-10244",
-        "isExecuted": false,
+        "isExecuted": true,
         "isAssigned": false,
-        "executionStatus": "not_assigned",
-        "lastEditedBy": "admin"
+        "executionStatus": "executed",
+        "lastEditedBy": "admin",
+        "executionDate": "2025-05-29T08:49:31.606Z",
+        "executionNotes": "Processed from vehicle data scan - Disk: DISK-002, Session: SBS1_Wstn_300525_140000_0000",
+        "vehicleDataMetadata": {
+          "diskId": "DISK-002",
+          "sessionName": "SBS1_Wstn_300525_140000_0000",
+          "drops": 3,
+          "cores": 2,
+          "processedAt": "2025-05-29T08:49:31.606Z",
+          "processedBy": "admin"
+        }
       },
       {
         "id": "1748502799153-8fwksrn7z",
@@ -629,16 +839,26 @@
         "headway": "N/A",
         "brake": "N/A",
         "priority": "3",
-        "status": "pending",
+        "status": "completed",
         "executedRuns": 0,
         "createdAt": "2025-05-29T07:13:19.153Z",
-        "updatedAt": "2025-05-29T07:13:19.153Z",
+        "updatedAt": "2025-05-29T08:49:31.606Z",
         "version": 1,
         "jira_subtask_number": "DATACO-10245",
-        "isExecuted": false,
+        "isExecuted": true,
         "isAssigned": false,
-        "executionStatus": "not_assigned",
-        "lastEditedBy": "admin"
+        "executionStatus": "executed",
+        "lastEditedBy": "admin",
+        "executionDate": "2025-05-29T08:49:31.606Z",
+        "executionNotes": "Processed from vehicle data scan - Disk: DISK-002, Session: SBS1_Wstn_300525_140000_0000",
+        "vehicleDataMetadata": {
+          "diskId": "DISK-002",
+          "sessionName": "SBS1_Wstn_300525_140000_0000",
+          "drops": 3,
+          "cores": 2,
+          "processedAt": "2025-05-29T08:49:31.606Z",
+          "processedBy": "admin"
+        }
       },
       {
         "id": "1748502799153-hd0k7n5qi",
@@ -655,16 +875,26 @@
         "headway": "N/A",
         "brake": "N/A",
         "priority": "3",
-        "status": "pending",
+        "status": "completed",
         "executedRuns": 0,
         "createdAt": "2025-05-29T07:13:19.153Z",
-        "updatedAt": "2025-05-29T07:13:19.153Z",
+        "updatedAt": "2025-05-29T08:49:31.606Z",
         "version": 1,
         "jira_subtask_number": "DATACO-10246",
-        "isExecuted": false,
+        "isExecuted": true,
         "isAssigned": false,
-        "executionStatus": "not_assigned",
-        "lastEditedBy": "admin"
+        "executionStatus": "executed",
+        "lastEditedBy": "admin",
+        "executionDate": "2025-05-29T08:49:31.606Z",
+        "executionNotes": "Processed from vehicle data scan - Disk: DISK-002, Session: SBS1_Wstn_300525_140000_0000",
+        "vehicleDataMetadata": {
+          "diskId": "DISK-002",
+          "sessionName": "SBS1_Wstn_300525_140000_0000",
+          "drops": 3,
+          "cores": 2,
+          "processedAt": "2025-05-29T08:49:31.606Z",
+          "processedBy": "admin"
+        }
       },
       {
         "id": "1748502799153-fytzoxwck",
@@ -681,16 +911,26 @@
         "headway": "N/A",
         "brake": "N/A",
         "priority": "3",
-        "status": "pending",
+        "status": "completed",
         "executedRuns": 0,
         "createdAt": "2025-05-29T07:13:19.153Z",
-        "updatedAt": "2025-05-29T07:13:19.153Z",
+        "updatedAt": "2025-05-29T08:49:31.606Z",
         "version": 1,
         "jira_subtask_number": "DATACO-10247",
-        "isExecuted": false,
+        "isExecuted": true,
         "isAssigned": false,
-        "executionStatus": "not_assigned",
-        "lastEditedBy": "admin"
+        "executionStatus": "executed",
+        "lastEditedBy": "admin",
+        "executionDate": "2025-05-29T08:49:31.606Z",
+        "executionNotes": "Processed from vehicle data scan - Disk: DISK-002, Session: SBS1_Wstn_310525_060000_0000",
+        "vehicleDataMetadata": {
+          "diskId": "DISK-002",
+          "sessionName": "SBS1_Wstn_310525_060000_0000",
+          "drops": 5,
+          "cores": 6,
+          "processedAt": "2025-05-29T08:49:31.606Z",
+          "processedBy": "admin"
+        }
       },
       {
         "id": "1748502799153-3b0c6kgix",
@@ -707,16 +947,26 @@
         "headway": "N/A",
         "brake": "N/A",
         "priority": "3",
-        "status": "pending",
+        "status": "completed",
         "executedRuns": 0,
         "createdAt": "2025-05-29T07:13:19.153Z",
-        "updatedAt": "2025-05-29T07:13:19.153Z",
+        "updatedAt": "2025-05-29T08:49:31.606Z",
         "version": 1,
         "jira_subtask_number": "DATACO-10248",
-        "isExecuted": false,
+        "isExecuted": true,
         "isAssigned": false,
-        "executionStatus": "not_assigned",
-        "lastEditedBy": "admin"
+        "executionStatus": "executed",
+        "lastEditedBy": "admin",
+        "executionDate": "2025-05-29T08:49:31.606Z",
+        "executionNotes": "Processed from vehicle data scan - Disk: DISK-002, Session: SBS1_Wstn_310525_060000_0000",
+        "vehicleDataMetadata": {
+          "diskId": "DISK-002",
+          "sessionName": "SBS1_Wstn_310525_060000_0000",
+          "drops": 5,
+          "cores": 6,
+          "processedAt": "2025-05-29T08:49:31.606Z",
+          "processedBy": "admin"
+        }
       },
       {
         "id": "1748502799153-731yaampb",
@@ -733,16 +983,26 @@
         "headway": "N/A",
         "brake": "N/A",
         "priority": "3",
-        "status": "pending",
+        "status": "completed",
         "executedRuns": 0,
         "createdAt": "2025-05-29T07:13:19.153Z",
-        "updatedAt": "2025-05-29T07:13:19.153Z",
+        "updatedAt": "2025-05-29T08:49:31.606Z",
         "version": 1,
         "jira_subtask_number": "DATACO-10249",
-        "isExecuted": false,
+        "isExecuted": true,
         "isAssigned": false,
-        "executionStatus": "not_assigned",
-        "lastEditedBy": "admin"
+        "executionStatus": "executed",
+        "lastEditedBy": "admin",
+        "executionDate": "2025-05-29T08:49:31.606Z",
+        "executionNotes": "Processed from vehicle data scan - Disk: DISK-002, Session: SBS1_Wstn_310525_060000_0000",
+        "vehicleDataMetadata": {
+          "diskId": "DISK-002",
+          "sessionName": "SBS1_Wstn_310525_060000_0000",
+          "drops": 5,
+          "cores": 6,
+          "processedAt": "2025-05-29T08:49:31.606Z",
+          "processedBy": "admin"
+        }
       },
       {
         "id": "1748502799153-h2oxziatn",
@@ -759,16 +1019,26 @@
         "headway": "N/A",
         "brake": "N/A",
         "priority": "3",
-        "status": "pending",
+        "status": "completed",
         "executedRuns": 0,
         "createdAt": "2025-05-29T07:13:19.153Z",
-        "updatedAt": "2025-05-29T07:13:19.153Z",
+        "updatedAt": "2025-05-29T08:49:31.606Z",
         "version": 1,
         "jira_subtask_number": "DATACO-10250",
-        "isExecuted": false,
+        "isExecuted": true,
         "isAssigned": false,
-        "executionStatus": "not_assigned",
-        "lastEditedBy": "admin"
+        "executionStatus": "executed",
+        "lastEditedBy": "admin",
+        "executionDate": "2025-05-29T08:49:31.606Z",
+        "executionNotes": "Processed from vehicle data scan - Disk: DISK-002, Session: SBS1_Wstn_310525_060000_0000",
+        "vehicleDataMetadata": {
+          "diskId": "DISK-002",
+          "sessionName": "SBS1_Wstn_310525_060000_0000",
+          "drops": 5,
+          "cores": 6,
+          "processedAt": "2025-05-29T08:49:31.606Z",
+          "processedBy": "admin"
+        }
       },
       {
         "id": "1748502799153-w1gcyvw1m",
@@ -785,16 +1055,26 @@
         "headway": "N/A",
         "brake": "N/A",
         "priority": "3",
-        "status": "pending",
+        "status": "completed",
         "executedRuns": 0,
         "createdAt": "2025-05-29T07:13:19.153Z",
-        "updatedAt": "2025-05-29T07:13:19.153Z",
+        "updatedAt": "2025-05-29T08:49:31.606Z",
         "version": 1,
         "jira_subtask_number": "DATACO-10251",
-        "isExecuted": false,
+        "isExecuted": true,
         "isAssigned": false,
-        "executionStatus": "not_assigned",
-        "lastEditedBy": "admin"
+        "executionStatus": "executed",
+        "lastEditedBy": "admin",
+        "executionDate": "2025-05-29T08:49:31.606Z",
+        "executionNotes": "Processed from vehicle data scan - Disk: DISK-002, Session: SBS1_Wstn_310525_060000_0000",
+        "vehicleDataMetadata": {
+          "diskId": "DISK-002",
+          "sessionName": "SBS1_Wstn_310525_060000_0000",
+          "drops": 5,
+          "cores": 6,
+          "processedAt": "2025-05-29T08:49:31.606Z",
+          "processedBy": "admin"
+        }
       },
       {
         "id": "1748502799153-9ydd7p0rc",
@@ -811,16 +1091,26 @@
         "headway": "N/A",
         "brake": "N/A",
         "priority": "3",
-        "status": "pending",
+        "status": "completed",
         "executedRuns": 0,
         "createdAt": "2025-05-29T07:13:19.153Z",
-        "updatedAt": "2025-05-29T07:13:19.153Z",
+        "updatedAt": "2025-05-29T08:49:31.606Z",
         "version": 1,
         "jira_subtask_number": "DATACO-10252",
-        "isExecuted": false,
+        "isExecuted": true,
         "isAssigned": false,
-        "executionStatus": "not_assigned",
-        "lastEditedBy": "admin"
+        "executionStatus": "executed",
+        "lastEditedBy": "admin",
+        "executionDate": "2025-05-29T08:49:31.606Z",
+        "executionNotes": "Processed from vehicle data scan - Disk: DISK-002, Session: SBS1_Wstn_310525_060000_0000",
+        "vehicleDataMetadata": {
+          "diskId": "DISK-002",
+          "sessionName": "SBS1_Wstn_310525_060000_0000",
+          "drops": 5,
+          "cores": 6,
+          "processedAt": "2025-05-29T08:49:31.606Z",
+          "processedBy": "admin"
+        }
       },
       {
         "id": "1748502799153-yuhgs4k5h",
@@ -837,16 +1127,26 @@
         "headway": "N/A",
         "brake": "N/A",
         "priority": "3",
-        "status": "pending",
+        "status": "completed",
         "executedRuns": 0,
         "createdAt": "2025-05-29T07:13:19.153Z",
-        "updatedAt": "2025-05-29T07:13:19.153Z",
+        "updatedAt": "2025-05-29T08:49:31.606Z",
         "version": 1,
         "jira_subtask_number": "DATACO-10253",
-        "isExecuted": false,
+        "isExecuted": true,
         "isAssigned": false,
-        "executionStatus": "not_assigned",
-        "lastEditedBy": "admin"
+        "executionStatus": "executed",
+        "lastEditedBy": "admin",
+        "executionDate": "2025-05-29T08:49:31.606Z",
+        "executionNotes": "Processed from vehicle data scan - Disk: DISK-002, Session: SBS1_Wstn_310525_100000_0000",
+        "vehicleDataMetadata": {
+          "diskId": "DISK-002",
+          "sessionName": "SBS1_Wstn_310525_100000_0000",
+          "drops": 4,
+          "cores": 3,
+          "processedAt": "2025-05-29T08:49:31.606Z",
+          "processedBy": "admin"
+        }
       },
       {
         "id": "1748502799153-08ko9rnc0",
@@ -863,16 +1163,26 @@
         "headway": "N/A",
         "brake": "N/A",
         "priority": "3",
-        "status": "pending",
+        "status": "completed",
         "executedRuns": 0,
         "createdAt": "2025-05-29T07:13:19.153Z",
-        "updatedAt": "2025-05-29T07:13:19.153Z",
+        "updatedAt": "2025-05-29T08:49:31.606Z",
         "version": 1,
         "jira_subtask_number": "DATACO-10254",
-        "isExecuted": false,
+        "isExecuted": true,
         "isAssigned": false,
-        "executionStatus": "not_assigned",
-        "lastEditedBy": "admin"
+        "executionStatus": "executed",
+        "lastEditedBy": "admin",
+        "executionDate": "2025-05-29T08:49:31.606Z",
+        "executionNotes": "Processed from vehicle data scan - Disk: DISK-002, Session: SBS1_Wstn_310525_100000_0000",
+        "vehicleDataMetadata": {
+          "diskId": "DISK-002",
+          "sessionName": "SBS1_Wstn_310525_100000_0000",
+          "drops": 4,
+          "cores": 3,
+          "processedAt": "2025-05-29T08:49:31.606Z",
+          "processedBy": "admin"
+        }
       },
       {
         "id": "1748502799153-l2zi3xuyu",
@@ -889,16 +1199,26 @@
         "headway": "N/A",
         "brake": "N/A",
         "priority": "3",
-        "status": "pending",
+        "status": "completed",
         "executedRuns": 0,
         "createdAt": "2025-05-29T07:13:19.153Z",
-        "updatedAt": "2025-05-29T07:13:19.153Z",
+        "updatedAt": "2025-05-29T08:49:31.606Z",
         "version": 1,
         "jira_subtask_number": "DATACO-10255",
-        "isExecuted": false,
+        "isExecuted": true,
         "isAssigned": false,
-        "executionStatus": "not_assigned",
-        "lastEditedBy": "admin"
+        "executionStatus": "executed",
+        "lastEditedBy": "admin",
+        "executionDate": "2025-05-29T08:49:31.606Z",
+        "executionNotes": "Processed from vehicle data scan - Disk: DISK-002, Session: SBS1_Wstn_310525_100000_0000",
+        "vehicleDataMetadata": {
+          "diskId": "DISK-002",
+          "sessionName": "SBS1_Wstn_310525_100000_0000",
+          "drops": 4,
+          "cores": 3,
+          "processedAt": "2025-05-29T08:49:31.606Z",
+          "processedBy": "admin"
+        }
       },
       {
         "id": "1748502799153-xo9s3w724",
@@ -915,16 +1235,26 @@
         "headway": "N/A",
         "brake": "N/A",
         "priority": "3",
-        "status": "pending",
+        "status": "completed",
         "executedRuns": 0,
         "createdAt": "2025-05-29T07:13:19.153Z",
-        "updatedAt": "2025-05-29T07:13:19.153Z",
+        "updatedAt": "2025-05-29T08:49:31.606Z",
         "version": 1,
         "jira_subtask_number": "DATACO-10256",
-        "isExecuted": false,
+        "isExecuted": true,
         "isAssigned": false,
-        "executionStatus": "not_assigned",
-        "lastEditedBy": "admin"
+        "executionStatus": "executed",
+        "lastEditedBy": "admin",
+        "executionDate": "2025-05-29T08:49:31.606Z",
+        "executionNotes": "Processed from vehicle data scan - Disk: DISK-003, Session: SBS1_Wstn_310525_140000_0000",
+        "vehicleDataMetadata": {
+          "diskId": "DISK-003",
+          "sessionName": "SBS1_Wstn_310525_140000_0000",
+          "drops": 2,
+          "cores": 2,
+          "processedAt": "2025-05-29T08:49:31.606Z",
+          "processedBy": "admin"
+        }
       },
       {
         "id": "1748502799153-34z9mp7iw",
@@ -941,16 +1271,26 @@
         "headway": "N/A",
         "brake": "N/A",
         "priority": "3",
-        "status": "pending",
+        "status": "completed",
         "executedRuns": 0,
         "createdAt": "2025-05-29T07:13:19.153Z",
-        "updatedAt": "2025-05-29T07:13:19.153Z",
+        "updatedAt": "2025-05-29T08:49:31.606Z",
         "version": 1,
         "jira_subtask_number": "DATACO-10257",
-        "isExecuted": false,
+        "isExecuted": true,
         "isAssigned": false,
-        "executionStatus": "not_assigned",
-        "lastEditedBy": "admin"
+        "executionStatus": "executed",
+        "lastEditedBy": "admin",
+        "executionDate": "2025-05-29T08:49:31.606Z",
+        "executionNotes": "Processed from vehicle data scan - Disk: DISK-003, Session: SBS1_Wstn_310525_140000_0000",
+        "vehicleDataMetadata": {
+          "diskId": "DISK-003",
+          "sessionName": "SBS1_Wstn_310525_140000_0000",
+          "drops": 2,
+          "cores": 2,
+          "processedAt": "2025-05-29T08:49:31.606Z",
+          "processedBy": "admin"
+        }
       },
       {
         "id": "1748502799153-ph2drebbk",
@@ -967,16 +1307,26 @@
         "headway": "N/A",
         "brake": "N/A",
         "priority": "3",
-        "status": "pending",
+        "status": "completed",
         "executedRuns": 0,
         "createdAt": "2025-05-29T07:13:19.153Z",
-        "updatedAt": "2025-05-29T07:13:19.153Z",
+        "updatedAt": "2025-05-29T08:49:31.606Z",
         "version": 1,
         "jira_subtask_number": "DATACO-10258",
-        "isExecuted": false,
+        "isExecuted": true,
         "isAssigned": false,
-        "executionStatus": "not_assigned",
-        "lastEditedBy": "admin"
+        "executionStatus": "executed",
+        "lastEditedBy": "admin",
+        "executionDate": "2025-05-29T08:49:31.606Z",
+        "executionNotes": "Processed from vehicle data scan - Disk: DISK-003, Session: SBS1_Wstn_310525_140000_0000",
+        "vehicleDataMetadata": {
+          "diskId": "DISK-003",
+          "sessionName": "SBS1_Wstn_310525_140000_0000",
+          "drops": 2,
+          "cores": 2,
+          "processedAt": "2025-05-29T08:49:31.606Z",
+          "processedBy": "admin"
+        }
       },
       {
         "id": "1748502799153-p94pbclde",
@@ -993,16 +1343,26 @@
         "headway": "N/A",
         "brake": "N/A",
         "priority": "3",
-        "status": "pending",
+        "status": "completed",
         "executedRuns": 0,
         "createdAt": "2025-05-29T07:13:19.153Z",
-        "updatedAt": "2025-05-29T07:13:19.153Z",
+        "updatedAt": "2025-05-29T08:49:31.606Z",
         "version": 1,
         "jira_subtask_number": "DATACO-10259",
-        "isExecuted": false,
+        "isExecuted": true,
         "isAssigned": false,
-        "executionStatus": "not_assigned",
-        "lastEditedBy": "admin"
+        "executionStatus": "executed",
+        "lastEditedBy": "admin",
+        "executionDate": "2025-05-29T08:49:31.606Z",
+        "executionNotes": "Processed from vehicle data scan - Disk: DISK-003, Session: SBS1_Wstn_310525_140000_0000",
+        "vehicleDataMetadata": {
+          "diskId": "DISK-003",
+          "sessionName": "SBS1_Wstn_310525_140000_0000",
+          "drops": 2,
+          "cores": 2,
+          "processedAt": "2025-05-29T08:49:31.606Z",
+          "processedBy": "admin"
+        }
       },
       {
         "id": "1748502799153-r7n7j2zvt",
@@ -1019,16 +1379,26 @@
         "headway": "N/A",
         "brake": "N/A",
         "priority": "3",
-        "status": "pending",
+        "status": "completed",
         "executedRuns": 0,
         "createdAt": "2025-05-29T07:13:19.153Z",
-        "updatedAt": "2025-05-29T07:13:19.153Z",
+        "updatedAt": "2025-05-29T08:49:31.606Z",
         "version": 1,
         "jira_subtask_number": "DATACO-10260",
-        "isExecuted": false,
+        "isExecuted": true,
         "isAssigned": false,
-        "executionStatus": "not_assigned",
-        "lastEditedBy": "admin"
+        "executionStatus": "executed",
+        "lastEditedBy": "admin",
+        "executionDate": "2025-05-29T08:49:31.606Z",
+        "executionNotes": "Processed from vehicle data scan - Disk: DISK-003, Session: SBS1_Wstn_310525_180000_0000",
+        "vehicleDataMetadata": {
+          "diskId": "DISK-003",
+          "sessionName": "SBS1_Wstn_310525_180000_0000",
+          "drops": 7,
+          "cores": 5,
+          "processedAt": "2025-05-29T08:49:31.606Z",
+          "processedBy": "admin"
+        }
       },
       {
         "id": "1748502799153-9tdbdh9q5",
@@ -1045,16 +1415,26 @@
         "headway": "N/A",
         "brake": "N/A",
         "priority": "3",
-        "status": "pending",
+        "status": "completed",
         "executedRuns": 0,
         "createdAt": "2025-05-29T07:13:19.153Z",
-        "updatedAt": "2025-05-29T07:13:19.153Z",
+        "updatedAt": "2025-05-29T08:49:31.606Z",
         "version": 1,
         "jira_subtask_number": "DATACO-10261",
-        "isExecuted": false,
+        "isExecuted": true,
         "isAssigned": false,
-        "executionStatus": "not_assigned",
-        "lastEditedBy": "admin"
+        "executionStatus": "executed",
+        "lastEditedBy": "admin",
+        "executionDate": "2025-05-29T08:49:31.606Z",
+        "executionNotes": "Processed from vehicle data scan - Disk: DISK-003, Session: SBS1_Wstn_310525_180000_0000",
+        "vehicleDataMetadata": {
+          "diskId": "DISK-003",
+          "sessionName": "SBS1_Wstn_310525_180000_0000",
+          "drops": 7,
+          "cores": 5,
+          "processedAt": "2025-05-29T08:49:31.606Z",
+          "processedBy": "admin"
+        }
       },
       {
         "id": "1748502799153-4c6zfmg0l",
@@ -1071,16 +1451,26 @@
         "headway": "N/A",
         "brake": "N/A",
         "priority": "3",
-        "status": "pending",
+        "status": "completed",
         "executedRuns": 0,
         "createdAt": "2025-05-29T07:13:19.153Z",
-        "updatedAt": "2025-05-29T07:13:19.153Z",
+        "updatedAt": "2025-05-29T08:49:31.606Z",
         "version": 1,
         "jira_subtask_number": "DATACO-10262",
-        "isExecuted": false,
+        "isExecuted": true,
         "isAssigned": false,
-        "executionStatus": "not_assigned",
-        "lastEditedBy": "admin"
+        "executionStatus": "executed",
+        "lastEditedBy": "admin",
+        "executionDate": "2025-05-29T08:49:31.606Z",
+        "executionNotes": "Processed from vehicle data scan - Disk: DISK-003, Session: SBS1_Wstn_310525_180000_0000",
+        "vehicleDataMetadata": {
+          "diskId": "DISK-003",
+          "sessionName": "SBS1_Wstn_310525_180000_0000",
+          "drops": 7,
+          "cores": 5,
+          "processedAt": "2025-05-29T08:49:31.606Z",
+          "processedBy": "admin"
+        }
       },
       {
         "id": "1748502799153-m0t20vup4",
@@ -1097,16 +1487,26 @@
         "headway": "N/A",
         "brake": "N/A",
         "priority": "3",
-        "status": "pending",
+        "status": "completed",
         "executedRuns": 0,
         "createdAt": "2025-05-29T07:13:19.153Z",
-        "updatedAt": "2025-05-29T07:13:19.153Z",
+        "updatedAt": "2025-05-29T08:49:31.606Z",
         "version": 1,
         "jira_subtask_number": "DATACO-10263",
-        "isExecuted": false,
+        "isExecuted": true,
         "isAssigned": false,
-        "executionStatus": "not_assigned",
-        "lastEditedBy": "admin"
+        "executionStatus": "executed",
+        "lastEditedBy": "admin",
+        "executionDate": "2025-05-29T08:49:31.606Z",
+        "executionNotes": "Processed from vehicle data scan - Disk: DISK-003, Session: SBS1_Wstn_310525_180000_0000",
+        "vehicleDataMetadata": {
+          "diskId": "DISK-003",
+          "sessionName": "SBS1_Wstn_310525_180000_0000",
+          "drops": 7,
+          "cores": 5,
+          "processedAt": "2025-05-29T08:49:31.606Z",
+          "processedBy": "admin"
+        }
       },
       {
         "id": "1748502799153-ba5kup3pe",
@@ -1123,16 +1523,26 @@
         "headway": "N/A",
         "brake": "N/A",
         "priority": "3",
-        "status": "pending",
+        "status": "completed",
         "executedRuns": 0,
         "createdAt": "2025-05-29T07:13:19.153Z",
-        "updatedAt": "2025-05-29T07:13:19.153Z",
+        "updatedAt": "2025-05-29T08:49:31.606Z",
         "version": 1,
         "jira_subtask_number": "DATACO-10264",
-        "isExecuted": false,
+        "isExecuted": true,
         "isAssigned": false,
-        "executionStatus": "not_assigned",
-        "lastEditedBy": "admin"
+        "executionStatus": "executed",
+        "lastEditedBy": "admin",
+        "executionDate": "2025-05-29T08:49:31.606Z",
+        "executionNotes": "Processed from vehicle data scan - Disk: DISK-003, Session: SBS1_Wstn_310525_180000_0000",
+        "vehicleDataMetadata": {
+          "diskId": "DISK-003",
+          "sessionName": "SBS1_Wstn_310525_180000_0000",
+          "drops": 7,
+          "cores": 5,
+          "processedAt": "2025-05-29T08:49:31.606Z",
+          "processedBy": "admin"
+        }
       },
       {
         "id": "1748502799153-tv1ctz2ly",
@@ -1149,16 +1559,26 @@
         "headway": "N/A",
         "brake": "N/A",
         "priority": "3",
-        "status": "pending",
+        "status": "completed",
         "executedRuns": 0,
         "createdAt": "2025-05-29T07:13:19.153Z",
-        "updatedAt": "2025-05-29T07:13:19.153Z",
+        "updatedAt": "2025-05-29T08:49:31.606Z",
         "version": 1,
         "jira_subtask_number": "DATACO-10265",
-        "isExecuted": false,
+        "isExecuted": true,
         "isAssigned": false,
-        "executionStatus": "not_assigned",
-        "lastEditedBy": "admin"
+        "executionStatus": "executed",
+        "lastEditedBy": "admin",
+        "executionDate": "2025-05-29T08:49:31.606Z",
+        "executionNotes": "Processed from vehicle data scan - Disk: DISK-003, Session: SBS1_Wstn_300525_180000_0000",
+        "vehicleDataMetadata": {
+          "diskId": "DISK-003",
+          "sessionName": "SBS1_Wstn_300525_180000_0000",
+          "drops": 6,
+          "cores": 9,
+          "processedAt": "2025-05-29T08:49:31.606Z",
+          "processedBy": "admin"
+        }
       },
       {
         "id": "1748502799153-1gy6pitn8",
@@ -1175,16 +1595,26 @@
         "headway": "N/A",
         "brake": "N/A",
         "priority": "3",
-        "status": "pending",
+        "status": "completed",
         "executedRuns": 0,
         "createdAt": "2025-05-29T07:13:19.153Z",
-        "updatedAt": "2025-05-29T07:13:19.153Z",
+        "updatedAt": "2025-05-29T08:49:31.606Z",
         "version": 1,
         "jira_subtask_number": "DATACO-10266",
-        "isExecuted": false,
+        "isExecuted": true,
         "isAssigned": false,
-        "executionStatus": "not_assigned",
-        "lastEditedBy": "admin"
+        "executionStatus": "executed",
+        "lastEditedBy": "admin",
+        "executionDate": "2025-05-29T08:49:31.606Z",
+        "executionNotes": "Processed from vehicle data scan - Disk: DISK-003, Session: SBS1_Wstn_300525_180000_0000",
+        "vehicleDataMetadata": {
+          "diskId": "DISK-003",
+          "sessionName": "SBS1_Wstn_300525_180000_0000",
+          "drops": 6,
+          "cores": 9,
+          "processedAt": "2025-05-29T08:49:31.606Z",
+          "processedBy": "admin"
+        }
       },
       {
         "id": "1748502799153-f01bj08oh",
@@ -1201,16 +1631,26 @@
         "headway": "N/A",
         "brake": "N/A",
         "priority": "3",
-        "status": "pending",
+        "status": "completed",
         "executedRuns": 0,
         "createdAt": "2025-05-29T07:13:19.153Z",
-        "updatedAt": "2025-05-29T07:13:19.153Z",
+        "updatedAt": "2025-05-29T08:49:31.606Z",
         "version": 1,
         "jira_subtask_number": "DATACO-10267",
-        "isExecuted": false,
+        "isExecuted": true,
         "isAssigned": false,
-        "executionStatus": "not_assigned",
-        "lastEditedBy": "admin"
+        "executionStatus": "executed",
+        "lastEditedBy": "admin",
+        "executionDate": "2025-05-29T08:49:31.606Z",
+        "executionNotes": "Processed from vehicle data scan - Disk: DISK-003, Session: SBS1_Wstn_300525_180000_0000",
+        "vehicleDataMetadata": {
+          "diskId": "DISK-003",
+          "sessionName": "SBS1_Wstn_300525_180000_0000",
+          "drops": 6,
+          "cores": 9,
+          "processedAt": "2025-05-29T08:49:31.606Z",
+          "processedBy": "admin"
+        }
       },
       {
         "id": "1748502799153-q7hj3bqtn",
@@ -1227,16 +1667,26 @@
         "headway": "N/A",
         "brake": "N/A",
         "priority": "3",
-        "status": "pending",
+        "status": "completed",
         "executedRuns": 0,
         "createdAt": "2025-05-29T07:13:19.153Z",
-        "updatedAt": "2025-05-29T07:13:19.153Z",
+        "updatedAt": "2025-05-29T08:49:31.606Z",
         "version": 1,
         "jira_subtask_number": "DATACO-10268",
-        "isExecuted": false,
+        "isExecuted": true,
         "isAssigned": false,
-        "executionStatus": "not_assigned",
-        "lastEditedBy": "admin"
+        "executionStatus": "executed",
+        "lastEditedBy": "admin",
+        "executionDate": "2025-05-29T08:49:31.606Z",
+        "executionNotes": "Processed from vehicle data scan - Disk: DISK-003, Session: SBS1_Wstn_290525_180000_0000",
+        "vehicleDataMetadata": {
+          "diskId": "DISK-003",
+          "sessionName": "SBS1_Wstn_290525_180000_0000",
+          "drops": 3,
+          "cores": 4,
+          "processedAt": "2025-05-29T08:49:31.606Z",
+          "processedBy": "admin"
+        }
       },
       {
         "id": "1748502799153-vw3dn29fc",
@@ -1253,16 +1703,26 @@
         "headway": "N/A",
         "brake": "N/A",
         "priority": "3",
-        "status": "pending",
+        "status": "completed",
         "executedRuns": 0,
         "createdAt": "2025-05-29T07:13:19.153Z",
-        "updatedAt": "2025-05-29T07:13:19.153Z",
+        "updatedAt": "2025-05-29T08:49:31.606Z",
         "version": 1,
         "jira_subtask_number": "DATACO-10269",
-        "isExecuted": false,
+        "isExecuted": true,
         "isAssigned": false,
-        "executionStatus": "not_assigned",
-        "lastEditedBy": "admin"
+        "executionStatus": "executed",
+        "lastEditedBy": "admin",
+        "executionDate": "2025-05-29T08:49:31.606Z",
+        "executionNotes": "Processed from vehicle data scan - Disk: DISK-003, Session: SBS1_Wstn_290525_180000_0000",
+        "vehicleDataMetadata": {
+          "diskId": "DISK-003",
+          "sessionName": "SBS1_Wstn_290525_180000_0000",
+          "drops": 3,
+          "cores": 4,
+          "processedAt": "2025-05-29T08:49:31.606Z",
+          "processedBy": "admin"
+        }
       },
       {
         "id": "1748502799153-bi6y8tkx0",
@@ -1279,16 +1739,26 @@
         "headway": "N/A",
         "brake": "N/A",
         "priority": "3",
-        "status": "pending",
+        "status": "completed",
         "executedRuns": 0,
         "createdAt": "2025-05-29T07:13:19.153Z",
-        "updatedAt": "2025-05-29T07:13:19.153Z",
+        "updatedAt": "2025-05-29T08:49:31.606Z",
         "version": 1,
         "jira_subtask_number": "DATACO-10270",
-        "isExecuted": false,
+        "isExecuted": true,
         "isAssigned": false,
-        "executionStatus": "not_assigned",
-        "lastEditedBy": "admin"
+        "executionStatus": "executed",
+        "lastEditedBy": "admin",
+        "executionDate": "2025-05-29T08:49:31.606Z",
+        "executionNotes": "Processed from vehicle data scan - Disk: DISK-003, Session: SBS1_Wstn_290525_180000_0000",
+        "vehicleDataMetadata": {
+          "diskId": "DISK-003",
+          "sessionName": "SBS1_Wstn_290525_180000_0000",
+          "drops": 3,
+          "cores": 4,
+          "processedAt": "2025-05-29T08:49:31.606Z",
+          "processedBy": "admin"
+        }
       },
       {
         "id": "1748502799153-8dieu1kw8",
@@ -1305,16 +1775,26 @@
         "headway": "N/A",
         "brake": "N/A",
         "priority": "3",
-        "status": "pending",
+        "status": "completed",
         "executedRuns": 0,
         "createdAt": "2025-05-29T07:13:19.153Z",
-        "updatedAt": "2025-05-29T07:13:19.153Z",
+        "updatedAt": "2025-05-29T08:49:31.606Z",
         "version": 1,
         "jira_subtask_number": "DATACO-10271",
-        "isExecuted": false,
+        "isExecuted": true,
         "isAssigned": false,
-        "executionStatus": "not_assigned",
-        "lastEditedBy": "admin"
+        "executionStatus": "executed",
+        "lastEditedBy": "admin",
+        "executionDate": "2025-05-29T08:49:31.606Z",
+        "executionNotes": "Processed from vehicle data scan - Disk: DISK-003, Session: SBS1_Wstn_290525_180000_0000",
+        "vehicleDataMetadata": {
+          "diskId": "DISK-003",
+          "sessionName": "SBS1_Wstn_290525_180000_0000",
+          "drops": 3,
+          "cores": 4,
+          "processedAt": "2025-05-29T08:49:31.606Z",
+          "processedBy": "admin"
+        }
       },
       {
         "id": "1748502799153-9m9usles4",
@@ -20688,9 +21168,9 @@
       }
     ],
     "totalSubtasks": 794,
-    "completedSubtasks": 0,
+    "completedSubtasks": 48,
     "csvFileName": "ENCAP_2026_Catalog.xlsx",
-    "progress": 0,
+    "progress": 6,
     "changeLog": [
       {
         "id": "1748502801125-fubst8324",
@@ -20701,6 +21181,16 @@
         "targetId": "1748502801125-7zmi7v5an",
         "targetType": "task",
         "description": "Task created with 794 subtasks from file: ENCAP_2026_Catalog.xlsx"
+      },
+      {
+        "id": "change_1748508571607_mm995qf2t",
+        "timestamp": "2025-05-29T08:49:31.606Z",
+        "userId": "admin_001",
+        "userName": "admin",
+        "changeType": "task_updated",
+        "targetId": "1748502801125-7zmi7v5an",
+        "targetType": "task",
+        "description": "Vehicle data processed: 48 subtasks marked as completed from QR scan"
       }
     ],
     "dateAssignments": [
@@ -20722,6 +21212,227 @@
         "isActive": true,
         "startDate": "2025-05-29",
         "endDate": "2025-06-03"
+      }
+    ],
+    "vehicleDataScans": [
+      {
+        "id": "scan_1748508571606_3c3dqykq3",
+        "scannedAt": "2025-05-29T08:49:31.606Z",
+        "scannedBy": "admin",
+        "vehicleData": {
+          "disks": [
+            {
+              "id": "DISK-001",
+              "sessions": [
+                {
+                  "SBS1_Wstn_290525_060000_0000": {
+                    "subtasks": [
+                      "DATACO-10224",
+                      "DATACO-10225",
+                      "DATACO-10226",
+                      "DATACO-10227",
+                      "DATACO-10228",
+                      "DATACO-10229"
+                    ],
+                    "drops": 4,
+                    "cores": 6
+                  }
+                },
+                {
+                  "SBS1_Wstn_290525_100000_0000": {
+                    "subtasks": [
+                      "DATACO-10230",
+                      "DATACO-10231",
+                      "DATACO-10232",
+                      "DATACO-10233"
+                    ],
+                    "drops": 5,
+                    "cores": 7
+                  }
+                },
+                {
+                  "SBS1_Wstn_290525_140000_0000": {
+                    "subtasks": [
+                      "DATACO-10234",
+                      "DATACO-10235",
+                      "DATACO-10236"
+                    ],
+                    "drops": 3,
+                    "cores": 5
+                  }
+                },
+                {
+                  "SBS1_Wstn_300525_060000_0000": {
+                    "subtasks": [
+                      "DATACO-10237",
+                      "DATACO-10238",
+                      "DATACO-10239"
+                    ],
+                    "drops": 2,
+                    "cores": 4
+                  }
+                }
+              ]
+            },
+            {
+              "id": "DISK-002",
+              "sessions": [
+                {
+                  "SBS1_Wstn_300525_100000_0000": {
+                    "subtasks": [
+                      "DATACO-10240",
+                      "DATACO-10241",
+                      "DATACO-10242",
+                      "DATACO-10243"
+                    ],
+                    "drops": 9,
+                    "cores": 8
+                  }
+                },
+                {
+                  "SBS1_Wstn_300525_140000_0000": {
+                    "subtasks": [
+                      "DATACO-10244",
+                      "DATACO-10245",
+                      "DATACO-10246"
+                    ],
+                    "drops": 3,
+                    "cores": 2
+                  }
+                },
+                {
+                  "SBS1_Wstn_310525_060000_0000": {
+                    "subtasks": [
+                      "DATACO-10247",
+                      "DATACO-10248",
+                      "DATACO-10249",
+                      "DATACO-10250",
+                      "DATACO-10251",
+                      "DATACO-10252"
+                    ],
+                    "drops": 5,
+                    "cores": 6
+                  }
+                },
+                {
+                  "SBS1_Wstn_310525_100000_0000": {
+                    "subtasks": [
+                      "DATACO-10253",
+                      "DATACO-10254",
+                      "DATACO-10255"
+                    ],
+                    "drops": 4,
+                    "cores": 3
+                  }
+                }
+              ]
+            },
+            {
+              "id": "DISK-003",
+              "sessions": [
+                {
+                  "SBS1_Wstn_310525_140000_0000": {
+                    "subtasks": [
+                      "DATACO-10256",
+                      "DATACO-10257",
+                      "DATACO-10258",
+                      "DATACO-10259"
+                    ],
+                    "drops": 2,
+                    "cores": 2
+                  }
+                },
+                {
+                  "SBS1_Wstn_310525_180000_0000": {
+                    "subtasks": [
+                      "DATACO-10260",
+                      "DATACO-10261",
+                      "DATACO-10262",
+                      "DATACO-10263",
+                      "DATACO-10264"
+                    ],
+                    "drops": 7,
+                    "cores": 5
+                  }
+                },
+                {
+                  "SBS1_Wstn_300525_180000_0000": {
+                    "subtasks": [
+                      "DATACO-10265",
+                      "DATACO-10266",
+                      "DATACO-10267"
+                    ],
+                    "drops": 6,
+                    "cores": 9
+                  }
+                },
+                {
+                  "SBS1_Wstn_290525_180000_0000": {
+                    "subtasks": [
+                      "DATACO-10268",
+                      "DATACO-10269",
+                      "DATACO-10270",
+                      "DATACO-10271"
+                    ],
+                    "drops": 3,
+                    "cores": 4
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "processedSubtasks": 48,
+        "subtaskNumbers": [
+          "DATACO-10224",
+          "DATACO-10225",
+          "DATACO-10226",
+          "DATACO-10227",
+          "DATACO-10228",
+          "DATACO-10229",
+          "DATACO-10230",
+          "DATACO-10231",
+          "DATACO-10232",
+          "DATACO-10233",
+          "DATACO-10234",
+          "DATACO-10235",
+          "DATACO-10236",
+          "DATACO-10237",
+          "DATACO-10238",
+          "DATACO-10239",
+          "DATACO-10240",
+          "DATACO-10241",
+          "DATACO-10242",
+          "DATACO-10243",
+          "DATACO-10244",
+          "DATACO-10245",
+          "DATACO-10246",
+          "DATACO-10247",
+          "DATACO-10248",
+          "DATACO-10249",
+          "DATACO-10250",
+          "DATACO-10251",
+          "DATACO-10252",
+          "DATACO-10253",
+          "DATACO-10254",
+          "DATACO-10255",
+          "DATACO-10256",
+          "DATACO-10257",
+          "DATACO-10258",
+          "DATACO-10259",
+          "DATACO-10260",
+          "DATACO-10261",
+          "DATACO-10262",
+          "DATACO-10263",
+          "DATACO-10264",
+          "DATACO-10265",
+          "DATACO-10266",
+          "DATACO-10267",
+          "DATACO-10268",
+          "DATACO-10269",
+          "DATACO-10270",
+          "DATACO-10271"
+        ]
       }
     ]
   }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken, getTokenFromRequest } from '@/lib/auth';
-import { loadTasks } from '@/lib/data-store';
+import { loadComprehensiveAIData, ComprehensiveAIData } from '@/lib/data-store';
 
 // LM Studio configuration from the specification
 const LM_STUDIO_URL = process.env.LM_STUDIO_URL || 'http://localhost:1234';
@@ -148,33 +148,55 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Load tasks for context
-    console.log('[AI Chat] Loading tasks for context...');
-    const tasks = await loadTasks();
-    console.log('[AI Chat] Loaded', tasks.length, 'tasks');
+    // Load comprehensive AI data
+    console.log('[AI Chat] Loading comprehensive AI data...');
+    const aiData = await loadComprehensiveAIData();
+    console.log('[AI Chat] Loaded comprehensive data:', {
+      dcTasks: aiData.dcTasks.length,
+      ttTasks: aiData.ttTasks.length,
+      subtasks: aiData.allSubtasks.length,
+      users: aiData.users.length
+    });
     
-    // Create context for AI
-    const taskContext = tasks.map(task => ({
-      id: task.id,
-      title: task.title,
-      type: task.type,
-      location: task.location,
-      priority: task.priority,
-      targetCar: task.targetCar,
-      status: task.status,
-      weather: task.weather,
-      roadType: task.roadType,
-      project: task.project,
-      executionLocation: task.executionLocation,
-    }));
+    // Create enhanced context for AI with TT task details
+    const systemPrompt = `You are an advanced AI assistant for autonomous vehicle testing task management. You have access to comprehensive data including:
 
-    const systemPrompt = `You are an AI assistant for a task management system for autonomous vehicle testing. 
-    You have access to the following tasks:
-    ${JSON.stringify(taskContext, null, 2)}
-    
-    Help users find relevant tasks, answer questions about task requirements, and provide helpful information.
-    Be concise and practical in your responses. Focus on helping users find tasks they can execute based on their queries.
-    When asked about specific vehicles, locations, priorities, or conditions, filter the tasks accordingly and provide specific recommendations.`;
+SYSTEM OVERVIEW:
+- ${aiData.statistics.totalDCTasks} Data Collection (DC) tasks
+- ${aiData.statistics.totalTTTasks} Test Track (TT) tasks containing ${aiData.statistics.totalSubtasks} subtasks
+- Completion rate: ${aiData.statistics.completionRate.toFixed(1)}%
+- Active subtasks: ${aiData.statistics.activeSubtasks}
+- Pending subtasks: ${aiData.statistics.pendingSubtasks}
+
+TT TASK CATEGORIES:
+${Object.entries(aiData.statistics.categoryBreakdown).map(([cat, count]) => `- ${cat}: ${count} subtasks`).join('\n')}
+
+SCENARIOS:
+${Object.entries(aiData.statistics.scenarioBreakdown).map(([scenario, count]) => `- ${scenario}: ${count} subtasks`).join('\n')}
+
+LIGHTING CONDITIONS:
+${Object.entries(aiData.statistics.lightingBreakdown).map(([lighting, count]) => `- ${lighting}: ${count} subtasks`).join('\n')}
+
+AGENT RULES:
+${aiData.agentRules}
+
+DC TASKS SAMPLE:
+${JSON.stringify(aiData.dcTasks.slice(0, 3), null, 2)}
+
+TT TASKS SAMPLE:
+${JSON.stringify(aiData.ttTasks.slice(0, 2), null, 2)}
+
+RECENT SUBTASKS SAMPLE:
+${JSON.stringify(aiData.allSubtasks.slice(0, 5), null, 2)}
+
+You are an expert in:
+- ENCAP 2026 regulations and testing procedures
+- VRU (Vulnerable Road Users) scenarios
+- Test track execution planning
+- Calendar optimization for test scheduling
+- Performance analysis and bottleneck identification
+
+Provide detailed, actionable responses based on this comprehensive dataset. When discussing TT tasks, include specific details about scenarios, lighting conditions, speeds, and execution parameters. Always consider the full context of assigned dates, priorities, and execution status.`;
 
     // Test LM Studio connection and get the best model
     console.log('[AI Chat] Getting LM Studio model...');
@@ -190,7 +212,7 @@ export async function POST(request: NextRequest) {
             { role: 'system', content: systemPrompt },
             { role: 'user', content: message }
           ],
-          max_tokens: 500,
+          max_tokens: 800,
           temperature: 0.7,
         };
         
@@ -222,7 +244,8 @@ export async function POST(request: NextRequest) {
               source: 'LM Studio',
               model: model,
               embeddingModel: embeddingModel,
-              responseTime: aiResponse.usage ? `${aiResponse.usage.total_tokens} tokens` : undefined
+              responseTime: aiResponse.usage ? `${aiResponse.usage.total_tokens} tokens` : undefined,
+              dataStats: aiData.statistics
             },
           });
         } else {
@@ -241,16 +264,17 @@ export async function POST(request: NextRequest) {
 
     // Fallback response if LM Studio is not available
     console.log('[AI Chat] Generating fallback response...');
-    const fallbackResponse = generateFallbackResponse(message, tasks);
+    const fallbackResponse = generateEnhancedFallbackResponse(message, aiData);
     
-    console.log('[AI Chat] Fallback response generated');
+    console.log('[AI Chat] Enhanced fallback response generated');
     
     return NextResponse.json({
       success: true,
       data: { 
         message: fallbackResponse,
-        source: 'Fallback AI',
-        note: connected ? 'LM Studio request failed, using fallback' : `LM Studio not connected (${error}), using fallback`
+        source: 'Enhanced Fallback AI',
+        note: connected ? 'LM Studio request failed, using enhanced fallback' : `LM Studio not connected (${error}), using enhanced fallback`,
+        dataStats: aiData.statistics
       },
     });
 
@@ -263,86 +287,249 @@ export async function POST(request: NextRequest) {
   }
 }
 
-function generateFallbackResponse(message: string, tasks: any[]): string {
-  console.log('[AI Chat] Generating fallback for message:', message);
+function generateEnhancedFallbackResponse(message: string, aiData: ComprehensiveAIData): string {
+  console.log('[AI Chat] Generating enhanced fallback for message:', message);
   
   const messageLower = message.toLowerCase();
   
-  // Simple keyword matching for common queries
+  // Enhanced vehicle-based queries
   if (messageLower.includes('car8') || messageLower.includes('car 8')) {
-    const car8Tasks = tasks.filter(task => task.targetCar.toLowerCase().includes('car8'));
+    const car8Tasks = aiData.dcTasks.filter((task: any) => task.targetCar && task.targetCar.toLowerCase().includes('car8'));
     console.log('[AI Chat] Found', car8Tasks.length, 'Car8 tasks');
     if (car8Tasks.length > 0) {
-      const taskDetails = car8Tasks.map(t => `"${t.title}" (${t.location}, ${t.priority} priority, ${t.status})`).join(', ');
-      return `I found ${car8Tasks.length} task(s) for Car8: ${taskDetails}`;
+      const activeTasks = car8Tasks.filter((t: any) => t.status === 'active');
+      const highPriorityTasks = car8Tasks.filter((t: any) => t.priority === 'high');
+      
+      let response = `🚗 **Car8 Task Analysis**\n\n`;
+      response += `Found ${car8Tasks.length} task(s) for Car8:\n`;
+      
+      if (activeTasks.length > 0) {
+        response += `\n**Active Tasks (${activeTasks.length}):**\n`;
+        activeTasks.slice(0, 3).forEach((t: any) => {
+          response += `• "${t.title}" (${t.location}, ${t.priority} priority)\n`;
+        });
+      }
+      
+      if (highPriorityTasks.length > 0) {
+        response += `\n⚠️ **High Priority:** ${highPriorityTasks.length} urgent task(s) require immediate attention\n`;
+      }
+      
+      // Weather recommendations
+      const weatherTasks = car8Tasks.filter((t: any) => t.weather && t.weather !== 'clear');
+      if (weatherTasks.length > 0) {
+        response += `\n🌦️ **Weather-Sensitive:** ${weatherTasks.length} task(s) depend on specific weather conditions\n`;
+      }
+      
+      return response;
     }
-    return 'No tasks found for Car8 vehicle.';
+    return '🚗 No tasks currently assigned to Car8 vehicle. Consider checking other vehicles or contact your task coordinator.';
   }
   
-  if (messageLower.includes('high priority') || messageLower.includes('important')) {
-    const highPriorityTasks = tasks.filter(task => task.priority === 'high');
+  // Smart priority analysis
+  if (messageLower.includes('high priority') || messageLower.includes('urgent') || messageLower.includes('important')) {
+    const highPriorityTasks = aiData.dcTasks.filter((task: any) => task.priority === 'high');
     console.log('[AI Chat] Found', highPriorityTasks.length, 'high priority tasks');
+    
     if (highPriorityTasks.length > 0) {
-      const taskDetails = highPriorityTasks.map(t => `"${t.title}" (${t.location}, ${t.targetCar})`).join(', ');
-      return `High priority tasks: ${taskDetails}`;
+      const byLocation = highPriorityTasks.reduce((acc: Record<string, number>, t: any) => {
+        acc[t.location] = (acc[t.location] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      
+      let response = `🔥 **High Priority Task Analysis**\n\n`;
+      response += `Found ${highPriorityTasks.length} high priority task(s):\n\n`;
+      
+      // Group by location
+      Object.entries(byLocation).forEach(([location, count]) => {
+        response += `**${location}:** ${count} task(s)\n`;
+        const locationTasks = highPriorityTasks.filter((t: any) => t.location === location).slice(0, 2);
+        locationTasks.forEach((t: any) => {
+          response += `  • "${t.title}" (${t.targetCar || 'TBA'})\n`;
+        });
+      });
+      
+      response += `\n💡 **Recommendation:** Focus on these high-priority tasks first to maintain project timelines.`;
+      return response;
     }
-    return 'No high priority tasks found.';
+    return '✅ No high priority tasks currently pending. Great job staying on top of urgent items!';
   }
   
-  if (messageLower.includes('rain') || messageLower.includes('weather')) {
-    const rainyTasks = tasks.filter(task => task.weather.toLowerCase().includes('rain'));
-    console.log('[AI Chat] Found', rainyTasks.length, 'rainy weather tasks');
-    if (rainyTasks.length > 0) {
-      const taskDetails = rainyTasks.map(t => `"${t.title}" (${t.location})`).join(', ');
-      return `Tasks with rainy weather conditions: ${taskDetails}`;
+  // Weather-based recommendations
+  if (messageLower.includes('weather') || messageLower.includes('rain') || messageLower.includes('clear') || messageLower.includes('conditions')) {
+    const weatherTasks = aiData.dcTasks.filter((task: any) => task.weather && task.weather !== 'clear');
+    const clearWeatherTasks = aiData.dcTasks.filter((task: any) => task.weather === 'clear' || !task.weather);
+    
+    let response = `🌤️ **Weather-Based Task Recommendations**\n\n`;
+    
+    if (weatherTasks.length > 0) {
+      const weatherGroups = weatherTasks.reduce((acc: Record<string, number>, t: any) => {
+        acc[t.weather] = (acc[t.weather] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      
+      response += `**Weather-Dependent Tasks:** ${weatherTasks.length}\n`;
+      Object.entries(weatherGroups).forEach(([weather, count]) => {
+        response += `  • ${weather}: ${count} task(s)\n`;
+      });
     }
-    return 'No tasks found with rainy weather conditions.';
-  }
-  
-  if (messageLower.includes('active') || messageLower.includes('available')) {
-    const activeTasks = tasks.filter(task => task.status === 'active');
-    console.log('[AI Chat] Found', activeTasks.length, 'active tasks');
-    const taskDetails = activeTasks.slice(0, 3).map(t => `"${t.title}" (${t.location}, ${t.targetCar})`).join(', ');
-    return `There are ${activeTasks.length} active tasks available: ${taskDetails}${activeTasks.length > 3 ? '...' : ''}`;
-  }
-  
-  if (messageLower.includes('eu') || messageLower.includes('europe')) {
-    const euTasks = tasks.filter(task => task.location === 'EU');
-    console.log('[AI Chat] Found', euTasks.length, 'EU tasks');
-    if (euTasks.length > 0) {
-      const taskDetails = euTasks.map(t => `"${t.title}" (${t.targetCar}, ${t.priority} priority)`).join(', ');
-      return `Found ${euTasks.length} tasks in EU: ${taskDetails}`;
+    
+    if (clearWeatherTasks.length > 0) {
+      response += `\n**Clear Weather Tasks:** ${clearWeatherTasks.length} task(s) can be executed anytime\n`;
     }
-    return 'No tasks found in EU location.';
+    
+    response += `\n💡 **Tip:** Plan weather-specific tasks around forecast conditions for optimal efficiency.`;
+    return response;
   }
   
-  if (messageLower.includes('usa') || messageLower.includes('america')) {
-    const usaTasks = tasks.filter(task => task.location === 'USA');
-    console.log('[AI Chat] Found', usaTasks.length, 'USA tasks');
-    if (usaTasks.length > 0) {
-      const taskDetails = usaTasks.map(t => `"${t.title}" (${t.targetCar}, ${t.priority} priority)`).join(', ');
-      return `Found ${usaTasks.length} tasks in USA: ${taskDetails}`;
+  // Location-based insights with smart recommendations
+  const locationQueries = ['eu', 'europe', 'usa', 'america', 'il', 'israel'];
+  const mentionedLocation = locationQueries.find(loc => messageLower.includes(loc));
+  
+  if (mentionedLocation) {
+    const locationMap: Record<string, string> = { 
+      'eu': 'EU', 'europe': 'EU', 'usa': 'USA', 'america': 'USA', 'il': 'IL', 'israel': 'IL' 
+    };
+    const targetLocation = locationMap[mentionedLocation];
+    
+    const locationTasks = aiData.dcTasks.filter((task: any) => task.location === targetLocation);
+    console.log('[AI Chat] Found', locationTasks.length, `${targetLocation} tasks`);
+    
+    if (locationTasks.length > 0) {
+      const priorityBreakdown = locationTasks.reduce((acc: Record<string, number>, t: any) => {
+        acc[t.priority] = (acc[t.priority] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      
+      const vehicleBreakdown = locationTasks.reduce((acc: Record<string, number>, t: any) => {
+        const vehicle = t.targetCar || 'Unassigned';
+        acc[vehicle] = (acc[vehicle] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      
+      let response = `📍 **${targetLocation} Task Overview**\n\n`;
+      response += `Total tasks: ${locationTasks.length}\n\n`;
+      
+      response += `**Priority Breakdown:**\n`;
+      Object.entries(priorityBreakdown).forEach(([priority, count]) => {
+        const emoji = priority === 'high' ? '🔴' : priority === 'medium' ? '🟡' : '🟢';
+        response += `  ${emoji} ${priority}: ${count}\n`;
+      });
+      
+      response += `\n**Vehicle Assignment:**\n`;
+      Object.entries(vehicleBreakdown).slice(0, 3).forEach(([vehicle, count]) => {
+        response += `  🚗 ${vehicle}: ${count} task(s)\n`;
+      });
+      
+      // Smart recommendations
+      const highPriorityCount = priorityBreakdown['high'] || 0;
+      if (highPriorityCount > 0) {
+        response += `\n⚠️ **Alert:** ${highPriorityCount} high priority task(s) need immediate attention in ${targetLocation}`;
+      }
+      
+      return response;
     }
-    return 'No tasks found in USA location.';
+    return `📍 No tasks currently available in ${targetLocation}. Check other locations or wait for new task assignments.`;
   }
   
-  if (messageLower.includes('il') || messageLower.includes('israel')) {
-    const ilTasks = tasks.filter(task => task.location === 'IL');
-    console.log('[AI Chat] Found', ilTasks.length, 'IL tasks');
-    if (ilTasks.length > 0) {
-      const taskDetails = ilTasks.map(t => `"${t.title}" (${t.targetCar}, ${t.priority} priority)`).join(', ');
-      return `Found ${ilTasks.length} tasks in IL: ${taskDetails}`;
+  // Smart task status and progress insights
+  if (messageLower.includes('progress') || messageLower.includes('status') || messageLower.includes('completion')) {
+    const activeTasks = aiData.dcTasks.filter((task: any) => task.status === 'active');
+    const completedTasks = aiData.dcTasks.filter((task: any) => task.status === 'completed');
+    const totalTasks = aiData.dcTasks.length;
+    
+    if (totalTasks > 0) {
+      const completionRate = (completedTasks.length / totalTasks) * 100;
+      
+      let response = `📊 **Task Progress Overview**\n\n`;
+      response += `**Overall Status:**\n`;
+      response += `  ✅ Completed: ${completedTasks.length} (${completionRate.toFixed(1)}%)\n`;
+      response += `  🟡 Active: ${activeTasks.length}\n`;
+      response += `  📈 Total: ${totalTasks}\n\n`;
+      
+      // Performance insights
+      if (completionRate > 80) {
+        response += `🎉 **Excellent!** You're making outstanding progress with ${completionRate.toFixed(1)}% completion rate.\n`;
+      } else if (completionRate > 50) {
+        response += `👍 **Good progress!** You're over halfway done. Keep up the momentum!\n`;
+      } else if (completionRate > 20) {
+        response += `💪 **Getting started!** You're making steady progress. Consider prioritizing high-impact tasks.\n`;
+      } else {
+        response += `🚀 **Time to accelerate!** Focus on completing a few key tasks to build momentum.\n`;
+      }
+      
+      // Actionable recommendations
+      const highPriorityActive = activeTasks.filter((t: any) => t.priority === 'high');
+      if (highPriorityActive.length > 0) {
+        response += `\n🎯 **Next Steps:** Focus on ${highPriorityActive.length} high priority active task(s) first.`;
+      }
+      
+      return response;
     }
-    return 'No tasks found in IL location.';
+    return '📊 No task data available for progress analysis.';
   }
   
-  console.log('[AI Chat] No specific matches, returning general response');
-  return `I found ${tasks.length} total tasks in the system. You can ask me about:
-• Tasks for specific vehicles (e.g., "Car8 tasks")
-• Tasks by location (EU, USA, IL)
-• Tasks by priority (high, medium, low)
-• Tasks by weather conditions
-• Active or available tasks
-
-How can I help you find the right task?`;
+  // Smart vehicle utilization query
+  if (messageLower.includes('vehicle') || messageLower.includes('car') || messageLower.includes('assignment')) {
+    const vehicleGroups = aiData.dcTasks.reduce((acc: Record<string, { count: number; tasks: any[] }>, task: any) => {
+      const vehicle = task.targetCar || 'Unassigned';
+      if (!acc[vehicle]) acc[vehicle] = { count: 0, tasks: [] };
+      acc[vehicle].count++;
+      acc[vehicle].tasks.push(task);
+      return acc;
+    }, {} as Record<string, { count: number; tasks: any[] }>);
+    
+    let response = `🚗 **Vehicle Utilization Analysis**\n\n`;
+    
+    const sortedVehicles = Object.entries(vehicleGroups)
+      .sort(([,a], [,b]) => (b as { count: number }).count - (a as { count: number }).count)
+      .slice(0, 5);
+    
+    sortedVehicles.forEach(([vehicle, data]) => {
+      const typedData = data as { count: number; tasks: any[] };
+      const activeTasks = typedData.tasks.filter((t: any) => t.status === 'active');
+      const highPriorityTasks = typedData.tasks.filter((t: any) => t.priority === 'high');
+      
+      response += `**${vehicle}:** ${typedData.count} task(s)`;
+      if (activeTasks.length > 0) response += ` (${activeTasks.length} active)`;
+      if (highPriorityTasks.length > 0) response += ` ⚠️ ${highPriorityTasks.length} high priority`;
+      response += `\n`;
+    });
+    
+    // Smart recommendations
+    const mostUtilized = sortedVehicles[0];
+    if (mostUtilized && (mostUtilized[1] as { count: number }).count > 3) {
+      response += `\n💡 **Optimization Tip:** ${mostUtilized[0]} has the most tasks (${(mostUtilized[1] as { count: number }).count}). Consider batch execution for efficiency.`;
+    }
+    
+    return response;
+  }
+  
+  // Default smart response with actionable insights
+  console.log('[AI Chat] No specific matches, returning enhanced general response');
+  const activeTasks = aiData.dcTasks.filter((t: any) => t.status === 'active');
+  const highPriorityTasks = aiData.dcTasks.filter((t: any) => t.priority === 'high');
+  const locationCounts = aiData.dcTasks.reduce((acc: Record<string, number>, t: any) => {
+    acc[t.location] = (acc[t.location] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+  
+  let response = `🤖 **AI Task Assistant**\n\n`;
+  response += `I found ${aiData.dcTasks.length} total tasks in the system:\n`;
+  response += `  • ${activeTasks.length} active task(s)\n`;
+  if (highPriorityTasks.length > 0) {
+    response += `  • ${highPriorityTasks.length} high priority task(s) ⚠️\n`;
+  }
+  
+  response += `\n📍 **Locations:** ${Object.keys(locationCounts).join(', ')}\n\n`;
+  
+  response += `**Try asking me:**\n`;
+  response += `• "Which tasks can I do with Car8?"\n`;
+  response += `• "Show me high priority tasks"\n`;
+  response += `• "What's my progress status?"\n`;
+  response += `• "Tasks with weather conditions"\n`;
+  response += `• "EU tasks" or "USA tasks" or "IL tasks"\n\n`;
+  
+  response += `💡 **Tip:** Upload an image for AI analysis to match relevant tasks!`;
+  
+  return response;
 } 

@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from '@/lib/auth-context';
 import { TTTask, TTSubtask, DateAssignment } from '@/lib/types';
 import { Header } from '@/components/Header';
 import { Sidebar } from '@/components/Sidebar';
+import { TTTaskAIInsights } from '@/components/TTTaskAIInsights';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -2987,6 +2988,18 @@ function TaskPageContent() {
                 </div>
               </div>
             </div>
+
+            {/* AI Insights Component */}
+            <TTTaskAIInsights 
+              task={task}
+              assignments={task.dateAssignments || []}
+              onSuggestAssignment={(suggestion) => {
+                // Handle calendar suggestion - auto-fill assignment modal
+                setSelectedDate(new Date(suggestion.date));
+                setShowDayMissions(true);
+                // Could also pre-select the suggested subtasks
+              }}
+            />
 
             {/* Enhanced Timeline */}
             <TimelineCalendar
