@@ -2911,8 +2911,8 @@ function TaskPageContent() {
           <div className="space-y-6">
             {/* Task Header */}
             <div className="bg-white rounded-lg border border-gray-200 p-4">
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex-1">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
+                <div className="flex-1 min-w-0">
                   <div className="flex items-center space-x-2 mb-2">
                     <Button
                       variant="ghost"
@@ -2924,24 +2924,25 @@ function TaskPageContent() {
                       Back
                     </Button>
                   </div>
-                  <h1 className="text-2xl font-bold text-gray-900 mb-2">{task.title}</h1>
-                  <div className="flex items-center space-x-3 text-sm text-gray-600">
+                  <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 break-words">{task.title}</h1>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-600">
                     <div className="flex items-center space-x-1">
-                      <MapPin className="h-3 w-3" />
-                      <span>{task.location}</span>
+                      <MapPin className="h-3 w-3 flex-shrink-0" />
+                      <span className="truncate">{task.location}</span>
                     </div>
                     <div className="flex items-center space-x-1">
-                      <FileText className="h-3 w-3" />
+                      <FileText className="h-3 w-3 flex-shrink-0" />
                       <span>{task.totalSubtasks} subtasks</span>
                     </div>
                     <div className="flex items-center space-x-1">
-                      <Clock className="h-3 w-3" />
-                      <span>Updated: {formatDate(task.updatedAt)}</span>
+                      <Clock className="h-3 w-3 flex-shrink-0" />
+                      <span className="hidden sm:inline">Updated: </span>
+                      <span className="truncate">{formatDate(task.updatedAt)}</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center space-x-2">
+                <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
                   <Badge className={getPriorityColor(task.priority)} variant="outline">
                     {task.priority}
                   </Badge>
@@ -2960,8 +2961,8 @@ function TaskPageContent() {
               )}
 
               {/* Compact Progress Overview */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="flex items-center space-x-4">
                   <div className="text-sm">
                     <span className="text-gray-600">Progress: </span>
                     <span className="font-semibold text-gray-900">
@@ -2974,7 +2975,7 @@ function TaskPageContent() {
                 </div>
                 
                 {/* Modern Minimal Progress Bar */}
-                <div className="flex-1 max-w-xs ml-4">
+                <div className="flex-1 sm:max-w-xs sm:ml-4">
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div 
                       className="bg-gradient-to-r from-blue-500 to-emerald-500 h-2 rounded-full transition-all duration-500 ease-out"

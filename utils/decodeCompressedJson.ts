@@ -26,62 +26,48 @@ export function isURL(str: string): boolean {
 }
 
 /**
- * Fetches content from a URL
+ * Fetches content from a URL using server-side proxy to avoid CORS issues
  */
 async function fetchURLContent(url: string): Promise<string> {
   try {
-    console.log('[URL Fetcher] Fetching content from:', url);
+    console.log('[URL Fetcher] Fetching content via proxy from:', url);
     
-    // For CORS issues, we might need to use a proxy or handle this on the server
-    // For now, try direct fetch first
-    const response = await fetch(url, {
-      method: 'GET',
+    // Use our server-side proxy API to avoid CORS issues
+    const response = await fetch('/api/qr/fetch', {
+      method: 'POST',
       headers: {
-        'Accept': 'text/plain, text/html, application/json, */*',
-        'User-Agent': 'Mozilla/5.0 (compatible; QRScanner/1.0)',
+        'Content-Type': 'application/json',
       },
+      body: JSON.stringify({ url }),
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch URL: ${response.status} ${response.statusText}`);
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
     }
 
-    const content = await response.text();
-    console.log('[URL Fetcher] Fetched content length:', content.length);
+    const data = await response.json();
     
-    // If the content looks like HTML, try to extract text content
-    if (content.trim().startsWith('<') && content.includes('</')) {
-      console.log('[URL Fetcher] HTML content detected, extracting text...');
-      
-      // Create a temporary DOM element to extract text
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = content;
-      
-      // Try to get the main text content, excluding scripts and styles
-      const scripts = tempDiv.querySelectorAll('script, style, noscript');
-      scripts.forEach(script => script.remove());
-      
-      const textContent = tempDiv.textContent || tempDiv.innerText || '';
-      console.log('[URL Fetcher] Extracted text content length:', textContent.length);
-      
-      // Look for base64-like content in the extracted text
-      const lines = textContent.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-      
-      for (const line of lines) {
-        if (isBase64(line) && line.length > 100) { // Reasonable base64 length
-          console.log('[URL Fetcher] Found base64 content in HTML');
-          return line;
-        }
-      }
-      
-      // If no base64 found, return the cleaned text
-      return textContent.trim();
+    if (!data.success) {
+      throw new Error(data.error || 'Failed to fetch URL content');
     }
+
+    console.log('[URL Fetcher] Content fetched successfully via proxy. Length:', data.processedLength);
+    return data.content;
     
-    return content.trim();
   } catch (error) {
     console.error('[URL Fetcher] Failed to fetch URL content:', error);
-    throw new Error(`Failed to fetch content from URL: ${error}`);
+    
+    // Provide more specific error messages
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      throw new Error('Network error: Unable to connect to the URL fetching service');
+    } else if (error instanceof Error && (error.message.includes('timeout') || error.message.includes('timed out'))) {
+      throw new Error('Timeout: The URL took too long to respond');
+    } else if (error instanceof Error && (error.message.includes('CORS') || error.message.includes('blocked'))) {
+      throw new Error('Access blocked: The URL doesn\'t allow external access');
+    } else {
+      throw new Error(`Failed to fetch URL content: ${error instanceof Error ? error.message : error}`);
+    }
   }
 }
 

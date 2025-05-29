@@ -343,6 +343,15 @@ function TaskDashboard() {
     let parsedData: any = null;
     let processingMethod = '';
     
+    // Show a loading state for URL processing
+    let loadingTimeout: NodeJS.Timeout | null = null;
+    if (isURL(result.trim())) {
+      loadingTimeout = setTimeout(() => {
+        // Only show loading if it takes more than 500ms
+        setIsLoading(true);
+      }, 500);
+    }
+    
     try {
       // Check what type of input we have
       if (isURL(result.trim())) {
@@ -369,26 +378,55 @@ function TaskDashboard() {
         setIsVehicleDataModalOpen(true);
       } else {
         console.warn('[QR Scanner] Invalid vehicle data structure');
-        alert(`QR Code Processed!\n\nMethod: ${processingMethod}\n\nThe data was decoded successfully but does not match the expected vehicle data format.\n\nRaw content: ${result.substring(0, 100)}${result.length > 100 ? '...' : ''}`);
+        
+        // More user-friendly message for invalid data structure
+        const shortContent = result.length > 50 ? result.substring(0, 50) + '...' : result;
+        alert(`✅ QR Code Decoded Successfully!\n\n🔍 Processing Method: ${processingMethod}\n\n⚠️ Data Format Issue: The QR code was decoded correctly, but the content doesn't match the expected vehicle data format.\n\n📄 Preview: ${shortContent}\n\n💡 Tip: Make sure you're scanning a vehicle data QR code.`);
       }
     } catch (error) {
       console.warn('[QR Scanner] All parsing methods failed:', error);
       
-      // Provide more detailed error information
-      let errorMessage = `QR Code Scanned!\n\nProcessing failed with method: ${processingMethod}\n\n`;
+      // Enhanced error handling with specific guidance
+      let errorTitle = '❌ QR Code Processing Failed';
+      let errorDetails = '';
+      let troubleshooting = '';
       
       if (isURL(result.trim())) {
-        errorMessage += 'URL detected but fetching/decoding failed.\n\n';
+        errorTitle = '🌐 URL Processing Failed';
+        if (error instanceof Error) {
+          if (error.message.includes('Network error')) {
+            errorDetails = 'Cannot connect to the URL. Check your internet connection.';
+            troubleshooting = '• Ensure you have internet access\n• Try scanning again\n• Check if the URL is accessible';
+          } else if (error.message.includes('Timeout')) {
+            errorDetails = 'The URL took too long to respond.';
+            troubleshooting = '• The server might be slow or down\n• Try scanning again\n• Check your connection speed';
+          } else if (error.message.includes('Access blocked')) {
+            errorDetails = 'The URL doesn\'t allow external access (CORS issue).';
+            troubleshooting = '• This is a website security restriction\n• Contact the QR code provider\n• Try a different QR code';
+          } else {
+            errorDetails = error.message;
+            troubleshooting = '• Check your internet connection\n• Verify the URL is correct\n• Try scanning again';
+          }
+        }
       } else if (isBase64(result.trim())) {
-        errorMessage += 'Base64 format detected but decoding failed.\n\n';
+        errorTitle = '🔐 Base64 Decoding Failed';
+        errorDetails = 'The Base64 content appears corrupted or uses an unsupported format.';
+        troubleshooting = '• Ensure the QR code is not damaged\n• Try scanning from a closer distance\n• Clean the QR code surface';
       } else {
-        errorMessage += 'Direct JSON parsing failed.\n\n';
+        errorTitle = '📄 Data Format Error';
+        errorDetails = 'The QR code content is not in a recognized format (URL, Base64, or JSON).';
+        troubleshooting = '• Verify this is a vehicle data QR code\n• Try scanning a different QR code\n• Ensure the QR code is complete and undamaged';
       }
       
-      errorMessage += `Error: ${error instanceof Error ? error.message : 'Unknown error'}\n\n`;
-      errorMessage += `Raw content: ${result.substring(0, 100)}${result.length > 100 ? '...' : ''}`;
+      const shortContent = result.length > 30 ? result.substring(0, 30) + '...' : result;
       
-      alert(errorMessage);
+      alert(`${errorTitle}\n\n📋 Details: ${errorDetails}\n\n🔧 Troubleshooting:\n${troubleshooting}\n\n📱 Scanned Content: ${shortContent}`);
+    } finally {
+      // Clear any loading states
+      if (loadingTimeout) {
+        clearTimeout(loadingTimeout);
+      }
+      setIsLoading(false);
     }
   };
 
