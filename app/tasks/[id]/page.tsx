@@ -93,6 +93,8 @@ function DayMissionsModal({
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showAlreadyAssigned, setShowAlreadyAssigned] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState<any[]>([]);
+  const [showAiSuggestions, setShowAiSuggestions] = useState(true);
   
   // New duration assignment states
   const [assignmentType, setAssignmentType] = useState<'single_day' | 'date_range' | 'duration_days'>('single_day');
@@ -419,6 +421,162 @@ function DayMissionsModal({
     }
   };
 
+  // Generate AI suggestions when modal opens
+  useEffect(() => {
+    if (isOpen && allSubtasks.length > 0) {
+      generateAISuggestions();
+    }
+  }, [isOpen, selectedDate, allSubtasks]);
+
+  const generateAISuggestions = () => {
+    const dateString = selectedDate.toISOString().split('T')[0];
+    const unassignedSubtasks = allSubtasks.filter(st => !st.isAssigned && !st.isExecuted);
+    
+    if (unassignedSubtasks.length === 0) {
+      setAiSuggestions([]);
+      return;
+    }
+
+    const suggestions = [];
+
+    // Check if this is an empty day
+    const existingAssignments = getAssignmentsForDate();
+    const isEmptyDay = existingAssignments.length === 0;
+
+    if (isEmptyDay) {
+      // Lighting-based suggestions
+      const lightingGroups = unassignedSubtasks.reduce((acc, st) => {
+        const lighting = st.lighting || 'Day';
+        if (!acc[lighting]) acc[lighting] = [];
+        acc[lighting].push(st);
+        return acc;
+      }, {} as Record<string, any[]>);
+
+      Object.entries(lightingGroups).forEach(([lighting, subtasks]) => {
+        if (subtasks.length >= 3) {
+          suggestions.push({
+            id: `lighting-${lighting}`,
+            type: 'lighting_grouping',
+            title: `${lighting} Scenarios Batch`,
+            description: `Group ${subtasks.length} ${lighting.toLowerCase()} scenarios for efficient execution`,
+            icon: lighting === 'Night' ? '🌙' : '☀️',
+            priority: lighting === 'Night' ? 'high' : 'medium',
+            subtasks: subtasks.slice(0, 8), // Limit to 8 for practical assignment
+            reason: `Minimize lighting setup changes for ${lighting.toLowerCase()} testing`,
+            estimatedTime: `${(subtasks.length * 0.4).toFixed(1)}h`,
+            benefits: ['Reduced setup time', 'Consistent conditions', 'Higher efficiency']
+          });
+        }
+      });
+
+      // Scenario-based suggestions
+      const scenarioGroups = unassignedSubtasks.reduce((acc, st) => {
+        const scenario = st.scenario || 'Unknown';
+        if (!acc[scenario]) acc[scenario] = [];
+        acc[scenario].push(st);
+        return acc;
+      }, {} as Record<string, any[]>);
+
+      Object.entries(scenarioGroups).forEach(([scenario, subtasks]) => {
+        if (subtasks.length >= 4) {
+          suggestions.push({
+            id: `scenario-${scenario}`,
+            type: 'scenario_clustering',
+            title: `${scenario} Focus Session`,
+            description: `Dedicated session for ${subtasks.length} ${scenario} variations`,
+            icon: '🎯',
+            priority: scenario.includes('CBFA') ? 'high' : 'medium',
+            subtasks: subtasks.slice(0, 6),
+            reason: `Deep focus on ${scenario} with consistent setup`,
+            estimatedTime: `${(subtasks.length * 0.35).toFixed(1)}h`,
+            benefits: ['Scenario expertise', 'Consistent setup', 'Parameter optimization']
+          });
+        }
+      });
+
+      // Quick batch suggestion for any day
+      if (unassignedSubtasks.length >= 5) {
+        suggestions.push({
+          id: 'quick-batch',
+          type: 'quick_assignment',
+          title: 'Quick Batch Assignment',
+          description: `Assign next ${Math.min(8, unassignedSubtasks.length)} high-priority subtasks`,
+          icon: '⚡',
+          priority: 'medium',
+          subtasks: unassignedSubtasks
+            .sort((a, b) => {
+              const priorityOrder = { '1': 3, 'high': 3, '2': 2, 'medium': 2, '3': 1, 'low': 1 };
+              return (priorityOrder[b.priority as keyof typeof priorityOrder] || 1) - 
+                     (priorityOrder[a.priority as keyof typeof priorityOrder] || 1);
+            })
+            .slice(0, 8),
+          reason: 'Maintain momentum with immediate task scheduling',
+          estimatedTime: `${(Math.min(8, unassignedSubtasks.length) * 0.5).toFixed(1)}h`,
+          benefits: ['Quick progress', 'No delays', 'Efficient planning']
+        });
+      }
+    } else {
+      // Day has existing assignments - suggest complementary tasks
+      const assignedLighting = existingAssignments.map(st => st.lighting);
+      const hasNight = assignedLighting.includes('Night');
+      const hasDay = assignedLighting.includes('Day');
+
+      if (!hasNight && unassignedSubtasks.some(st => st.lighting === 'Night')) {
+        const nightTasks = unassignedSubtasks.filter(st => st.lighting === 'Night').slice(0, 4);
+        suggestions.push({
+          id: 'complement-night',
+          type: 'complement',
+          title: 'Add Night Scenarios',
+          description: `Add ${nightTasks.length} night scenarios to complement day testing`,
+          icon: '🌙',
+          priority: 'medium',
+          subtasks: nightTasks,
+          reason: 'Complete lighting coverage for comprehensive testing',
+          estimatedTime: `${(nightTasks.length * 0.4).toFixed(1)}h`,
+          benefits: ['Complete coverage', 'Efficient batching', 'Full day utilization']
+        });
+      }
+
+      if (!hasDay && unassignedSubtasks.some(st => st.lighting === 'Day')) {
+        const dayTasks = unassignedSubtasks.filter(st => st.lighting === 'Day').slice(0, 4);
+        suggestions.push({
+          id: 'complement-day',
+          type: 'complement',
+          title: 'Add Day Scenarios',
+          description: `Add ${dayTasks.length} day scenarios to complement night testing`,
+          icon: '☀️',
+          priority: 'medium',
+          subtasks: dayTasks,
+          reason: 'Complete lighting coverage for comprehensive testing',
+          estimatedTime: `${(dayTasks.length * 0.4).toFixed(1)}h`,
+          benefits: ['Complete coverage', 'Efficient batching', 'Full day utilization']
+        });
+      }
+    }
+
+    setAiSuggestions(suggestions.slice(0, 3)); // Show top 3 suggestions
+  };
+
+  const handleApplyAISuggestion = (suggestion: any) => {
+    const subtaskIds = suggestion.subtasks.map((st: any) => st.id);
+    setSelectedSubtasks(subtaskIds);
+    setAssignmentTitle(suggestion.title);
+    setAssignmentNotes(`AI Suggestion: ${suggestion.reason}`);
+    setShowAiSuggestions(false);
+    
+    // Auto-trigger assignment process
+    if (onAssignTasks) {
+      onAssignTasks({
+        assignmentType: 'single_day',
+        date: selectedDate.toISOString().split('T')[0],
+        subtaskIds,
+        title: suggestion.title,
+        notes: `AI Suggestion: ${suggestion.reason}`,
+        overrideConflicts: false
+      });
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -500,114 +658,180 @@ function DayMissionsModal({
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
-          {/* Assigned Tasks */}
-          <div className="mb-6">
-            <div className="flex items-center space-x-2 mb-4">
-              <ClipboardList className="h-5 w-5 text-blue-600" />
-              <h3 className="text-lg font-semibold text-gray-900">
-                Assigned Tasks ({assignedSubtasks.length})
-              </h3>
-            </div>
-            
-            {assignedSubtasks.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {assignedSubtasks.map((subtask) => (
-                  <div key={subtask.id} className="bg-gradient-to-br from-slate-50 to-gray-50 border border-gray-200 rounded-lg p-3 hover:shadow-md transition-all duration-200 group relative">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 min-w-0 pr-2">
-                        <div className="flex items-center space-x-2 mb-2">
-                          {subtask.isExecuted ? (
-                            <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          ) : (
-                            getStatusIcon(subtask.status)
-                          )}
-                          <div className="font-mono text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded truncate">
-                            {subtask.jira_subtask_number || subtask.id}
-                          </div>
-                        </div>
-                        <div className="text-xs text-gray-700 mb-1 font-medium truncate">
-                          {subtask.scenario}
-                        </div>
-                        <div className="flex items-center space-x-1 text-xs text-gray-500">
-                          <Badge variant="outline" className="text-xs px-1 py-0">
-                            {subtask.category}
-                          </Badge>
-                          <span>•</span>
-                          <span>P{subtask.priority}</span>
-                        </div>
-                        <div className="flex items-center space-x-1 mt-1">
-                          <Badge variant="outline" className={`text-xs px-2 py-0 ${getExecutionStatusColor(subtask)}`}>
-                            {getExecutionStatusText(subtask)}
-                          </Badge>
+        <div className="flex-1 overflow-hidden flex flex-col">
+          {/* AI Smart Suggestions */}
+          {aiSuggestions.length > 0 && showAiSuggestions && (
+            <div className="m-4 p-4 bg-purple-50 rounded-lg border border-purple-200">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center space-x-2">
+                  <div className="h-2 w-2 bg-purple-600 rounded-full animate-pulse"></div>
+                  <h3 className="text-sm font-semibold text-purple-900">🤖 AI Smart Suggestions</h3>
+                </div>
+                <button
+                  onClick={() => setShowAiSuggestions(false)}
+                  className="text-purple-600 hover:text-purple-800 text-sm"
+                >
+                  Dismiss
+                </button>
+              </div>
+              
+              <div className="space-y-2">
+                {aiSuggestions.map((suggestion) => (
+                  <div
+                    key={suggestion.id}
+                    className="bg-white rounded-md border border-purple-200 p-3 hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-lg">{suggestion.icon}</span>
+                        <div>
+                          <h4 className="text-sm font-medium text-gray-900">{suggestion.title}</h4>
+                          <p className="text-xs text-gray-600">{suggestion.description}</p>
                         </div>
                       </div>
-                      
-                      {/* Remove Assignment Button - Always visible for managers */}
-                      {canManage && (
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => {
-                            // Find the assignment for this subtask with better logging
-                            console.log('[DayMissionsModal] Looking for assignment for subtask:', subtask.id);
-                            console.log('[DayMissionsModal] Subtask details:', {
-                              id: subtask.id,
-                              assignedDate: subtask.assignedDate,
-                              isAssigned: subtask.isAssigned,
-                              assignmentId: subtask.assignmentId,
-                              scenario: subtask.scenario
-                            });
-                            console.log('[DayMissionsModal] Available assignments:', assignments?.map(a => ({
-                              id: a.id,
-                              subtaskIds: a.subtaskIds,
-                              includesThisSubtask: a.subtaskIds.includes(subtask.id),
-                              hasValidId: !!a.id
-                            })));
-                            
-                            const assignment = assignments?.find(a => a.subtaskIds.includes(subtask.id) && a.id);
-                            console.log('[DayMissionsModal] Found valid assignment:', assignment);
-                            
-                            if (assignment && assignment.id) {
-                              // New assignment system - only if assignment has a valid ID
-                              console.log('[DayMissionsModal] Removing via new system:', { assignmentId: assignment.id, subtaskId: subtask.id });
-                              onRemoveAssignment?.(assignment.id, subtask.id);
-                            } else if (subtask.assignedDate && subtask.isAssigned) {
-                              // Legacy assignment system - clear the individual subtask assignment
-                              console.log('[DayMissionsModal] Removing via legacy system:', subtask.id);
-                              onRemoveLegacyAssignment?.(subtask.id);
-                            } else {
-                              console.warn('[DayMissionsModal] No valid assignment found for subtask:', subtask.id);
-                              console.warn('[DayMissionsModal] Attempting legacy removal anyway...');
-                              onRemoveLegacyAssignment?.(subtask.id);
-                            }
-                          }}
-                          className="text-red-400 hover:text-red-600 hover:bg-red-50 transition-all p-1 h-7 w-7 rounded-md flex items-center justify-center"
-                          title="Remove assignment"
+                      <div className="flex items-center space-x-2">
+                        <span className="text-xs text-purple-600 font-medium">{suggestion.estimatedTime}</span>
+                        <button
+                          onClick={() => handleApplyAISuggestion(suggestion)}
+                          className="px-3 py-1 bg-purple-600 text-white text-xs rounded-md hover:bg-purple-700 transition-colors"
                         >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      )}
+                          Apply
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-4 text-xs text-gray-500">
+                      <span>📊 {suggestion.subtasks.length} subtasks</span>
+                      <span>📋 {suggestion.reason}</span>
+                    </div>
+                    
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {suggestion.benefits.map((benefit: string, index: number) => (
+                        <span key={index} className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full">
+                          {benefit}
+                        </span>
+                      ))}
                     </div>
                   </div>
                 ))}
               </div>
-            ) : (
-              <div className="text-center py-8 text-gray-500">
-                <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                <p>No tasks assigned for this date</p>
-                {canManage && (
-                  <Button 
-                    onClick={() => setShowAssignModal(true)} 
-                    variant="outline" 
-                    size="sm" 
-                    className="mt-2"
-                  >
-                    Assign Tasks
-                  </Button>
-                )}
+              
+              <div className="mt-3 text-xs text-purple-700 bg-purple-100 p-2 rounded">
+                💡 <strong>Tip:</strong> AI suggestions are based on calendar availability, lighting conditions, and scenario optimization for maximum efficiency.
               </div>
-            )}
+            </div>
+          )}
+
+          {/* Main content area */}
+          <div className="flex-1 overflow-y-auto p-6">
+            {/* Assigned Tasks */}
+            <div className="mb-6">
+              <div className="flex items-center space-x-2 mb-4">
+                <ClipboardList className="h-5 w-5 text-blue-600" />
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Assigned Tasks ({assignedSubtasks.length})
+                </h3>
+              </div>
+              
+              {assignedSubtasks.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {assignedSubtasks.map((subtask) => (
+                    <div key={subtask.id} className="bg-gradient-to-br from-slate-50 to-gray-50 border border-gray-200 rounded-lg p-3 hover:shadow-md transition-all duration-200 group relative">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 min-w-0 pr-2">
+                          <div className="flex items-center space-x-2 mb-2">
+                            {subtask.isExecuted ? (
+                              <CheckCircle2 className="h-4 w-4 text-green-600" />
+                            ) : (
+                              getStatusIcon(subtask.status)
+                            )}
+                            <div className="font-mono text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded truncate">
+                              {subtask.jira_subtask_number || subtask.id}
+                            </div>
+                          </div>
+                          <div className="text-xs text-gray-700 mb-1 font-medium truncate">
+                            {subtask.scenario}
+                          </div>
+                          <div className="flex items-center space-x-1 text-xs text-gray-500">
+                            <Badge variant="outline" className="text-xs px-1 py-0">
+                              {subtask.category}
+                            </Badge>
+                            <span>•</span>
+                            <span>P{subtask.priority}</span>
+                          </div>
+                          <div className="flex items-center space-x-1 mt-1">
+                            <Badge variant="outline" className={`text-xs px-2 py-0 ${getExecutionStatusColor(subtask)}`}>
+                              {getExecutionStatusText(subtask)}
+                            </Badge>
+                          </div>
+                        </div>
+                        
+                        {/* Remove Assignment Button - Always visible for managers */}
+                        {canManage && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => {
+                              // Find the assignment for this subtask with better logging
+                              console.log('[DayMissionsModal] Looking for assignment for subtask:', subtask.id);
+                              console.log('[DayMissionsModal] Subtask details:', {
+                                id: subtask.id,
+                                assignedDate: subtask.assignedDate,
+                                isAssigned: subtask.isAssigned,
+                                assignmentId: subtask.assignmentId,
+                                scenario: subtask.scenario
+                              });
+                              console.log('[DayMissionsModal] Available assignments:', assignments?.map(a => ({
+                                id: a.id,
+                                subtaskIds: a.subtaskIds,
+                                includesThisSubtask: a.subtaskIds.includes(subtask.id),
+                                hasValidId: !!a.id
+                              })));
+                              
+                              const assignment = assignments?.find(a => a.subtaskIds.includes(subtask.id) && a.id);
+                              console.log('[DayMissionsModal] Found valid assignment:', assignment);
+                              
+                              if (assignment && assignment.id) {
+                                // New assignment system - only if assignment has a valid ID
+                                console.log('[DayMissionsModal] Removing via new system:', { assignmentId: assignment.id, subtaskId: subtask.id });
+                                onRemoveAssignment?.(assignment.id, subtask.id);
+                              } else if (subtask.assignedDate && subtask.isAssigned) {
+                                // Legacy assignment system - clear the individual subtask assignment
+                                console.log('[DayMissionsModal] Removing via legacy system:', subtask.id);
+                                onRemoveLegacyAssignment?.(subtask.id);
+                              } else {
+                                console.warn('[DayMissionsModal] No valid assignment found for subtask:', subtask.id);
+                                console.warn('[DayMissionsModal] Attempting legacy removal anyway...');
+                                onRemoveLegacyAssignment?.(subtask.id);
+                              }
+                            }}
+                            className="text-red-400 hover:text-red-600 hover:bg-red-50 transition-all p-1 h-7 w-7 rounded-md flex items-center justify-center"
+                            title="Remove assignment"
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                  <p>No tasks assigned for this date</p>
+                  {canManage && (
+                    <Button 
+                      onClick={() => setShowAssignModal(true)} 
+                      variant="outline" 
+                      size="sm" 
+                      className="mt-2"
+                    >
+                      Assign Tasks
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 

@@ -25,7 +25,11 @@ import {
   Plus,
   ChevronRight,
   Eye,
-  Activity
+  Activity,
+  ChevronLeft,
+  Pause,
+  Play,
+  RotateCcw
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
@@ -43,6 +47,7 @@ interface AIInsight {
   priority: 'high' | 'medium' | 'low';
   title: string;
   description: string;
+  shortText: string;
   action?: {
     label: string;
     onClick: () => void;
@@ -72,12 +77,28 @@ export function TTTaskAIInsights({ task, assignments, onSuggestAssignment }: TTT
   const [calendarSuggestions, setCalendarSuggestions] = useState<CalendarSuggestion[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [lastAnalyzed, setLastAnalyzed] = useState<Date | null>(null);
+  
+  // Carousel state
+  const [currentInsightIndex, setCurrentInsightIndex] = useState(0);
+  const [isCarouselPaused, setIsCarouselPaused] = useState(false);
+  const [showCalendarSuggestions, setShowCalendarSuggestions] = useState(false);
 
   useEffect(() => {
     if (task && token) {
       generateAIInsights();
     }
   }, [task, assignments, token]);
+
+  // Auto-rotate insights every 4 seconds
+  useEffect(() => {
+    if (insights.length > 1 && !isCarouselPaused) {
+      const interval = setInterval(() => {
+        setCurrentInsightIndex((prev) => (prev + 1) % insights.length);
+      }, 4000);
+
+      return () => clearInterval(interval);
+    }
+  }, [insights.length, isCarouselPaused]);
 
   const generateAIInsights = async () => {
     setIsLoading(true);
@@ -120,6 +141,7 @@ export function TTTaskAIInsights({ task, assignments, onSuggestAssignment }: TTT
         priority: 'high',
         title: 'Low Completion Rate Detected',
         description: `Only ${completionRate.toFixed(1)}% of subtasks completed. Consider prioritizing high-impact scenarios first.`,
+        shortText: `⚠️ ${completionRate.toFixed(1)}% completion - Focus on high-impact scenarios`,
         icon: AlertTriangle,
         color: 'text-red-600',
         metrics: { completionRate, pendingCount: pendingSubtasks.length }
@@ -131,6 +153,7 @@ export function TTTaskAIInsights({ task, assignments, onSuggestAssignment }: TTT
         priority: 'low',
         title: 'Excellent Progress!',
         description: `Outstanding ${completionRate.toFixed(1)}% completion rate. You're on track for early completion.`,
+        shortText: `🎉 ${completionRate.toFixed(1)}% complete - Excellent progress!`,
         icon: CheckCircle,
         color: 'text-green-600',
         metrics: { completionRate }
@@ -150,6 +173,7 @@ export function TTTaskAIInsights({ task, assignments, onSuggestAssignment }: TTT
         priority: 'medium',
         title: 'Diverse Scenario Coverage',
         description: `${Object.keys(scenarioGroups).length} different scenarios detected. Consider grouping similar scenarios for efficient execution.`,
+        shortText: `🎯 ${Object.keys(scenarioGroups).length} scenarios - Consider grouping for efficiency`,
         icon: Target,
         color: 'text-blue-600',
         metrics: { scenarioCount: Object.keys(scenarioGroups).length, scenarios: scenarioGroups }
@@ -179,6 +203,7 @@ export function TTTaskAIInsights({ task, assignments, onSuggestAssignment }: TTT
         priority: 'medium',
         title: 'Lighting Condition Grouping',
         description: `Mix of day (${dayTasks}) and night (${nightTasks}) scenarios. Batch similar lighting conditions to minimize setup changes.`,
+        shortText: `☀️ ${dayTasks} day + 🌙 ${nightTasks} night - Batch by lighting`,
         icon: Sun,
         color: 'text-yellow-600',
         metrics: { nightTasks, dayTasks },
@@ -206,6 +231,7 @@ export function TTTaskAIInsights({ task, assignments, onSuggestAssignment }: TTT
         priority: 'medium',
         title: 'Complex Speed Requirements',
         description: `${Object.keys(speedProfiles).length} different speed combinations. Plan adequate time for vehicle reconfiguration.`,
+        shortText: `⚡ ${Object.keys(speedProfiles).length} speed combinations - Plan extra config time`,
         icon: Zap,
         color: 'text-purple-600',
         metrics: { speedCombinations: Object.keys(speedProfiles).length }
@@ -230,6 +256,7 @@ export function TTTaskAIInsights({ task, assignments, onSuggestAssignment }: TTT
         priority: 'high',
         title: 'Assignment Gap Detected',
         description: `${unassignedSubtasks.length} subtasks are unassigned. Consider scheduling them soon to maintain momentum.`,
+        shortText: `📅 ${unassignedSubtasks.length} unassigned tasks - Schedule soon!`,
         icon: Calendar,
         color: 'text-orange-600',
         metrics: { unassigned: unassignedSubtasks.length, assigned: assignedSubtasks.length },
@@ -260,6 +287,7 @@ export function TTTaskAIInsights({ task, assignments, onSuggestAssignment }: TTT
         priority: 'medium',
         title: 'Workload Balancing Opportunity',
         description: `${heavyDays.length} day(s) have heavy workloads (>10 subtasks). Consider redistributing for better balance.`,
+        shortText: `⚖️ ${heavyDays.length} heavy days detected - Rebalance workload`,
         icon: BarChart3,
         color: 'text-indigo-600',
         metrics: { heavyDays: heavyDays.length, maxWorkload: Math.max(...Object.values(assignmentDates)) }
@@ -288,6 +316,7 @@ export function TTTaskAIInsights({ task, assignments, onSuggestAssignment }: TTT
           priority: 'medium',
           title: 'Over-Execution Detected',
           description: `Running ${efficiency.toFixed(1)}% of required runs. Consider optimizing test procedures to reduce redundancy.`,
+          shortText: `📊 ${efficiency.toFixed(1)}% execution - Optimize procedures`,
           icon: Activity,
           color: 'text-yellow-600',
           metrics: { efficiency, totalRuns, requiredRuns }
@@ -299,6 +328,7 @@ export function TTTaskAIInsights({ task, assignments, onSuggestAssignment }: TTT
           priority: 'low',
           title: 'Optimal Execution Efficiency',
           description: `Perfect execution efficiency at ${efficiency.toFixed(1)}%. Maintaining excellent test discipline.`,
+          shortText: `✨ ${efficiency.toFixed(1)}% efficiency - Perfect execution!`,
           icon: Target,
           color: 'text-green-600',
           metrics: { efficiency }
@@ -504,23 +534,9 @@ export function TTTaskAIInsights({ task, assignments, onSuggestAssignment }: TTT
     return availableDate.toISOString().split('T')[0];
   };
 
-  const generateLightingOptimizedSuggestions = () => {
-    // Implementation for lighting optimization suggestions
-    generateCalendarSuggestions().then(suggestions => {
-      setCalendarSuggestions(suggestions);
-    });
-  };
-
-  const generateAutoScheduleSuggestions = () => {
-    // Implementation for auto-schedule suggestions
-    generateCalendarSuggestions().then(suggestions => {
-      setCalendarSuggestions(suggestions);
-    });
-  };
-
   const getInsightIcon = (insight: AIInsight) => {
     const IconComponent = insight.icon;
-    return <IconComponent className={`h-5 w-5 ${insight.color}`} />;
+    return <IconComponent className={`h-4 w-4 ${insight.color}`} />;
   };
 
   const getPriorityBadge = (priority: string) => {
@@ -532,138 +548,192 @@ export function TTTaskAIInsights({ task, assignments, onSuggestAssignment }: TTT
     return colors[priority as keyof typeof colors] || colors.medium;
   };
 
+  const handleApplySuggestion = async (suggestion: CalendarSuggestion) => {
+    if (onSuggestAssignment) {
+      onSuggestAssignment(suggestion);
+    }
+  };
+
+  const generateLightingOptimizedSuggestions = () => {
+    generateCalendarSuggestions().then(suggestions => {
+      setCalendarSuggestions(suggestions);
+      setShowCalendarSuggestions(true);
+    });
+  };
+
+  const generateAutoScheduleSuggestions = () => {
+    generateCalendarSuggestions().then(suggestions => {
+      setCalendarSuggestions(suggestions);
+      setShowCalendarSuggestions(true);
+    });
+  };
+
   if (isLoading) {
     return (
       <Card className="mb-6">
-        <CardContent className="p-6">
+        <CardContent className="p-4">
           <div className="flex items-center space-x-3">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600"></div>
-            <span className="text-gray-600">AI analyzing task data...</span>
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-600"></div>
+            <span className="text-sm text-gray-600">AI analyzing task data...</span>
           </div>
         </CardContent>
       </Card>
     );
   }
 
-  return (
-    <div className="space-y-6 mb-6">
-      {/* AI Insights Header */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Brain className="h-5 w-5 text-purple-600" />
-            <span>AI Task Insights</span>
-            {lastAnalyzed && (
-              <span className="text-sm text-gray-500 font-normal">
-                • Analyzed {lastAnalyzed.toLocaleTimeString()}
-              </span>
-            )}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {insights.length === 0 ? (
-            <div className="text-center py-4 text-gray-500">
-              <Lightbulb className="h-12 w-12 mx-auto mb-2 text-gray-300" />
-              <p>No specific insights available. Task appears well-optimized!</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {insights.map((insight) => (
-                <div
-                  key={insight.id}
-                  className="flex items-start space-x-3 p-4 rounded-lg border bg-gray-50 hover:bg-gray-100 transition-colors"
-                >
-                  <div className="mt-1">
-                    {getInsightIcon(insight)}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-1">
-                      <h3 className="font-medium text-gray-900">{insight.title}</h3>
-                      <Badge className={getPriorityBadge(insight.priority)}>
-                        {insight.priority}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-gray-600 mb-2">{insight.description}</p>
-                    {insight.action && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={insight.action.onClick}
-                        className="text-xs"
-                      >
-                        {insight.action.label}
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+  if (insights.length === 0) {
+    return (
+      <Card className="mb-6">
+        <CardContent className="p-4">
+          <div className="flex items-center space-x-2 text-gray-500">
+            <Lightbulb className="h-5 w-5" />
+            <span className="text-sm">No insights available - task appears optimized!</span>
+          </div>
         </CardContent>
       </Card>
+    );
+  }
 
-      {/* Calendar Suggestions */}
-      {calendarSuggestions.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <CalendarDays className="h-5 w-5 text-blue-600" />
-              <span>Smart Calendar Suggestions</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {calendarSuggestions.map((suggestion) => (
-                <div
-                  key={suggestion.id}
-                  className="border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
-                  onClick={() => onSuggestAssignment?.(suggestion)}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center space-x-2">
-                      <Calendar className="h-4 w-4 text-blue-600" />
-                      <h3 className="font-medium">{suggestion.title}</h3>
-                      <Badge className={getPriorityBadge(suggestion.priority)}>
-                        {suggestion.priority}
+  const currentInsight = insights[currentInsightIndex];
+
+  return (
+    <div className="space-y-4 mb-6">
+      {/* Compact Animated AI Insights Carousel */}
+      <Card className="overflow-hidden">
+        <CardContent className="p-0">
+          <div className="relative">
+            {/* Main Insight Display */}
+            <div className="p-4 bg-gradient-to-r from-purple-50 to-blue-50 border-b">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3 flex-1 min-w-0">
+                  <div className="flex-shrink-0">
+                    {getInsightIcon(currentInsight)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-gray-900 truncate">
+                      {currentInsight.shortText}
+                    </div>
+                    <div className="flex items-center space-x-2 mt-1">
+                      <Badge className={`text-xs ${getPriorityBadge(currentInsight.priority)}`}>
+                        {currentInsight.priority}
                       </Badge>
-                    </div>
-                    <div className="flex items-center space-x-2 text-sm text-gray-500">
-                      <Clock className="h-3 w-3" />
-                      <span>{suggestion.estimatedDuration}h</span>
+                      {lastAnalyzed && (
+                        <span className="text-xs text-gray-500">
+                          {lastAnalyzed.toLocaleTimeString()}
+                        </span>
+                      )}
                     </div>
                   </div>
-                  
-                  <p className="text-sm text-gray-600 mb-2">{suggestion.description}</p>
-                  <p className="text-xs text-gray-500 mb-2">{suggestion.reason}</p>
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4 text-xs text-gray-500">
-                      <span>📅 {new Date(suggestion.date).toLocaleDateString()}</span>
-                      <span>📊 {suggestion.subtaskIds.length} subtasks</span>
-                    </div>
-                    <Button size="sm" variant="ghost" className="text-xs">
-                      <Plus className="h-3 w-3 mr-1" />
-                      Apply
-                    </Button>
-                  </div>
-                  
-                  {suggestion.benefits.length > 0 && (
-                    <div className="mt-2 pt-2 border-t">
-                      <div className="flex flex-wrap gap-1">
-                        {suggestion.benefits.map((benefit, index) => (
-                          <Badge key={index} variant="secondary" className="text-xs">
-                            {benefit}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
-              ))}
+                
+                {/* Controls */}
+                <div className="flex items-center space-x-1 ml-2">
+                  {currentInsight.action && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={currentInsight.action.onClick}
+                      className="text-xs h-7 px-2"
+                    >
+                      {currentInsight.action.label}
+                    </Button>
+                  )}
+                  
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setIsCarouselPaused(!isCarouselPaused)}
+                    className="h-7 w-7 p-0"
+                  >
+                    {isCarouselPaused ? <Play className="h-3 w-3" /> : <Pause className="h-3 w-3" />}
+                  </Button>
+                  
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setCurrentInsightIndex((prev) => (prev > 0 ? prev - 1 : insights.length - 1))}
+                    className="h-7 w-7 p-0"
+                  >
+                    <ChevronLeft className="h-3 w-3" />
+                  </Button>
+                  
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setCurrentInsightIndex((prev) => (prev + 1) % insights.length)}
+                    className="h-7 w-7 p-0"
+                  >
+                    <ChevronRight className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+              
+              {/* Progress indicators */}
+              {insights.length > 1 && (
+                <div className="flex space-x-1 mt-3">
+                  {insights.map((_, index) => (
+                    <div
+                      key={index}
+                      className={`h-1 rounded-full transition-all duration-300 ${
+                        index === currentInsightIndex ? 'bg-purple-600 w-6' : 'bg-gray-300 w-2'
+                      }`}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
-          </CardContent>
-        </Card>
-      )}
+
+            {/* Quick Calendar Suggestions */}
+            {calendarSuggestions.length > 0 && (
+              <div className="p-3 border-t bg-gray-50">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center space-x-2">
+                    <CalendarDays className="h-4 w-4 text-blue-600" />
+                    <span className="text-sm font-medium text-gray-900">Quick Schedule</span>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setShowCalendarSuggestions(!showCalendarSuggestions)}
+                    className="text-xs h-6"
+                  >
+                    {showCalendarSuggestions ? 'Hide' : 'Show'} ({calendarSuggestions.length})
+                  </Button>
+                </div>
+                
+                {showCalendarSuggestions && (
+                  <div className="space-y-2">
+                    {calendarSuggestions.slice(0, 3).map((suggestion) => (
+                      <div
+                        key={suggestion.id}
+                        className="flex items-center justify-between p-2 bg-white rounded border hover:shadow-sm transition-shadow"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs font-medium text-gray-900 truncate">
+                            {suggestion.title}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            📅 {new Date(suggestion.date).toLocaleDateString()} • 
+                            📊 {suggestion.subtaskIds.length} tasks • 
+                            ⏱️ {suggestion.estimatedDuration}h
+                          </div>
+                        </div>
+                        <Button
+                          size="sm"
+                          onClick={() => handleApplySuggestion(suggestion)}
+                          className="ml-2 h-6 px-2 text-xs"
+                        >
+                          Apply
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 } 
