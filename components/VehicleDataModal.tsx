@@ -173,18 +173,18 @@ export function VehicleDataModal({ isOpen, onClose, data, rawQRContent }: Vehicl
   const stats = getVehicleDataStats(data);
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[95vh] overflow-hidden">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-start sm:items-center justify-center p-2 sm:p-4">
+      <div className="bg-white rounded-lg sm:rounded-2xl shadow-2xl w-full max-w-6xl h-full sm:h-auto sm:max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6">
+        <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 sm:p-6 flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
-                <Database className="w-6 h-6" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 rounded-full flex items-center justify-center">
+                <Database className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold">Vehicle Data Detected</h2>
-                <p className="text-blue-100">
+                <h2 className="text-lg sm:text-2xl font-bold">Vehicle Data Detected</h2>
+                <p className="text-blue-100 text-sm sm:text-base">
                   {stats.totalDisks} disks • {stats.totalSessions} sessions • {stats.totalSubtasks} subtasks
                 </p>
               </div>
@@ -192,135 +192,136 @@ export function VehicleDataModal({ isOpen, onClose, data, rawQRContent }: Vehicl
             
             <button
               onClick={onClose}
-              className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30 transition-colors"
+              className="w-8 h-8 sm:w-10 sm:h-10 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30 transition-colors touch-manipulation"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
           </div>
         </div>
 
         {/* Stats Overview */}
-        <div className="p-6 border-b border-gray-200 bg-gray-50">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="p-4 sm:p-6 border-b border-gray-200 bg-gray-50 flex-shrink-0">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
             <div className="text-center">
-              <div className="text-2xl font-bold text-gray-900">{stats.totalDisks}</div>
-              <div className="text-sm text-gray-600">Total Disks</div>
+              <div className="text-xl sm:text-2xl font-bold text-gray-900">{stats.totalDisks}</div>
+              <div className="text-xs sm:text-sm text-gray-600">Total Disks</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-gray-900">{stats.totalSessions}</div>
-              <div className="text-sm text-gray-600">Sessions</div>
+              <div className="text-xl sm:text-2xl font-bold text-gray-900">{stats.totalSessions}</div>
+              <div className="text-xs sm:text-sm text-gray-600">Sessions</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-gray-900">{stats.totalSubtasks}</div>
-              <div className="text-sm text-gray-600">Subtasks</div>
+              <div className="text-xl sm:text-2xl font-bold text-gray-900">{stats.totalSubtasks}</div>
+              <div className="text-xs sm:text-sm text-gray-600">Subtasks</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-gray-900">{stats.totalDrops + stats.totalCores}</div>
-              <div className="text-sm text-gray-600">Total Items</div>
+              <div className="text-xl sm:text-2xl font-bold text-gray-900">{stats.totalDrops + stats.totalCores}</div>
+              <div className="text-xs sm:text-sm text-gray-600">Total Items</div>
             </div>
           </div>
         </div>
 
-        {/* Matching Tasks Section */}
-        {isSearching ? (
-          <div className="p-6 border-b border-gray-200">
-            <div className="flex items-center space-x-3 text-blue-600">
-              <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-              <span>Searching for matching tasks...</span>
+        {/* Scrollable Content Area */}
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: 'touch' }}>
+          {/* Matching Tasks Section */}
+          {isSearching ? (
+            <div className="p-4 sm:p-6 border-b border-gray-200 flex-shrink-0">
+              <div className="flex items-center space-x-3 text-blue-600">
+                <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                <span className="text-sm sm:text-base">Searching for matching tasks...</span>
+              </div>
             </div>
-          </div>
-        ) : searchResults && searchResults.matchingTasks.length > 0 ? (
-          <div className="p-6 border-b border-gray-200 bg-green-50">
-            <div className="flex items-center space-x-2 mb-4">
-              <CheckCircle className="w-6 h-6 text-green-600" />
-              <h3 className="text-lg font-semibold text-green-800">
-                Found Matches in {searchResults.matchingTasks.length} Task{searchResults.matchingTasks.length !== 1 ? 's' : ''}
-              </h3>
-            </div>
-            
-            <div className="space-y-3">
-              {searchResults.matchingTasks.map((task) => (
-                <div key={task.taskId} className="bg-white p-4 rounded-lg border border-green-200">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3">
-                        <h4 className="font-medium text-gray-900">{task.taskTitle}</h4>
-                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-                          {task.taskLocation}
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-600 mt-1">
-                        {task.totalMatches} matching subtask{task.totalMatches !== 1 ? 's' : ''} found
-                      </p>
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {task.matchingSubtasks.slice(0, 5).map((subtask) => (
-                          <span key={subtask.subtaskId} className={`text-xs px-2 py-1 rounded-full ${
-                            subtask.isExecuted ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
-                          }`}>
-                            {subtask.jiraNumber}
+          ) : searchResults && searchResults.matchingTasks.length > 0 ? (
+            <div className="p-4 sm:p-6 border-b border-gray-200 bg-green-50 flex-shrink-0">
+              <div className="flex items-center space-x-2 mb-4">
+                <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
+                <h3 className="text-base sm:text-lg font-semibold text-green-800">
+                  Found Matches in {searchResults.matchingTasks.length} Task{searchResults.matchingTasks.length !== 1 ? 's' : ''}
+                </h3>
+              </div>
+              
+              <div className="space-y-3">
+                {searchResults.matchingTasks.map((task) => (
+                  <div key={task.taskId} className="bg-white p-3 sm:p-4 rounded-lg border border-green-200">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-3">
+                          <h4 className="font-medium text-gray-900 text-sm sm:text-base truncate">{task.taskTitle}</h4>
+                          <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full self-start">
+                            {task.taskLocation}
                           </span>
-                        ))}
-                        {task.matchingSubtasks.length > 5 && (
-                          <span className="text-xs text-gray-500">
-                            +{task.matchingSubtasks.length - 5} more
-                          </span>
-                        )}
+                        </div>
+                        <p className="text-xs sm:text-sm text-gray-600 mt-1">
+                          {task.totalMatches} matching subtask{task.totalMatches !== 1 ? 's' : ''} found
+                        </p>
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {task.matchingSubtasks.slice(0, 5).map((subtask) => (
+                            <span key={subtask.subtaskId} className={`text-xs px-2 py-1 rounded-full ${
+                              subtask.isExecuted ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                            }`}>
+                              {subtask.jiraNumber}
+                            </span>
+                          ))}
+                          {task.matchingSubtasks.length > 5 && (
+                            <span className="text-xs text-gray-500">
+                              +{task.matchingSubtasks.length - 5} more
+                            </span>
+                          )}
+                        </div>
                       </div>
+                      <button
+                        onClick={() => handleTaskSelection(task.taskId)}
+                        className={`px-3 py-2 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors touch-manipulation ${
+                          selectedTaskId === task.taskId
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        {selectedTaskId === task.taskId ? 'Selected' : 'Select'}
+                      </button>
                     </div>
-                    <button
-                      onClick={() => handleTaskSelection(task.taskId)}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                        selectedTaskId === task.taskId
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                    >
-                      {selectedTaskId === task.taskId ? 'Selected' : 'Select'}
-                    </button>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-        ) : searchResults && searchResults.matchingTasks.length === 0 ? (
-          <div className="p-6 border-b border-gray-200 bg-yellow-50">
-            <div className="flex items-center space-x-2">
-              <AlertTriangle className="w-6 h-6 text-yellow-600" />
-              <h3 className="text-lg font-semibold text-yellow-800">No Matching Tasks Found</h3>
+          ) : searchResults && searchResults.matchingTasks.length === 0 ? (
+            <div className="p-4 sm:p-6 border-b border-gray-200 bg-yellow-50 flex-shrink-0">
+              <div className="flex items-center space-x-2">
+                <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-600" />
+                <h3 className="text-base sm:text-lg font-semibold text-yellow-800">No Matching Tasks Found</h3>
+              </div>
+              <p className="text-yellow-700 mt-2 text-sm sm:text-base">
+                No existing tasks contain the subtasks from this vehicle data. You may need to create a new task or check if the subtasks exist in a different system.
+              </p>
             </div>
-            <p className="text-yellow-700 mt-2">
-              No existing tasks contain the subtasks from this vehicle data. You may need to create a new task or check if the subtasks exist in a different system.
-            </p>
-          </div>
-        ) : null}
+          ) : null}
 
-        {/* Main Content */}
-        <div className="flex-1 overflow-auto">
-          <div className="p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Vehicle Disk Data</h3>
+          {/* Main Content */}
+          <div className="p-4 sm:p-6">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">Vehicle Disk Data</h3>
             
-            <div className="space-y-4">
+            <div className="space-y-4 pb-4">
               {data.disks.map((disk) => (
                 <div key={disk.id} className="border border-gray-200 rounded-lg overflow-hidden">
                   {/* Disk Header */}
                   <button
                     onClick={() => toggleDisk(disk.id)}
-                    className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors"
+                    className="w-full flex items-center justify-between p-3 sm:p-4 bg-gray-50 hover:bg-gray-100 transition-colors touch-manipulation"
                   >
                     <div className="flex items-center space-x-3">
                       {expandedDisks.has(disk.id) ? (
-                        <ChevronDown className="w-5 h-5 text-gray-500" />
+                        <ChevronDown className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
                       ) : (
-                        <ChevronRight className="w-5 h-5 text-gray-500" />
+                        <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
                       )}
-                      <Database className="w-5 h-5 text-blue-600" />
+                      <Database className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
                       <div className="text-left">
-                        <h4 className="font-medium text-gray-900">{disk.id}</h4>
-                        <p className="text-sm text-gray-600">{disk.sessions.length} sessions</p>
+                        <h4 className="font-medium text-gray-900 text-sm sm:text-base">{disk.id}</h4>
+                        <p className="text-xs sm:text-sm text-gray-600">{disk.sessions.length} sessions</p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-sm font-medium text-gray-900">
+                      <div className="text-xs sm:text-sm font-medium text-gray-900">
                         {disk.sessions.reduce((total, session) => {
                           const sessionData = Object.values(session)[0];
                           return total + sessionData.subtasks.length;
@@ -331,7 +332,7 @@ export function VehicleDataModal({ isOpen, onClose, data, rawQRContent }: Vehicl
                   
                   {/* Disk Content */}
                   {expandedDisks.has(disk.id) && (
-                    <div className="p-4 space-y-3">
+                    <div className="p-3 sm:p-4 space-y-3">
                       {disk.sessions.map((sessionGroup, sessionIndex) => {
                         const [sessionName, sessionData] = Object.entries(sessionGroup)[0];
                         const sessionKey = `${disk.id}-${sessionIndex}`;
@@ -341,7 +342,7 @@ export function VehicleDataModal({ isOpen, onClose, data, rawQRContent }: Vehicl
                             {/* Session Header */}
                             <button
                               onClick={() => toggleSession(sessionKey)}
-                              className="w-full flex items-center justify-between p-3 bg-blue-50 hover:bg-blue-100 transition-colors"
+                              className="w-full flex items-center justify-between p-3 bg-blue-50 hover:bg-blue-100 transition-colors touch-manipulation"
                             >
                               <div className="flex items-center space-x-3">
                                 {expandedSessions.has(sessionKey) ? (
@@ -351,7 +352,7 @@ export function VehicleDataModal({ isOpen, onClose, data, rawQRContent }: Vehicl
                                 )}
                                 <Calendar className="w-4 h-4 text-blue-600" />
                                 <div className="text-left">
-                                  <h5 className="font-medium text-gray-900 text-sm">
+                                  <h5 className="font-medium text-gray-900 text-xs sm:text-sm">
                                     {formatSessionName(sessionName)}
                                   </h5>
                                   <p className="text-xs text-gray-600">
@@ -364,28 +365,28 @@ export function VehicleDataModal({ isOpen, onClose, data, rawQRContent }: Vehicl
                             {/* Session Content */}
                             {expandedSessions.has(sessionKey) && (
                               <div className="p-3 bg-white">
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                                  <div className="text-center p-3 bg-gray-50 rounded">
-                                    <div className="text-lg font-semibold text-gray-900">{sessionData.drops}</div>
+                                <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-4">
+                                  <div className="text-center p-2 sm:p-3 bg-gray-50 rounded">
+                                    <div className="text-base sm:text-lg font-semibold text-gray-900">{sessionData.drops}</div>
                                     <div className="text-xs text-gray-600">Drops</div>
                                   </div>
-                                  <div className="text-center p-3 bg-gray-50 rounded">
-                                    <div className="text-lg font-semibold text-gray-900">{sessionData.cores}</div>
+                                  <div className="text-center p-2 sm:p-3 bg-gray-50 rounded">
+                                    <div className="text-base sm:text-lg font-semibold text-gray-900">{sessionData.cores}</div>
                                     <div className="text-xs text-gray-600">Cores</div>
                                   </div>
-                                  <div className="text-center p-3 bg-gray-50 rounded">
-                                    <div className="text-lg font-semibold text-gray-900">{sessionData.subtasks.length}</div>
+                                  <div className="text-center p-2 sm:p-3 bg-gray-50 rounded">
+                                    <div className="text-base sm:text-lg font-semibold text-gray-900">{sessionData.subtasks.length}</div>
                                     <div className="text-xs text-gray-600">Subtasks</div>
                                   </div>
                                 </div>
                                 
                                 <div>
-                                  <h6 className="text-sm font-medium text-gray-700 mb-2">Subtasks:</h6>
-                                  <div className="flex flex-wrap gap-2">
+                                  <h6 className="text-xs sm:text-sm font-medium text-gray-700 mb-2">Subtasks:</h6>
+                                  <div className="flex flex-wrap gap-1 sm:gap-2">
                                     {sessionData.subtasks.map((subtask, index) => (
                                       <span
                                         key={index}
-                                        className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full font-mono"
+                                        className="px-2 py-1 sm:px-3 sm:py-1 bg-blue-100 text-blue-800 text-xs sm:text-sm rounded-full font-mono"
                                       >
                                         {subtask}
                                       </span>
@@ -406,18 +407,18 @@ export function VehicleDataModal({ isOpen, onClose, data, rawQRContent }: Vehicl
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-gray-200 bg-gray-50">
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-gray-600">
+        <div className="p-4 sm:p-6 border-t border-gray-200 bg-gray-50 flex-shrink-0">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="text-xs sm:text-sm text-gray-600">
               <strong>Total:</strong> {stats.totalDrops} drops • {stats.totalCores} cores • {stats.totalSubtasks} subtasks
             </div>
             
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center justify-end space-x-3">
               {searchResults && searchResults.matchingTasks.length > 0 && (
                 <button
                   onClick={handleProcessData}
                   disabled={!selectedTaskId || isProcessing}
-                  className="flex items-center space-x-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+                  className="flex items-center space-x-2 px-4 py-2 sm:px-6 sm:py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium text-sm sm:text-base touch-manipulation"
                 >
                   {isProcessing ? (
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -430,7 +431,7 @@ export function VehicleDataModal({ isOpen, onClose, data, rawQRContent }: Vehicl
               
               <button
                 onClick={onClose}
-                className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                className="px-4 py-2 sm:px-6 sm:py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm sm:text-base touch-manipulation"
               >
                 Close
               </button>
@@ -438,7 +439,7 @@ export function VehicleDataModal({ isOpen, onClose, data, rawQRContent }: Vehicl
           </div>
           
           {!selectedTaskId && searchResults && searchResults.matchingTasks.length > 0 && (
-            <div className="mt-3 text-sm text-orange-600">
+            <div className="mt-3 text-xs sm:text-sm text-orange-600">
               Please select a task above to process the vehicle data.
             </div>
           )}
