@@ -48,6 +48,31 @@ export function QRScanner({ isOpen, onClose, onScanResult }: QRScannerProps) {
       setIsScanning(true);
       setHasPermission(null);
 
+      // Check if we're in a secure context (HTTPS or localhost)
+      const isSecureContext = typeof window !== 'undefined' && (
+        window.location.protocol === 'https:' || 
+        window.location.hostname === 'localhost' || 
+        window.location.hostname === '127.0.0.1'
+      );
+
+      // Development mode warning for camera access
+      if (typeof window !== 'undefined' && !isSecureContext) {
+        console.warn('[QR Scanner] Camera access may be blocked in insecure context (HTTP)');
+        
+        // Check if we're accessing via IP address in development
+        const isIPAddress = /^\d+\.\d+\.\d+\.\d+/.test(window.location.hostname);
+        if (isIPAddress && process.env.NODE_ENV === 'development') {
+          throw new Error(
+            'Camera access requires HTTPS when accessing via IP address. ' +
+            'To fix this in development:\n\n' +
+            '1. Use "npm run dev:https" instead of "npm run dev"\n' +
+            '2. Or access via localhost tunnel (ngrok, etc.)\n' +
+            '3. Or test on localhost directly\n\n' +
+            'Current URL: ' + window.location.href
+          );
+        }
+      }
+
       if (!QrScanner.hasCamera()) {
         throw new Error('No camera found on this device');
       }
@@ -94,6 +119,9 @@ export function QRScanner({ isOpen, onClose, onScanResult }: QRScannerProps) {
         setError('Camera not supported on this browser.');
       } else if (err.name === 'NotReadableError') {
         setError('Camera is busy. Please close other camera apps and try again.');
+      } else if (err.message && err.message.includes('HTTPS')) {
+        // Enhanced development mode error with actionable solutions
+        setError(err.message);
       } else {
         setError(err.message || 'Failed to access camera.');
       }
@@ -267,7 +295,13 @@ export function QRScanner({ isOpen, onClose, onScanResult }: QRScannerProps) {
             </div>
             
             <h3 className="text-xl font-semibold text-white mb-3">Camera Error</h3>
-            <p className="text-white/70 mb-8 leading-relaxed">{error}</p>
+            <div className="text-white/70 mb-8 leading-relaxed text-sm">
+              {error.split('\n').map((line, index) => (
+                <p key={index} className={line.trim() === '' ? 'mb-2' : 'mb-1'}>
+                  {line}
+                </p>
+              ))}
+            </div>
             
             <div className="space-y-3">
               <button
