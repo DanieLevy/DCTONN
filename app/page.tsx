@@ -12,8 +12,10 @@ import { TaskFilters } from '@/components/TaskFilters';
 import { ChatInterface } from '@/components/ChatInterface';
 import { Dashboard } from '@/components/Dashboard';
 import { QRScanner } from '@/components/QRScanner';
+import { VehicleDataModal } from '@/components/VehicleDataModal';
 import { ClientOnlyHandler } from '@/components/ClientOnlyHandler';
 import { Task, TTTask, TaskFilters as TaskFiltersType } from '@/lib/types';
+import { VehicleData, isValidVehicleData } from '@/lib/vehicle-types';
 import { MessageCircle, QrCode } from 'lucide-react';
 
 // Enhanced Error Boundary for handling simulator and DOM conflicts
@@ -154,6 +156,10 @@ function TaskDashboard() {
   const [isQRScannerOpen, setIsQRScannerOpen] = useState(false);
   const [qrScanResult, setQrScanResult] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
+  // Vehicle data modal states
+  const [isVehicleDataModalOpen, setIsVehicleDataModalOpen] = useState(false);
+  const [vehicleData, setVehicleData] = useState<VehicleData | null>(null);
+  const [rawQRContent, setRawQRContent] = useState<string | null>(null);
 
   // Get current section from URL params, default to TT
   const currentSection = (searchParams.get('section') as 'DC' | 'TT' | 'management') || 'TT';
@@ -331,9 +337,26 @@ function TaskDashboard() {
     console.log('[QR Scanner] Scan result:', result);
     setQrScanResult(result);
     setIsQRScannerOpen(false);
+    setRawQRContent(result);
     
-    // Show result for now - later implement functionality
-    alert(`QR Code Scanned!\n\nResult: ${result}\n\n(Functionality will be implemented here)`);
+    try {
+      // Try to parse the QR content as JSON
+      const parsedData = JSON.parse(result);
+      console.log('[QR Scanner] Parsed vehicle data:', parsedData);
+      
+      // Validate using the type guard function
+      if (isValidVehicleData(parsedData)) {
+        console.log('[QR Scanner] Valid vehicle data structure detected');
+        setVehicleData(parsedData);
+        setIsVehicleDataModalOpen(true);
+      } else {
+        console.warn('[QR Scanner] Invalid vehicle data structure');
+        alert(`QR Code Scanned!\n\nThe scanned data does not match the expected vehicle data format.\n\nRaw content: ${result.substring(0, 100)}${result.length > 100 ? '...' : ''}`);
+      }
+    } catch (error) {
+      console.warn('[QR Scanner] Failed to parse JSON:', error);
+      alert(`QR Code Scanned!\n\nThe scanned content is not valid JSON.\n\nRaw content: ${result.substring(0, 100)}${result.length > 100 ? '...' : ''}`);
+    }
   };
 
   useEffect(() => {
@@ -529,6 +552,18 @@ function TaskDashboard() {
         isOpen={isQRScannerOpen}
         onClose={() => setIsQRScannerOpen(false)}
         onScanResult={handleQRScanResult}
+      />
+
+      {/* Vehicle Data Modal */}
+      <VehicleDataModal
+        isOpen={isVehicleDataModalOpen}
+        onClose={() => {
+          setIsVehicleDataModalOpen(false);
+          setVehicleData(null);
+          setRawQRContent(null);
+        }}
+        data={vehicleData}
+        rawQRContent={rawQRContent}
       />
     </div>
   );

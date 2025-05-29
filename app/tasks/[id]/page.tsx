@@ -54,6 +54,8 @@ interface DayMissionsModalProps {
   isOpen: boolean;
   onClose: () => void;
   canManage: boolean;
+  task?: TTTask; // Add task for legacy assignment handling
+  token?: string; // Add token for API calls
   onAssignTasks?: (assignmentData: {
     assignmentType: 'single_day' | 'date_range' | 'duration_days';
     date?: string;
@@ -66,6 +68,7 @@ interface DayMissionsModalProps {
     overrideConflicts?: boolean;
   }) => void;
   onRemoveAssignment?: (assignmentId: string, subtaskId: string) => void;
+  onRemoveLegacyAssignment?: (subtaskId: string) => void;
 }
 
 function DayMissionsModal({ 
@@ -75,8 +78,11 @@ function DayMissionsModal({
   isOpen, 
   onClose, 
   canManage,
+  task,
+  token,
   onAssignTasks,
-  onRemoveAssignment 
+  onRemoveAssignment,
+  onRemoveLegacyAssignment
 }: DayMissionsModalProps) {
   const [selectedSubtasks, setSelectedSubtasks] = useState<string[]>([]);
   const [assignmentNotes, setAssignmentNotes] = useState('');
@@ -94,36 +100,7 @@ function DayMissionsModal({
   
   const dateString = selectedDate.toISOString().split('T')[0];
   
-  // Get assignments that cover the selected date
-  const relevantAssignments = assignments.filter(assignment => {
-    const assignmentDates = getAssignmentDates(assignment);
-    return assignmentDates.includes(dateString);
-  });
-  
-  const assignedSubtaskIds = relevantAssignments.flatMap(a => a.subtaskIds);
-  const assignedSubtasks = allSubtasks.filter(s => assignedSubtaskIds.includes(s.id));
-
-  // Helper function to get assignment dates from DateAssignment
-  const getAssignmentDates = (assignment: DateAssignment): string[] => {
-    switch (assignment.assignmentType) {
-      case 'single_day':
-        return assignment.date ? [assignment.date] : [];
-      case 'date_range':
-        if (assignment.startDate && assignment.endDate) {
-          return getDateRange(assignment.startDate, assignment.endDate);
-        }
-        return [];
-      case 'duration_days':
-        if (assignment.startDate && assignment.durationDays) {
-          return getDateRangeFromDuration(assignment.startDate, assignment.durationDays);
-        }
-        return [];
-      default:
-        return [];
-    }
-  };
-
-  // Helper function to generate date range
+  // Helper functions - moved to top to avoid hoisting issues
   const getDateRange = (start: string, end: string): string[] => {
     const dates: string[] = [];
     const startDate = new Date(start);
@@ -136,7 +113,6 @@ function DayMissionsModal({
     return dates;
   };
 
-  // Helper function to generate dates from duration
   const getDateRangeFromDuration = (start: string, duration: number): string[] => {
     const dates: string[] = [];
     const startDate = new Date(start);
@@ -150,6 +126,143 @@ function DayMissionsModal({
     return dates;
   };
 
+  const getAssignmentDates = (assignment: DateAssignment): string[] => {
+    console.log('[getAssignmentDates] Processing assignment:', {
+      id: assignment.id,
+      assignmentType: assignment.assignmentType,
+      date: assignment.date,
+      startDate: assignment.startDate,
+      endDate: assignment.endDate,
+      durationDays: assignment.durationDays,
+      fullAssignment: assignment
+    });
+    
+    switch (assignment.assignmentType) {
+      case 'single_day':
+        const singleDayResult = assignment.date ? [assignment.date] : [];
+        console.log('[getAssignmentDates] Single day result:', singleDayResult);
+        return singleDayResult;
+      case 'date_range':
+        if (assignment.startDate && assignment.endDate) {
+          const dates: string[] = [];
+          const startDate = new Date(assignment.startDate);
+          const endDate = new Date(assignment.endDate);
+          
+          for (let current = new Date(startDate); current <= endDate; current.setDate(current.getDate() + 1)) {
+            dates.push(current.toISOString().split('T')[0]);
+          }
+          console.log('[getAssignmentDates] Date range result:', dates);
+          return dates;
+        }
+        console.log('[getAssignmentDates] Date range - missing start/end dates');
+        return [];
+      case 'duration_days':
+        if (assignment.startDate && assignment.durationDays) {
+          const dates: string[] = [];
+          const startDate = new Date(assignment.startDate);
+          
+          for (let i = 0; i < assignment.durationDays; i++) {
+            const current = new Date(startDate);
+            current.setDate(startDate.getDate() + i);
+            dates.push(current.toISOString().split('T')[0]);
+          }
+          console.log('[getAssignmentDates] Duration days result:', dates);
+          return dates;
+        }
+        console.log('[getAssignmentDates] Duration days - missing start date or duration');
+        return [];
+      default:
+        console.log('[getAssignmentDates] Unknown assignment type:', assignment.assignmentType);
+        return [];
+    }
+  };
+  
+  // Debug logging to understand the assignment data
+  console.log('[DayMissionsModal] Debug Info:');
+  console.log('[DayMissionsModal] Selected date:', dateString);
+  console.log('[DayMissionsModal] Assignments array:', assignments);
+  console.log('[DayMissionsModal] Assignments length:', assignments?.length || 0);
+  
+  // Deep logging of assignments
+  assignments?.forEach((assignment, index) => {
+    console.log(`[DayMissionsModal] Assignment ${index}:`, {
+      id: assignment.id,
+      assignmentType: assignment.assignmentType,
+      date: assignment.date,
+      startDate: assignment.startDate,
+      endDate: assignment.endDate,
+      durationDays: assignment.durationDays,
+      subtaskIds: assignment.subtaskIds,
+      isActive: assignment.isActive,
+      fullObject: assignment
+    });
+  });
+  
+  // Handle both new dateAssignments and legacy individual subtask assignments
+  const getAssignmentsForDate = (): TTSubtask[] => {
+    const assignedSubtasks: TTSubtask[] = [];
+    
+    console.log('[getAssignmentsForDate] Processing date:', dateString);
+    console.log('[getAssignmentsForDate] Total assignments available:', assignments?.length || 0);
+    console.log('[getAssignmentsForDate] Total subtasks available:', allSubtasks?.length || 0);
+    
+    // First, check new dateAssignments system
+    if (assignments && assignments.length > 0) {
+      const relevantAssignments = assignments.filter(assignment => {
+        const assignmentDates = getAssignmentDates(assignment);
+        const includes = assignmentDates.includes(dateString);
+        console.log('[getAssignmentsForDate] Assignment:', assignment.id, 'dates:', assignmentDates, 'includes date:', includes);
+        return includes;
+      });
+      
+      console.log('[getAssignmentsForDate] Relevant assignments:', relevantAssignments.length);
+      
+      const assignedSubtaskIds = relevantAssignments.flatMap(a => a.subtaskIds);
+      console.log('[getAssignmentsForDate] Assigned subtask IDs from new system:', assignedSubtaskIds);
+      
+      assignedSubtasks.push(...allSubtasks.filter(s => assignedSubtaskIds.includes(s.id)));
+    }
+    
+    // Fallback: check legacy individual subtask assignments
+    const legacyAssignedSubtasks = allSubtasks.filter(subtask => 
+      subtask.assignedDate === dateString && 
+      subtask.isAssigned &&
+      !assignedSubtasks.some(s => s.id === subtask.id) // Avoid duplicates
+    );
+    
+    console.log('[getAssignmentsForDate] Legacy assigned subtasks:', legacyAssignedSubtasks.length);
+    legacyAssignedSubtasks.forEach((subtask, index) => {
+      console.log(`[getAssignmentsForDate] Legacy subtask ${index}:`, {
+        id: subtask.id,
+        scenario: subtask.scenario,
+        assignedDate: subtask.assignedDate,
+        isAssigned: subtask.isAssigned,
+        assignmentId: subtask.assignmentId,
+        status: subtask.status,
+        isExecuted: subtask.isExecuted
+      });
+    });
+    
+    assignedSubtasks.push(...legacyAssignedSubtasks);
+    
+    console.log('[getAssignmentsForDate] Total assigned subtasks for date:', assignedSubtasks.length);
+    
+    return assignedSubtasks;
+  };
+  
+  // Get assignments that cover the selected date
+  const relevantAssignments = assignments?.filter(assignment => {
+    const assignmentDates = getAssignmentDates(assignment);
+    const isRelevant = assignmentDates.includes(dateString);
+    return isRelevant;
+  }) || [];
+  
+  const assignedSubtaskIds = relevantAssignments.flatMap(a => a.subtaskIds);
+  const assignedSubtasks = getAssignmentsForDate(); // Use the new function that handles both systems
+  
+  console.log('[DayMissionsModal] Assigned subtask IDs:', assignedSubtaskIds);
+  console.log('[DayMissionsModal] Assigned subtasks:', assignedSubtasks);
+  
   // Get preview of assignment dates
   const getAssignmentPreviewDates = (): string[] => {
     switch (assignmentType) {
@@ -266,6 +379,42 @@ function DayMissionsModal({
     }
   };
 
+  const handleRemoveLegacyAssignment = async (subtaskId: string) => {
+    if (!task || !canManage) return;
+
+    try {
+      setIsLoading(true);
+      const response = await fetch(`/api/tasks/tt/${taskId}/subtasks/${subtaskId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          assignedDate: undefined,
+          isAssigned: false,
+          assignmentId: undefined,
+          assignmentType: undefined,
+          assignedStartDate: undefined,
+          assignedEndDate: undefined,
+          executionStatus: 'not_assigned'
+        }),
+      });
+
+      if (response.ok) {
+        await fetchTask(); // Refresh task data
+      } else {
+        console.error('Failed to remove legacy assignment');
+        alert('Failed to remove legacy assignment');
+      }
+    } catch (error) {
+      console.error('Error removing legacy assignment:', error);
+      alert('Failed to remove legacy assignment');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -289,14 +438,56 @@ function DayMissionsModal({
           </div>
           <div className="flex items-center space-x-2">
             {canManage && (
-              <Button 
-                onClick={() => setShowAssignModal(true)}
-                size="sm"
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Assign Tasks
-              </Button>
+              <>
+                <Button 
+                  onClick={() => setShowAssignModal(true)}
+                  size="sm"
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Assign Tasks
+                </Button>
+                
+                {/* Bulk remove button */}
+                {assignedSubtasks.length > 0 && (
+                  <Button 
+                    onClick={() => {
+                      if (confirm(`Are you sure you want to remove all ${assignedSubtasks.length} task assignments for ${formatDate(selectedDate)}?`)) {
+                        // Remove all assignments for this day with improved logic
+                        assignedSubtasks.forEach(subtask => {
+                          console.log('[DayMissionsModal] Bulk removing subtask:', subtask.id);
+                          console.log('[DayMissionsModal] Bulk subtask details:', {
+                            id: subtask.id,
+                            assignedDate: subtask.assignedDate,
+                            isAssigned: subtask.isAssigned,
+                            assignmentId: subtask.assignmentId,
+                            scenario: subtask.scenario
+                          });
+                          
+                          const assignment = assignments?.find(a => a.subtaskIds.includes(subtask.id) && a.id);
+                          if (assignment && assignment.id) {
+                            console.log('[DayMissionsModal] Bulk removing via new system:', { assignmentId: assignment.id, subtaskId: subtask.id });
+                            onRemoveAssignment?.(assignment.id, subtask.id);
+                          } else if (subtask.assignedDate && subtask.isAssigned) {
+                            console.log('[DayMissionsModal] Bulk removing via legacy system:', subtask.id);
+                            onRemoveLegacyAssignment?.(subtask.id);
+                          } else {
+                            console.warn('[DayMissionsModal] No valid assignment found for bulk removal:', subtask.id);
+                            console.warn('[DayMissionsModal] Attempting legacy bulk removal anyway...');
+                            onRemoveLegacyAssignment?.(subtask.id);
+                          }
+                        });
+                      }
+                    }}
+                    size="sm"
+                    variant="outline"
+                    className="text-red-600 hover:text-red-700 border-red-300 hover:border-red-400"
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    Remove All
+                  </Button>
+                )}
+              </>
             )}
             <Button variant="ghost" size="sm" onClick={onClose}>
               <X className="h-5 w-5" />
@@ -318,9 +509,9 @@ function DayMissionsModal({
             {assignedSubtasks.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {assignedSubtasks.map((subtask) => (
-                  <div key={subtask.id} className="bg-gradient-to-br from-slate-50 to-gray-50 border border-gray-200 rounded-lg p-3 hover:shadow-md transition-all duration-200 group">
+                  <div key={subtask.id} className="bg-gradient-to-br from-slate-50 to-gray-50 border border-gray-200 rounded-lg p-3 hover:shadow-md transition-all duration-200 group relative">
                     <div className="flex items-start justify-between">
-                      <div className="flex-1 min-w-0">
+                      <div className="flex-1 min-w-0 pr-2">
                         <div className="flex items-center space-x-2 mb-2">
                           {subtask.isExecuted ? (
                             <CheckCircle2 className="h-4 w-4 text-green-600" />
@@ -347,18 +538,48 @@ function DayMissionsModal({
                           </Badge>
                         </div>
                       </div>
+                      
+                      {/* Remove Assignment Button - Always visible for managers */}
                       {canManage && (
                         <Button 
                           variant="ghost" 
                           size="sm"
                           onClick={() => {
-                            // Find the assignment for this subtask
-                            const assignment = assignments.find(a => a.subtaskIds.includes(subtask.id));
-                            if (assignment) {
+                            // Find the assignment for this subtask with better logging
+                            console.log('[DayMissionsModal] Looking for assignment for subtask:', subtask.id);
+                            console.log('[DayMissionsModal] Subtask details:', {
+                              id: subtask.id,
+                              assignedDate: subtask.assignedDate,
+                              isAssigned: subtask.isAssigned,
+                              assignmentId: subtask.assignmentId,
+                              scenario: subtask.scenario
+                            });
+                            console.log('[DayMissionsModal] Available assignments:', assignments?.map(a => ({
+                              id: a.id,
+                              subtaskIds: a.subtaskIds,
+                              includesThisSubtask: a.subtaskIds.includes(subtask.id),
+                              hasValidId: !!a.id
+                            })));
+                            
+                            const assignment = assignments?.find(a => a.subtaskIds.includes(subtask.id) && a.id);
+                            console.log('[DayMissionsModal] Found valid assignment:', assignment);
+                            
+                            if (assignment && assignment.id) {
+                              // New assignment system - only if assignment has a valid ID
+                              console.log('[DayMissionsModal] Removing via new system:', { assignmentId: assignment.id, subtaskId: subtask.id });
                               onRemoveAssignment?.(assignment.id, subtask.id);
+                            } else if (subtask.assignedDate && subtask.isAssigned) {
+                              // Legacy assignment system - clear the individual subtask assignment
+                              console.log('[DayMissionsModal] Removing via legacy system:', subtask.id);
+                              onRemoveLegacyAssignment?.(subtask.id);
+                            } else {
+                              console.warn('[DayMissionsModal] No valid assignment found for subtask:', subtask.id);
+                              console.warn('[DayMissionsModal] Attempting legacy removal anyway...');
+                              onRemoveLegacyAssignment?.(subtask.id);
                             }
                           }}
-                          className="text-red-400 hover:text-red-600 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity p-1 h-6 w-6"
+                          className="text-red-400 hover:text-red-600 hover:bg-red-50 transition-all p-1 h-7 w-7 rounded-md flex items-center justify-center"
+                          title="Remove assignment"
                         >
                           <X className="h-3 w-3" />
                         </Button>
@@ -389,25 +610,26 @@ function DayMissionsModal({
         {/* Task Assignment Modal */}
         {showAssignModal && canManage && (
           <div 
-            className="absolute inset-0 bg-black/50 flex items-center justify-center p-4"
+            className="absolute inset-0 bg-black/50 flex items-center justify-center p-2 sm:p-4"
             onClick={(e) => {
               if (e.target === e.currentTarget) {
                 setShowAssignModal(false);
               }
             }}
           >
-            <div className="bg-white rounded-lg w-full max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
-              <div className="p-4 border-b border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900">Assign Tasks</h3>
+            <div className="bg-white rounded-lg w-full max-w-4xl h-[95vh] sm:h-[85vh] overflow-hidden flex flex-col">
+              {/* Header - Fixed */}
+              <div className="flex-shrink-0 p-3 sm:p-4 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Assign Tasks</h3>
                 
-                {/* Assignment Type Selection */}
-                <div className="mt-4 mb-6">
-                  <Label className="text-sm font-medium text-gray-700 mb-3 block">Assignment Type</Label>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {/* Assignment Type Selection - Responsive */}
+                <div className="mb-4">
+                  <Label className="text-sm font-medium text-gray-700 mb-2 block">Assignment Type</Label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     <button
                       type="button"
                       onClick={() => setAssignmentType('single_day')}
-                      className={`p-3 rounded-lg border-2 transition-all duration-200 text-left ${
+                      className={`p-2 sm:p-3 rounded-lg border-2 transition-all duration-200 text-left ${
                         assignmentType === 'single_day' 
                           ? 'border-blue-500 bg-blue-50 text-blue-900' 
                           : 'border-gray-200 hover:border-gray-300 bg-white text-gray-700'
@@ -415,7 +637,7 @@ function DayMissionsModal({
                     >
                       <div className="flex items-center space-x-2 mb-1">
                         <Calendar className="h-4 w-4" />
-                        <span className="font-medium">Single Day</span>
+                        <span className="font-medium text-sm">Single Day</span>
                       </div>
                       <p className="text-xs text-gray-600">Assign to one specific date</p>
                     </button>
@@ -423,7 +645,7 @@ function DayMissionsModal({
                     <button
                       type="button"
                       onClick={() => setAssignmentType('date_range')}
-                      className={`p-3 rounded-lg border-2 transition-all duration-200 text-left ${
+                      className={`p-2 sm:p-3 rounded-lg border-2 transition-all duration-200 text-left ${
                         assignmentType === 'date_range' 
                           ? 'border-blue-500 bg-blue-50 text-blue-900' 
                           : 'border-gray-200 hover:border-gray-300 bg-white text-gray-700'
@@ -431,7 +653,7 @@ function DayMissionsModal({
                     >
                       <div className="flex items-center space-x-2 mb-1">
                         <CalendarRange className="h-4 w-4" />
-                        <span className="font-medium">Date Range</span>
+                        <span className="font-medium text-sm">Date Range</span>
                       </div>
                       <p className="text-xs text-gray-600">Set start and end dates</p>
                     </button>
@@ -439,7 +661,7 @@ function DayMissionsModal({
                     <button
                       type="button"
                       onClick={() => setAssignmentType('duration_days')}
-                      className={`p-3 rounded-lg border-2 transition-all duration-200 text-left ${
+                      className={`p-2 sm:p-3 rounded-lg border-2 transition-all duration-200 text-left ${
                         assignmentType === 'duration_days' 
                           ? 'border-blue-500 bg-blue-50 text-blue-900' 
                           : 'border-gray-200 hover:border-gray-300 bg-white text-gray-700'
@@ -447,19 +669,19 @@ function DayMissionsModal({
                     >
                       <div className="flex items-center space-x-2 mb-1">
                         <CalendarDays className="h-4 w-4" />
-                        <span className="font-medium">Duration</span>
+                        <span className="font-medium text-sm">Duration</span>
                       </div>
                       <p className="text-xs text-gray-600">Start date + number of days</p>
                     </button>
                   </div>
                 </div>
 
-                {/* Date Configuration */}
-                <div className="mb-6">
-                  <Label className="text-sm font-medium text-gray-700 mb-3 block">Date Configuration</Label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Date Configuration - Responsive */}
+                <div className="mb-4">
+                  <Label className="text-sm font-medium text-gray-700 mb-2 block">Date Configuration</Label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {assignmentType === 'single_day' && (
-                      <div>
+                      <div className="sm:col-span-2">
                         <Label htmlFor="single-date" className="text-sm text-gray-600">Date</Label>
                         <Input
                           id="single-date"
@@ -525,13 +747,13 @@ function DayMissionsModal({
                     )}
                   </div>
                   
-                  {/* Assignment Preview */}
-                  <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <div className="text-sm font-medium text-blue-800 mb-1">Assignment Preview</div>
-                    <div className="text-sm text-blue-700">
+                  {/* Assignment Preview - Compact */}
+                  <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="text-sm font-medium text-blue-800 mb-1">Preview</div>
+                    <div className="text-xs text-blue-700">
                       {getAssignmentPreviewDates().length > 0 ? (
                         <>
-                          <div>Dates: {getAssignmentPreviewDates().join(', ')}</div>
+                          <div>Dates: {getAssignmentPreviewDates().slice(0, 3).join(', ')}{getAssignmentPreviewDates().length > 3 ? '...' : ''}</div>
                           <div className="mt-1">Duration: {getAssignmentPreviewDates().length} day{getAssignmentPreviewDates().length !== 1 ? 's' : ''}</div>
                         </>
                       ) : (
@@ -541,23 +763,24 @@ function DayMissionsModal({
                   </div>
                 </div>
                 
-                <div className="flex items-center space-x-4 mt-2">
+                {/* Tab Navigation - Compact */}
+                <div className="flex items-center space-x-3 text-sm">
                   <button
                     onClick={() => setShowAlreadyAssigned(false)}
-                    className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                    className={`px-3 py-1.5 rounded-md font-medium transition-colors ${
                       !showAlreadyAssigned 
                         ? 'bg-blue-100 text-blue-800' 
-                        : 'text-gray-600 hover:text-gray-800'
+                        : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
                     }`}
                   >
                     Available ({availableSubtasks.length})
                   </button>
                   <button
                     onClick={() => setShowAlreadyAssigned(true)}
-                    className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                    className={`px-3 py-1.5 rounded-md font-medium transition-colors ${
                       showAlreadyAssigned 
                         ? 'bg-amber-100 text-amber-800' 
-                        : 'text-gray-600 hover:text-gray-800'
+                        : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
                     }`}
                   >
                     Already Assigned ({alreadyAssignedSubtasks.length})
@@ -588,7 +811,7 @@ function DayMissionsModal({
                     </div>
 
                     {/* Available scenarios */}
-                    <div className="space-y-4 mb-4 max-h-64 overflow-y-auto">
+                    <div className="space-y-4 mb-4">
                       {Object.entries(availableByScenario).map(([scenario, scenarioSubtasks]) => (
                         <div key={scenario} className="border border-gray-200 rounded-lg p-3">
                           <div className="flex items-center space-x-2 mb-2">
@@ -634,7 +857,7 @@ function DayMissionsModal({
                 ) : (
                   <>
                     {/* Already Assigned Tasks */}
-                    <div className="space-y-4 mb-4 max-h-64 overflow-y-auto">
+                    <div className="space-y-4 mb-4">
                       {Object.entries(alreadyAssignedByScenario).map(([scenario, scenarioSubtasks]) => (
                         <div key={scenario} className="border border-amber-200 rounded-lg p-3 bg-amber-50">
                           <div className="flex items-center space-x-2 mb-2">
@@ -728,6 +951,402 @@ function DayMissionsModal({
   );
 }
 
+// Calendar Week Row Component for Multi-day Assignment Bars
+interface CalendarWeekRowProps {
+  weekDays: Date[];
+  assignments: DateAssignment[];
+  subtasks: TTSubtask[];
+  selectedDate: Date;
+  onDateSelect: (date: Date) => void;
+  onDateClick: (date: Date) => void;
+  isCurrentMonth: (date: Date) => boolean;
+  getDateAssignmentInfo: (date: Date) => any;
+  getDateTooltip: (assignmentInfo: any, date: Date) => string;
+  canManage?: boolean;
+  onRemoveAssignment?: (assignmentId: string, subtaskId: string) => void;
+  onRemoveLegacyAssignment?: (subtaskId: string) => void;
+}
+
+function CalendarWeekRow({ 
+  weekDays, 
+  assignments, 
+  subtasks, 
+  selectedDate, 
+  onDateSelect, 
+  onDateClick, 
+  isCurrentMonth,
+  getDateAssignmentInfo,
+  getDateTooltip,
+  canManage,
+  onRemoveAssignment,
+  onRemoveLegacyAssignment
+}: CalendarWeekRowProps) {
+  const today = new Date();
+  
+  const isToday = (date: Date) => {
+    return date.toDateString() === today.toDateString();
+  };
+
+  const isSelected = (date: Date) => {
+    return date.toDateString() === selectedDate.toDateString();
+  };
+
+  // Helper function to get assignment color based on priority and type
+  const getAssignmentColor = (assignment: DateAssignment, assignedSubtasks: TTSubtask[]) => {
+    // Get the highest priority among assigned subtasks
+    const priorities = assignedSubtasks.map(s => parseInt(s.priority) || 3);
+    const highestPriority = Math.min(...priorities);
+    
+    // Determine completion status
+    const completedCount = assignedSubtasks.filter(s => s.isExecuted || s.status === 'completed').length;
+    const isCompleted = completedCount === assignedSubtasks.length;
+    const isPartial = completedCount > 0;
+    
+    if (isCompleted) {
+      return 'bg-emerald-200 text-emerald-800 border-emerald-300';
+    } else if (isPartial) {
+      return 'bg-sky-200 text-sky-800 border-sky-300';
+    } else {
+      switch (highestPriority) {
+        case 1: return 'bg-rose-200 text-rose-800 border-rose-300'; // High priority
+        case 2: return 'bg-amber-200 text-amber-800 border-amber-300'; // Medium priority
+        case 3: return 'bg-teal-200 text-teal-800 border-teal-300'; // Low priority
+        default: return 'bg-slate-200 text-slate-800 border-slate-300';
+      }
+    }
+  };
+
+  // Helper function for assignment dates
+  const getAssignmentDates = (assignment: DateAssignment): string[] => {
+    console.log('[getAssignmentDates] Processing assignment:', {
+      id: assignment.id,
+      assignmentType: assignment.assignmentType,
+      date: assignment.date,
+      startDate: assignment.startDate,
+      endDate: assignment.endDate,
+      durationDays: assignment.durationDays,
+      fullAssignment: assignment
+    });
+    
+    switch (assignment.assignmentType) {
+      case 'single_day':
+        const singleDayResult = assignment.date ? [assignment.date] : [];
+        console.log('[getAssignmentDates] Single day result:', singleDayResult);
+        return singleDayResult;
+      case 'date_range':
+        if (assignment.startDate && assignment.endDate) {
+          const dates: string[] = [];
+          const startDate = new Date(assignment.startDate);
+          const endDate = new Date(assignment.endDate);
+          
+          for (let current = new Date(startDate); current <= endDate; current.setDate(current.getDate() + 1)) {
+            dates.push(current.toISOString().split('T')[0]);
+          }
+          console.log('[getAssignmentDates] Date range result:', dates);
+          return dates;
+        }
+        console.log('[getAssignmentDates] Date range - missing start/end dates');
+        return [];
+      case 'duration_days':
+        if (assignment.startDate && assignment.durationDays) {
+          const dates: string[] = [];
+          const startDate = new Date(assignment.startDate);
+          
+          for (let i = 0; i < assignment.durationDays; i++) {
+            const current = new Date(startDate);
+            current.setDate(startDate.getDate() + i);
+            dates.push(current.toISOString().split('T')[0]);
+          }
+          console.log('[getAssignmentDates] Duration days result:', dates);
+          return dates;
+        }
+        console.log('[getAssignmentDates] Duration days - missing start date or duration');
+        return [];
+      default:
+        console.log('[getAssignmentDates] Unknown assignment type:', assignment.assignmentType);
+        return [];
+    }
+  };
+
+  // Calculate assignment bars for this week
+  const calculateAssignmentBars = () => {
+    const weekDateStrings = weekDays.map(d => d.toISOString().split('T')[0]);
+    const bars: Array<{
+      assignment: DateAssignment;
+      startCol: number;
+      endCol: number;
+      subtasks: TTSubtask[];
+      level: number;
+    }> = [];
+
+    // Process each assignment
+    assignments.forEach(assignment => {
+      const assignmentDates = getAssignmentDates(assignment);
+      const weekAssignmentDates = assignmentDates.filter(date => weekDateStrings.includes(date));
+      
+      if (weekAssignmentDates.length > 0) {
+        const startCol = weekDateStrings.indexOf(weekAssignmentDates[0]);
+        const endCol = weekDateStrings.indexOf(weekAssignmentDates[weekAssignmentDates.length - 1]);
+        
+        if (startCol !== -1 && endCol !== -1) {
+          const assignedSubtasks = subtasks.filter(s => assignment.subtaskIds.includes(s.id));
+          
+          bars.push({
+            assignment,
+            startCol,
+            endCol,
+            subtasks: assignedSubtasks,
+            level: 0 // Will be calculated below
+          });
+        }
+      }
+    });
+
+    // Also handle legacy assignments
+    const legacyBars = new Map<string, {
+      date: string;
+      subtasks: TTSubtask[];
+      level: number;
+    }>();
+
+    const newSystemSubtaskIds = new Set(
+      bars.flatMap(bar => bar.subtasks.map(s => s.id))
+    );
+
+    subtasks.forEach(subtask => {
+      if (
+        subtask.assignedDate && 
+        subtask.isAssigned && 
+        weekDateStrings.includes(subtask.assignedDate) &&
+        !newSystemSubtaskIds.has(subtask.id) // Check if not already processed
+      ) {
+        const dateKey = subtask.assignedDate;
+        if (!legacyBars.has(dateKey)) {
+          legacyBars.set(dateKey, {
+            date: dateKey,
+            subtasks: [],
+            level: 0
+          });
+        }
+        legacyBars.get(dateKey)!.subtasks.push(subtask);
+      }
+    });
+
+    // Convert legacy bars to assignment bar format
+    legacyBars.forEach((legacyBar) => {
+      const colIndex = weekDateStrings.indexOf(legacyBar.date);
+      if (colIndex !== -1) {
+        bars.push({
+          assignment: {
+            id: `legacy-${legacyBar.date}`,
+            assignmentType: 'single_day',
+            date: legacyBar.date,
+            subtaskIds: legacyBar.subtasks.map(s => s.id),
+            assignedBy: 'system',
+            assignedAt: new Date().toISOString(),
+            isActive: true
+          },
+          startCol: colIndex,
+          endCol: colIndex,
+          subtasks: legacyBar.subtasks,
+          level: 0
+        });
+      }
+    });
+
+    // Calculate levels (stacking) to avoid overlaps
+    bars.forEach((bar, index) => {
+      let level = 0;
+      const previousBars = bars.slice(0, index);
+      
+      while (true) {
+        const conflicts = previousBars.filter(prevBar => 
+          prevBar.level === level &&
+          !(bar.endCol < prevBar.startCol || bar.startCol > prevBar.endCol)
+        );
+        
+        if (conflicts.length === 0) {
+          bar.level = level;
+          break;
+        }
+        level++;
+      }
+    });
+
+    return bars;
+  };
+
+  const assignmentBars = calculateAssignmentBars();
+  const maxLevel = Math.max(0, ...assignmentBars.map(bar => bar.level));
+  const mobileHeight = 100 + (maxLevel * 20); // Smaller spacing for mobile
+  const desktopHeight = 140 + (maxLevel * 28); // Larger spacing for desktop
+
+  return (
+    <div 
+      className="relative border-b border-gray-100 last:border-b-0" 
+      style={{ 
+        minHeight: `${mobileHeight}px`,
+        // Use CSS custom properties for responsive height
+      }}
+    >
+      {/* Day cells */}
+      <div className="grid grid-cols-7 h-full">
+        {weekDays.map((date, dayIndex) => {
+          const isTodayDate = isToday(date);
+          const isSelectedDate = isSelected(date);
+          const isCurrentMonthDate = isCurrentMonth(date);
+          const assignmentInfo = getDateAssignmentInfo(date);
+          
+          // Fixed sizing approach with modern styling - responsive
+          let dayClass = 'h-full min-h-[120px] sm:min-h-[140px] relative cursor-pointer transition-all duration-200 border-r border-gray-100 last:border-r-0 hover:bg-gray-25 flex flex-col p-1 sm:p-2';
+          let textClass = 'text-sm font-medium text-gray-700';
+          let dateNumClass = 'text-base sm:text-lg font-semibold mb-1 sm:mb-2';
+          
+          // Today styling
+          if (isTodayDate) {
+            dayClass = dayClass.replace('hover:bg-gray-25', 'hover:bg-blue-50');
+            dayClass += ' bg-blue-50 border-r-blue-100';
+            textClass = 'text-blue-700 font-medium';
+            dateNumClass = 'text-blue-800 font-bold text-base sm:text-lg mb-1 sm:mb-2';
+          }
+          // Selected styling
+          else if (isSelectedDate) {
+            dayClass = dayClass.replace('hover:bg-gray-25', 'hover:bg-indigo-50');
+            dayClass += ' bg-indigo-50 border-r-indigo-100';
+            textClass = 'text-indigo-700 font-medium';
+            dateNumClass = 'text-indigo-800 font-semibold text-base sm:text-lg mb-1 sm:mb-2';
+          }
+          // Other month dates - muted
+          else if (!isCurrentMonthDate) {
+            textClass = 'text-gray-400';
+            dateNumClass = 'text-gray-400 text-base sm:text-lg mb-1 sm:mb-2';
+            dayClass = dayClass.replace('hover:bg-gray-25', 'hover:bg-gray-25');
+          }
+          
+          return (
+            <button
+              key={date.toISOString()}
+              onClick={() => {
+                onDateSelect(date);
+                onDateClick(date);
+              }}
+              className={dayClass}
+              title={getDateTooltip(assignmentInfo, date)}
+            >
+              {/* Date number */}
+              <div className={dateNumClass}>
+                {date.getDate()}
+              </div>
+              
+              {/* Today indicator */}
+              {isTodayDate && (
+                <div className="absolute inset-0 bg-blue-100 rounded-xl opacity-50 pointer-events-none"></div>
+              )}
+              
+              {/* Task count indicator for mobile - always visible */}
+              {assignmentInfo.hasAssignments && (
+                <div className="mt-auto flex items-center justify-end">
+                  <div className={`w-2 h-2 rounded-full ${
+                    assignmentInfo.dayStatus === 'completed' ? 'bg-emerald-400' :
+                    assignmentInfo.dayStatus === 'partial' ? 'bg-sky-400' :
+                    assignmentInfo.dayStatus === 'pending_future' ? 'bg-amber-300' :
+                    assignmentInfo.dayStatus === 'pending_past' ? 'bg-rose-400' : 'bg-gray-300'
+                  }`}></div>
+                </div>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Assignment bars overlay */}
+      <div className="absolute inset-0 pointer-events-none">
+        {assignmentBars.map((bar, index) => {
+          const colorClass = getAssignmentColor(bar.assignment, bar.subtasks);
+          const width = ((bar.endCol - bar.startCol + 1) / 7) * 100;
+          const left = (bar.startCol / 7) * 100;
+          const top = 45 + (bar.level * 24); // Mobile: smaller spacing, Desktop: larger
+          const height = 20; // Mobile: smaller height, Desktop: larger
+          
+          return (
+            <div
+              key={`${bar.assignment.id}-${index}`}
+              className={`absolute rounded-lg border transition-all duration-200 hover:shadow-sm hover:z-10 group ${colorClass}`}
+              style={{
+                left: `${left}%`,
+                width: `${width}%`,
+                top: `${top}px`,
+                height: `${height}px`,
+                zIndex: bar.level + 1
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                // Handle assignment bar click - could open assignment details
+              }}
+              title={`${bar.assignment.title || 'Assignment'} - ${bar.subtasks.length} tasks`}
+            >
+              <div className="flex items-center justify-between h-full px-1 sm:px-2 text-xs font-medium truncate">
+                <span className="truncate text-xs sm:text-sm flex-1">
+                  {bar.assignment.title || `${bar.subtasks[0]?.scenario || 'Tasks'}`}
+                </span>
+                
+                {/* Assignment controls */}
+                <div className="flex items-center space-x-1 flex-shrink-0">
+                  <span className="hidden sm:inline text-xs opacity-75">
+                    {bar.subtasks.filter(s => s.isExecuted || s.status === 'completed').length}/{bar.subtasks.length}
+                  </span>
+                  
+                  {/* Remove assignment button */}
+                  {canManage && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (bar.assignment.id.startsWith('legacy-')) {
+                          // Handle legacy assignment removal
+                          bar.subtasks.forEach(subtask => {
+                            onRemoveLegacyAssignment?.(subtask.id);
+                          });
+                        } else {
+                          // Remove all subtasks from this assignment
+                          bar.subtasks.forEach(subtask => {
+                            onRemoveAssignment?.(bar.assignment.id, subtask.id);
+                          });
+                        }
+                      }}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:bg-black hover:bg-opacity-10 rounded text-white hover:text-red-200"
+                      title="Remove assignment"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+              </div>
+              
+              {/* Progress indicator */}
+              <div className="absolute bottom-0 left-0 h-1 bg-black bg-opacity-10 rounded-b-lg">
+                <div 
+                  className="h-full bg-white bg-opacity-50 rounded-b-lg transition-all duration-300"
+                  style={{ 
+                    width: `${(bar.subtasks.filter(s => s.isExecuted || s.status === 'completed').length / bar.subtasks.length) * 100}%` 
+                  }}
+                ></div>
+              </div>
+              
+              {/* Mobile priority indicator */}
+              <div className="absolute top-1 right-1 sm:hidden">
+                <div className={`w-1.5 h-1.5 rounded-full ${
+                  bar.subtasks.filter(s => s.isExecuted || s.status === 'completed').length === bar.subtasks.length ? 'bg-white bg-opacity-75' :
+                  bar.subtasks.some(s => s.isExecuted || s.status === 'completed') ? 'bg-yellow-200' : 'bg-white bg-opacity-60'
+                }`}></div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // Enhanced Timeline/Calendar Component
 interface TimelineCalendarProps {
   selectedDate: Date;
@@ -737,6 +1356,9 @@ interface TimelineCalendarProps {
   assignments: DateAssignment[];
   subtasks: TTSubtask[];
   onDateClick: (date: Date) => void;
+  canManage?: boolean;
+  onRemoveAssignment?: (assignmentId: string, subtaskId: string) => void;
+  onRemoveLegacyAssignment?: (subtaskId: string) => void;
 }
 
 function TimelineCalendar({ 
@@ -746,14 +1368,17 @@ function TimelineCalendar({
   onViewChange, 
   assignments,
   subtasks,
-  onDateClick 
+  onDateClick,
+  canManage,
+  onRemoveAssignment,
+  onRemoveLegacyAssignment
 }: TimelineCalendarProps) {
   const today = new Date();
   
   const getDateAssignmentInfo = (date: Date) => {
     const dateString = date.toISOString().split('T')[0];
     
-    // Find all assignments that cover this date
+    // Find all assignments that cover this date (new system)
     const relevantAssignments = assignments.filter(assignment => {
       switch (assignment.assignmentType) {
         case 'single_day':
@@ -778,9 +1403,18 @@ function TimelineCalendar({
       }
     });
 
-    // Get all subtasks assigned to this date
+    // Get all subtasks assigned to this date (new system)
     const assignedSubtaskIds = relevantAssignments.flatMap(a => a.subtaskIds);
-    const assignedSubtasks = subtasks.filter(s => assignedSubtaskIds.includes(s.id));
+    let assignedSubtasks = subtasks.filter(s => assignedSubtaskIds.includes(s.id));
+    
+    // Also check for legacy individual subtask assignments
+    const legacyAssignedSubtasks = subtasks.filter(subtask => 
+      subtask.assignedDate === dateString && 
+      subtask.isAssigned &&
+      !assignedSubtasks.some(s => s.id === subtask.id) // Avoid duplicates
+    );
+    
+    assignedSubtasks = [...assignedSubtasks, ...legacyAssignedSubtasks];
     
     const totalAssigned = assignedSubtasks.length;
     const completed = assignedSubtasks.filter(s => s.isExecuted || s.status === 'completed').length;
@@ -962,7 +1596,7 @@ function TimelineCalendar({
     const isTodayDate = isToday(date);
     
     // Fixed base styling for consistent sizing
-    let baseClass = 'relative transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 overflow-hidden';
+    let baseClass = 'relative transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-offset-1 overflow-hidden';
     let dateClass = '';
     let textClass = '';
     let borderClass = '';
@@ -970,45 +1604,45 @@ function TimelineCalendar({
     
     // Today styling - minimal border approach
     if (isTodayDate) {
-      borderClass = 'ring-2 ring-blue-600 ring-inset shadow-lg';
-      bgClass = 'bg-white border-2 border-blue-600';
-      textClass = 'text-blue-900 font-bold';
-      dateClass = 'shadow-md';
+      borderClass = 'border-2 border-blue-300';
+      bgClass = 'bg-blue-100';
+      textClass = 'text-blue-800 font-semibold';
+      dateClass = '';
     }
     // Selected styling - secondary prominence
     else if (isSelectedDate) {
-      borderClass = 'ring-1 ring-blue-400 ring-inset';
-      bgClass = 'bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-300';
-      textClass = 'text-blue-900 font-semibold';
-      dateClass = 'shadow-sm';
+      borderClass = 'border border-indigo-300';
+      bgClass = 'bg-indigo-100';
+      textClass = 'text-indigo-800 font-medium';
+      dateClass = '';
     }
     // Assignment status styling
     else {
       switch (assignmentInfo.dayStatus) {
         case 'completed':
-          bgClass = 'bg-gradient-to-br from-emerald-50 to-green-50 border border-emerald-200';
-          textClass = 'text-emerald-900';
-          borderClass = 'hover:ring-1 hover:ring-emerald-300';
+          bgClass = 'bg-emerald-100 border border-emerald-200';
+          textClass = 'text-emerald-800';
+          borderClass = 'hover:border-emerald-300';
           break;
         case 'partial':
-          bgClass = 'bg-gradient-to-br from-sky-50 to-blue-50 border border-sky-200';
-          textClass = 'text-sky-900';
-          borderClass = 'hover:ring-1 hover:ring-sky-300';
+          bgClass = 'bg-sky-100 border border-sky-200';
+          textClass = 'text-sky-800';
+          borderClass = 'hover:border-sky-300';
           break;
         case 'pending_future':
-          bgClass = 'bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200';
-          textClass = 'text-amber-900';
-          borderClass = 'hover:ring-1 hover:ring-amber-300';
+          bgClass = 'bg-amber-100 border border-amber-200';
+          textClass = 'text-amber-800';
+          borderClass = 'hover:border-amber-300';
           break;
         case 'pending_past':
-          bgClass = 'bg-gradient-to-br from-rose-50 to-red-50 border border-rose-200';
-          textClass = 'text-rose-900';
-          borderClass = 'hover:ring-1 hover:ring-rose-300';
+          bgClass = 'bg-rose-100 border border-rose-200';
+          textClass = 'text-rose-800';
+          borderClass = 'hover:border-rose-300';
           break;
         default:
           bgClass = 'bg-white border border-gray-200';
           textClass = 'text-gray-700';
-          borderClass = 'hover:border-gray-300 hover:shadow-sm';
+          borderClass = 'hover:border-gray-300';
       }
     }
     
@@ -1031,13 +1665,13 @@ function TimelineCalendar({
           )}
           
           {/* Date number - main focus */}
-          <div className={`${isTodayDate ? 'text-xl font-black' : isSelectedDate ? 'text-lg font-bold' : 'text-lg font-semibold'} ${textClass}`}>
+          <div className={`${isTodayDate ? 'text-xl font-black relative z-10' : isSelectedDate ? 'text-lg font-bold' : 'text-lg font-semibold'} ${textClass}`}>
             {formatDate(date, 'dayNum')}
           </div>
           
           {/* Today indicator */}
           {isTodayDate && (
-            <div className="text-xs font-bold text-blue-600 mt-1 px-2 py-0.5 bg-blue-100 rounded-full">
+            <div className="text-xs font-medium text-blue-700 mt-1 px-2 py-0.5 bg-blue-200 rounded-lg">
               Today
             </div>
           )}
@@ -1048,23 +1682,23 @@ function TimelineCalendar({
           <div className="absolute top-1 right-1">
             <div className="relative">
               {/* Status indicator */}
-              <div className="w-3 h-3 rounded-full shadow-sm border border-white">
+              <div className="w-3 h-3 rounded-full border border-white">
                 {assignmentInfo.dayStatus === 'completed' && (
-                  <div className="w-full h-full bg-emerald-500 rounded-full"></div>
+                  <div className="w-full h-full bg-emerald-400 rounded-full"></div>
                 )}
                 {assignmentInfo.dayStatus === 'partial' && (
-                  <div className="w-full h-full bg-sky-500 rounded-full"></div>
+                  <div className="w-full h-full bg-sky-400 rounded-full"></div>
                 )}
                 {assignmentInfo.dayStatus === 'pending_future' && (
-                  <div className="w-full h-full bg-amber-400 rounded-full"></div>
+                  <div className="w-full h-full bg-amber-300 rounded-full"></div>
                 )}
                 {assignmentInfo.dayStatus === 'pending_past' && (
-                  <div className="w-full h-full bg-rose-500 rounded-full"></div>
+                  <div className="w-full h-full bg-rose-400 rounded-full"></div>
                 )}
               </div>
               
               {/* Task count badge */}
-              <div className="absolute -top-1 -right-1 min-w-[16px] h-4 bg-gray-900 text-white text-xs rounded-full flex items-center justify-center font-bold shadow-sm px-1">
+              <div className="absolute -top-1 -right-1 min-w-[16px] h-4 bg-gray-700 text-white text-xs rounded-full flex items-center justify-center font-medium px-1">
                 {assignmentInfo.totalAssigned}
               </div>
             </div>
@@ -1080,25 +1714,25 @@ function TimelineCalendar({
                 <div className="flex items-center h-2">
                   {/* Start indicator */}
                   {multiDay.isStart && (
-                    <div className="w-2 h-2 bg-blue-600 rounded-full flex-shrink-0"></div>
+                    <div className="w-2 h-2 bg-blue-400 rounded-full flex-shrink-0"></div>
                   )}
                   
                   {/* Progress bar */}
-                  <div className="flex-1 h-1 mx-1 bg-blue-200 rounded-full overflow-hidden">
+                  <div className="flex-1 h-1 mx-1 bg-blue-100 rounded-full overflow-hidden">
                     <div 
-                      className="h-full bg-blue-600 transition-all duration-300 rounded-full"
+                      className="h-full bg-blue-400 transition-all duration-300 rounded-full"
                       style={{ width: `${multiDay.progress}%` }}
                     ></div>
                   </div>
                   
                   {/* End indicator */}
                   {multiDay.isEnd && (
-                    <div className="w-2 h-2 bg-blue-600 rounded-full flex-shrink-0"></div>
+                    <div className="w-2 h-2 bg-blue-400 rounded-full flex-shrink-0"></div>
                   )}
                 </div>
                 
                 {/* Day indicator */}
-                <div className="text-xs text-blue-700 font-bold text-center">
+                <div className="text-xs text-blue-600 font-medium text-center">
                   {multiDay.currentDay}/{multiDay.totalDays}
                 </div>
               </div>
@@ -1153,18 +1787,18 @@ function TimelineCalendar({
   };
 
   return (
-    <Card className="border-0 shadow-sm bg-white">
+    <Card className="border border-gray-200 bg-white rounded-xl">
       {/* View Switcher */}
       <div className="flex items-center justify-center mb-6 px-6 pt-6">
-        <div className="flex bg-gray-50 rounded-lg p-1 gap-1">
+        <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
           <Button
             variant={view === 'carousel' ? 'default' : 'ghost'}
             size="sm"
             onClick={() => onViewChange('carousel')}
-            className={`h-8 px-4 rounded-md transition-all ${
+            className={`h-8 px-4 rounded-lg transition-all ${
               view === 'carousel' 
-                ? 'bg-white shadow-sm border-0 text-gray-900 hover:bg-gray-50' 
-                : 'hover:bg-gray-100 text-gray-600 border-0'
+                ? 'bg-white text-gray-900 hover:bg-gray-50' 
+                : 'hover:bg-gray-200 text-gray-600'
             }`}
           >
             <CalendarRange className="h-3 w-3 mr-2" />
@@ -1174,10 +1808,10 @@ function TimelineCalendar({
             variant={view === 'week' ? 'default' : 'ghost'}
             size="sm"
             onClick={() => onViewChange('week')}
-            className={`h-8 px-4 rounded-md transition-all ${
+            className={`h-8 px-4 rounded-lg transition-all ${
               view === 'week' 
-                ? 'bg-white shadow-sm border-0 text-gray-900 hover:bg-gray-50' 
-                : 'hover:bg-gray-100 text-gray-600 border-0'
+                ? 'bg-white text-gray-900 hover:bg-gray-50' 
+                : 'hover:bg-gray-200 text-gray-600'
             }`}
           >
             <CalendarDays className="h-3 w-3 mr-2" />
@@ -1187,10 +1821,10 @@ function TimelineCalendar({
             variant={view === 'month' ? 'default' : 'ghost'}
             size="sm"
             onClick={() => onViewChange('month')}
-            className={`h-8 px-4 rounded-md transition-all ${
+            className={`h-8 px-4 rounded-lg transition-all ${
               view === 'month' 
-                ? 'bg-white shadow-sm border-0 text-gray-900 hover:bg-gray-50' 
-                : 'hover:bg-gray-100 text-gray-600 border-0'
+                ? 'bg-white text-gray-900 hover:bg-gray-50' 
+                : 'hover:bg-gray-200 text-gray-600'
             }`}
           >
             <Grid3X3 className="h-3 w-3 mr-2" />
@@ -1212,19 +1846,19 @@ function TimelineCalendar({
           {/* Simplified Legend */}
           <div className="hidden sm:flex items-center space-x-3 text-xs text-gray-500 mr-4">
             <div className="flex items-center space-x-1">
-              <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+              <div className="w-2 h-2 bg-emerald-300 rounded-full"></div>
               <span>Done</span>
             </div>
             <div className="flex items-center space-x-1">
-              <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+              <div className="w-2 h-2 bg-sky-300 rounded-full"></div>
               <span>Progress</span>
             </div>
             <div className="flex items-center space-x-1">
-              <div className="w-2 h-2 bg-amber-400 rounded-full"></div>
+              <div className="w-2 h-2 bg-amber-300 rounded-full"></div>
               <span>Planned</span>
             </div>
             <div className="flex items-center space-x-1">
-              <div className="w-2 h-2 bg-red-400 rounded-full"></div>
+              <div className="w-2 h-2 bg-rose-300 rounded-full"></div>
               <span>Overdue</span>
             </div>
           </div>
@@ -1259,119 +1893,73 @@ function TimelineCalendar({
         )}
 
         {view === 'week' && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
             {/* Clean week grid */}
             <div className="space-y-0">
               {/* Day headers */}
-              <div className="grid grid-cols-7 bg-gray-50 border-b border-gray-100">
+              <div className="grid grid-cols-7 bg-gray-50">
                 {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, index) => (
-                  <div key={index} className="text-center text-xs font-semibold text-gray-600 py-3 border-r border-gray-100 last:border-r-0">
+                  <div key={index} className="text-center text-xs font-medium text-gray-600 py-3 border-r border-gray-100 last:border-r-0">
                     {day}
                   </div>
                 ))}
               </div>
               
-              {/* Week days */}
-              <div className="grid grid-cols-7">
-                {generateWeekDays().map((date, index) => {
-                  const baseClass = `h-20 relative cursor-pointer transition-all duration-200 border-r border-gray-100 last:border-r-0`;
-                  return renderDateButton(date, baseClass);
-                })}
-              </div>
+              {/* Week view with assignment bars */}
+              <CalendarWeekRow
+                weekDays={generateWeekDays()}
+                assignments={assignments}
+                subtasks={subtasks}
+                selectedDate={selectedDate}
+                onDateSelect={onDateSelect}
+                onDateClick={onDateClick}
+                isCurrentMonth={() => true} // All days in week view are considered current
+                getDateAssignmentInfo={getDateAssignmentInfo}
+                getDateTooltip={getDateTooltip}
+                canManage={canManage}
+                onRemoveAssignment={onRemoveAssignment}
+                onRemoveLegacyAssignment={onRemoveLegacyAssignment}
+              />
             </div>
           </div>
         )}
 
         {view === 'month' && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
             {/* Clean month grid */}
             <div className="space-y-0">
               {/* Day headers */}
-              <div className="grid grid-cols-7 bg-gray-50 border-b border-gray-100">
+              <div className="grid grid-cols-7 bg-gray-50">
                 {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, index) => (
-                  <div key={index} className="text-center text-xs font-semibold text-gray-600 py-3 border-r border-gray-100 last:border-r-0">
+                  <div key={index} className="text-center text-xs font-medium text-gray-600 py-3 border-r border-gray-100 last:border-r-0">
                     {day}
                   </div>
                 ))}
               </div>
               
-              {/* Calendar days - Fixed height grid */}
-              <div className="grid grid-cols-7">
-                {generateMonthDays().map((date, index) => {
-                  const isTodayDate = isToday(date);
-                  const isSelectedDate = isSelected(date);
-                  const isCurrentMonthDate = isCurrentMonth(date);
-                  const assignmentInfo = getDateAssignmentInfo(date);
-                  
-                  // Fixed sizing approach with modern styling
-                  let dayClass = 'h-16 relative cursor-pointer transition-all duration-200 border-r border-b border-gray-100 last:border-r-0 hover:bg-gray-50 flex flex-col items-center justify-center';
-                  let textClass = 'text-sm font-medium text-gray-700';
-                  let dateNumClass = 'text-sm font-semibold';
-                  
-                  // Today styling - minimal border approach
-                  if (isTodayDate) {
-                    dayClass = dayClass.replace('hover:bg-gray-50', 'hover:bg-blue-50');
-                    dayClass += ' ring-2 ring-inset ring-blue-600 bg-blue-50';
-                    textClass = 'text-blue-900 font-bold';
-                    dateNumClass = 'text-blue-900 font-black';
-                  }
-                  // Selected styling - subtle
-                  else if (isSelectedDate) {
-                    dayClass = dayClass.replace('hover:bg-gray-50', 'hover:bg-blue-50');
-                    dayClass += ' bg-blue-50 ring-1 ring-inset ring-blue-300';
-                    textClass = 'text-blue-700 font-semibold';
-                    dateNumClass = 'text-blue-700 font-bold';
-                  }
-                  // Other month dates - muted
-                  else if (!isCurrentMonthDate) {
-                    textClass = 'text-gray-400';
-                    dateNumClass = 'text-gray-400';
-                    dayClass = dayClass.replace('hover:bg-gray-50', 'hover:bg-gray-25');
-                  }
-                  
-                  return (
-                    <button
-                      key={date.toISOString()}
-                      onClick={() => {
-                        onDateSelect(date);
-                        onDateClick(date);
-                      }}
-                      className={dayClass}
-                      title={getDateTooltip(assignmentInfo, date)}
-                    >
-                      {/* Date number */}
-                      <div className={`${dateNumClass} mb-1`}>
-                        {formatDate(date, 'dayNum')}
-                      </div>
-                      
-                      {/* Today badge */}
-                      {isTodayDate && (
-                        <div className="text-xs font-bold text-blue-600 px-1.5 py-0.5 bg-blue-100 rounded-full">
-                          Today
-                        </div>
-                      )}
-                      
-                      {/* Assignment indicator - minimal dot */}
-                      {assignmentInfo.hasAssignments && (
-                        <div className="absolute bottom-1 right-1 flex items-center space-x-1">
-                          <div className={`w-2 h-2 rounded-full ${
-                            assignmentInfo.dayStatus === 'completed' ? 'bg-emerald-500' :
-                            assignmentInfo.dayStatus === 'partial' ? 'bg-sky-500' :
-                            assignmentInfo.dayStatus === 'pending_future' ? 'bg-amber-400' :
-                            assignmentInfo.dayStatus === 'pending_past' ? 'bg-rose-500' : 'bg-gray-400'
-                          }`}></div>
-                          <div className={`text-xs font-bold min-w-[16px] text-center ${
-                            isTodayDate ? 'text-blue-700' : 
-                            isSelectedDate ? 'text-blue-600' : 'text-gray-600'
-                          }`}>
-                            {assignmentInfo.totalAssigned}
-                          </div>
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
+              {/* Calendar weeks with assignment bars */}
+              {Array.from({ length: 6 }).map((_, weekIndex) => {
+                const weekDays = generateMonthDays().slice(weekIndex * 7, (weekIndex + 1) * 7);
+                if (weekDays.length === 0) return null;
+                
+                return (
+                  <CalendarWeekRow
+                    key={weekIndex}
+                    weekDays={weekDays}
+                    assignments={assignments}
+                    subtasks={subtasks}
+                    selectedDate={selectedDate}
+                    onDateSelect={onDateSelect}
+                    onDateClick={onDateClick}
+                    isCurrentMonth={isCurrentMonth}
+                    getDateAssignmentInfo={getDateAssignmentInfo}
+                    getDateTooltip={getDateTooltip}
+                    canManage={canManage}
+                    onRemoveAssignment={onRemoveAssignment}
+                    onRemoveLegacyAssignment={onRemoveLegacyAssignment}
+                  />
+                );
+              })}
             </div>
           </div>
         )}
@@ -2144,6 +2732,22 @@ function TaskPageContent() {
 
     try {
       setIsLoading(true);
+      
+      // Enhanced debug logging
+      console.log('[Frontend] Removing assignment:', { assignmentId, subtaskId });
+      console.log('[Frontend] Available assignments:', task.dateAssignments?.map(a => ({
+        id: a.id,
+        subtaskIds: a.subtaskIds,
+        type: a.assignmentType
+      })) || []);
+      
+      // Validate inputs
+      if (!assignmentId || !subtaskId) {
+        console.error('[Frontend] Missing required data:', { assignmentId, subtaskId });
+        alert('Error: Missing assignment or subtask ID');
+        return;
+      }
+      
       const response = await fetch(`/api/tasks/tt/${taskId}/assignments`, {
         method: 'DELETE',
         headers: {
@@ -2151,24 +2755,61 @@ function TaskPageContent() {
           'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
-          assignmentId,
-          subtaskId,
+          assignmentId: assignmentId,
+          subtaskId: subtaskId,
         }),
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          await fetchTask(); // Refresh task data
-        } else {
-          alert('Failed to remove assignment: ' + data.error);
-        }
+      const data = await response.json();
+      
+      console.log('[Frontend] Delete response:', { status: response.status, data });
+      
+      if (response.ok && data.success) {
+        await fetchTask(); // Refresh task data
+        console.log('[Frontend] Assignment removed successfully');
       } else {
-        alert('Failed to remove assignment');
+        console.error('[Frontend] API Error:', data);
+        alert('Failed to remove assignment: ' + (data.error || 'Unknown error'));
       }
     } catch (error) {
       console.error('Error removing assignment:', error);
       alert('Failed to remove assignment');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRemoveLegacyAssignment = async (subtaskId: string) => {
+    if (!task || !canManage) return;
+
+    try {
+      setIsLoading(true);
+      const response = await fetch(`/api/tasks/tt/${taskId}/subtasks/${subtaskId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          assignedDate: undefined,
+          isAssigned: false,
+          assignmentId: undefined,
+          assignmentType: undefined,
+          assignedStartDate: undefined,
+          assignedEndDate: undefined,
+          executionStatus: 'not_assigned'
+        }),
+      });
+
+      if (response.ok) {
+        await fetchTask(); // Refresh task data
+      } else {
+        console.error('Failed to remove legacy assignment');
+        alert('Failed to remove legacy assignment');
+      }
+    } catch (error) {
+      console.error('Error removing legacy assignment:', error);
+      alert('Failed to remove legacy assignment');
     } finally {
       setIsLoading(false);
     }
@@ -2266,76 +2907,79 @@ function TaskPageContent() {
         ) : task ? (
           <div className="space-y-6">
             {/* Task Header */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <div className="flex items-start justify-between mb-4">
+            <div className="bg-white rounded-lg border border-gray-200 p-4">
+              <div className="flex items-start justify-between mb-3">
                 <div className="flex-1">
                   <div className="flex items-center space-x-2 mb-2">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={() => router.push('/?section=TT')}
-                      className="text-blue-600 hover:text-blue-700"
+                      className="text-blue-600 hover:text-blue-700 h-8 px-2"
                     >
-                      <ArrowLeft className="h-4 w-4 mr-2" />
-                      Back to TT Tasks
+                      <ArrowLeft className="h-3 w-3 mr-1" />
+                      Back
                     </Button>
                   </div>
-                  <h1 className="text-3xl font-bold text-gray-900 mb-2">{task.title}</h1>
-                  <div className="flex items-center space-x-4 text-sm text-gray-600">
+                  <h1 className="text-2xl font-bold text-gray-900 mb-2">{task.title}</h1>
+                  <div className="flex items-center space-x-3 text-sm text-gray-600">
                     <div className="flex items-center space-x-1">
-                      <MapPin className="h-4 w-4" />
+                      <MapPin className="h-3 w-3" />
                       <span>{task.location}</span>
                     </div>
                     <div className="flex items-center space-x-1">
-                      <FileText className="h-4 w-4" />
+                      <FileText className="h-3 w-3" />
                       <span>{task.totalSubtasks} subtasks</span>
                     </div>
                     <div className="flex items-center space-x-1">
-                      <Clock className="h-4 w-4" />
+                      <Clock className="h-3 w-3" />
                       <span>Updated: {formatDate(task.updatedAt)}</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center space-x-3">
-                  <Badge className={getPriorityColor(task.priority)} variant="outline">
+                <div className="flex items-center space-x-2">
+                  <Badge className={getPriorityColor(task.priority)} variant="outline" size="sm">
                     {task.priority}
                   </Badge>
-                  <Badge className={getStatusColor(task.status)} variant="outline">
+                  <Badge className={getStatusColor(task.status)} variant="outline" size="sm">
                     {task.status}
                   </Badge>
-                  <Badge variant="outline">🏁 TT</Badge>
-                  <Badge variant="outline">v{task.version}</Badge>
+                  <Badge variant="outline" size="sm">🏁 TT</Badge>
+                  <Badge variant="outline" size="sm">v{task.version}</Badge>
                 </div>
               </div>
 
               {task.description && (
-                <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+                <div className="mb-3 p-3 bg-gray-50 rounded-lg text-sm">
                   <p className="text-gray-700">{task.description}</p>
                 </div>
               )}
 
-              {/* Progress Overview */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-blue-50 rounded-lg p-4">
-                  <div className="text-sm font-medium text-blue-700 mb-1">Total Subtasks</div>
-                  <div className="text-2xl font-bold text-blue-900">{task.totalSubtasks}</div>
-                </div>
-                <div className="bg-green-50 rounded-lg p-4">
-                  <div className="text-sm font-medium text-green-700 mb-1">Completed</div>
-                  <div className="text-2xl font-bold text-green-900">
-                    {task.subtasks.filter(s => s.isExecuted || s.status === 'completed').length}
+              {/* Compact Progress Overview */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-6">
+                  <div className="text-sm">
+                    <span className="text-gray-600">Progress: </span>
+                    <span className="font-semibold text-gray-900">
+                      {task.subtasks.filter(s => s.isExecuted || s.status === 'completed').length}/{task.totalSubtasks}
+                    </span>
+                    <span className="text-gray-500 ml-1">
+                      ({Math.round((task.subtasks.filter(s => s.isExecuted || s.status === 'completed').length / task.totalSubtasks) * 100)}%)
+                    </span>
                   </div>
                 </div>
-                <div className="bg-purple-50 rounded-lg p-4">
-                  <div className="text-sm font-medium text-purple-700 mb-1">Progress</div>
-                  <div className="text-2xl font-bold text-purple-900">
-                    {Math.round((task.subtasks.filter(s => s.isExecuted || s.status === 'completed').length / task.totalSubtasks) * 100)}%
+                
+                {/* Modern Minimal Progress Bar */}
+                <div className="flex-1 max-w-xs ml-4">
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-gradient-to-r from-blue-500 to-emerald-500 h-2 rounded-full transition-all duration-500 ease-out"
+                      style={{ 
+                        width: `${Math.round((task.subtasks.filter(s => s.isExecuted || s.status === 'completed').length / task.totalSubtasks) * 100)}%` 
+                      }}
+                    ></div>
                   </div>
-                </div>
-                <div className="bg-orange-50 rounded-lg p-4">
-                  <div className="text-sm font-medium text-orange-700 mb-1">CSV File</div>
-                  <div className="text-sm font-medium text-orange-900 truncate">{task.csvFileName}</div>
                 </div>
               </div>
             </div>
@@ -2349,6 +2993,9 @@ function TaskPageContent() {
               assignments={task.dateAssignments || []}
               subtasks={task.subtasks}
               onDateClick={handleDateClick}
+              canManage={canManage}
+              onRemoveAssignment={handleRemoveAssignment}
+              onRemoveLegacyAssignment={handleRemoveLegacyAssignment}
             />
 
             {/* Filters and Search */}
@@ -2492,8 +3139,11 @@ function TaskPageContent() {
           isOpen={showDayMissions}
           onClose={() => setShowDayMissions(false)}
           canManage={canManage}
+          task={task || undefined}
+          token={token || undefined}
           onAssignTasks={handleAssignTasks}
           onRemoveAssignment={handleRemoveAssignment}
+          onRemoveLegacyAssignment={handleRemoveLegacyAssignment}
         />
       )}
 

@@ -1,0 +1,103 @@
+{
+  "disks": [
+    {
+      "id": "DISK-001",
+      "sessions": [
+        {
+          "SBS1_Wstn_290525_060000_0000": {
+            "subtasks": ["DATACO-10228", "DATACO-10229", "DATACO-10230", "DATACO-10231", "DATACO-10232", "DATACO-10233"],
+            "drops": 4,
+            "cores": 6
+          }
+        },
+        {
+          "SBS1_Wstn_290525_100000_0000": {
+            "subtasks": ["DATACO-10234", "DATACO-10235", "DATACO-10236", "DATACO-10237"],
+            "drops": 5,
+            "cores": 7
+          }
+        },
+        {
+          "SBS1_Wstn_290525_140000_0000": {
+            "subtasks": ["DATACO-10238", "DATACO-10239", "DATACO-10240"],
+            "drops": 3,
+            "cores": 5
+          }
+        },
+        {
+          "SBS1_Wstn_300525_060000_0000": {
+            "subtasks": ["DATACO-10241", "DATACO-10242", "DATACO-10243"],
+            "drops": 2,
+            "cores": 4
+          }
+        }
+      ]
+    },
+    {
+      "id": "DISK-002",
+      "sessions": [
+        {
+          "SBS1_Wstn_300525_100000_0000": {
+            "subtasks": ["DATACO-10244", "DATACO-10245", "DATACO-10246", "DATACO-10247"],
+            "drops": 9,
+            "cores": 8
+          }
+        },
+        {
+          "SBS1_Wstn_300525_140000_0000": {
+            "subtasks": ["DATACO-10248", "DATACO-10249", "DATACO-10250"],
+            "drops": 3,
+            "cores": 2
+          }
+        },
+        {
+          "SBS1_Wstn_310525_060000_0000": {
+            "subtasks": ["DATACO-10251", "DATACO-10252", "DATACO-10253", "DATACO-10254", "DATACO-10255", "DATACO-10256"],
+            "drops": 5,
+            "cores": 6
+          }
+        },
+        {
+          "SBS1_Wstn_310525_100000_0000": {
+            "subtasks": ["DATACO-10257", "DATACO-10258", "DATACO-10259"],
+            "drops": 4,
+            "cores": 3
+          }
+        }
+      ]
+    },
+    {
+      "id": "DISK-003",
+      "sessions": [
+        {
+          "SBS1_Wstn_310525_140000_0000": {
+            "subtasks": ["DATACO-10260", "DATACO-10261", "DATACO-10262", "DATACO-10263"],
+            "drops": 2,
+            "cores": 2
+          }
+        },
+        {
+          "SBS1_Wstn_310525_180000_0000": {
+            "subtasks": ["DATACO-10264", "DATACO-10265", "DATACO-10266", "DATACO-10267", "DATACO-10268"],
+            "drops": 7,
+            "cores": 5
+          }
+        },
+        {
+          "SBS1_Wstn_300525_180000_0000": {
+            "subtasks": ["DATACO-10269", "DATACO-10270", "DATACO-10271"],
+            "drops": 6,
+            "cores": 9
+          }
+        },
+        {
+          "SBS1_Wstn_290525_180000_0000": {
+            "subtasks": ["DATACO-10272", "DATACO-10273", "DATACO-10274", "DATACO-10275"],
+            "drops": 3,
+            "cores": 4
+          }
+        }
+      ]
+    }
+  ]
+} 
