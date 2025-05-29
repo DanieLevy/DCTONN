@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { X, ChevronDown, ChevronRight, Database, MapPin, Calendar, Users, Zap, CheckCircle, AlertTriangle, ExternalLink } from 'lucide-react';
 import { VehicleData, getVehicleDataStats } from '@/lib/vehicle-types';
 import { useAuth } from '@/lib/auth-context';
@@ -44,6 +45,7 @@ export function VehicleDataModal({ isOpen, onClose, data, rawQRContent }: Vehicl
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string>('');
   const [showTaskSelection, setShowTaskSelection] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     if (isOpen && data) {
@@ -115,10 +117,19 @@ export function VehicleDataModal({ isOpen, onClose, data, rawQRContent }: Vehicl
 
       const result = await response.json();
       if (result.success) {
-        alert(`Success! Processed ${result.data.processedSubtasks} subtasks.\n\nTask Progress: ${result.data.taskProgress.completedSubtasks}/${result.data.taskProgress.totalSubtasks} (${result.data.taskProgress.progress}%)`);
+        const successMessage = `✅ Success! Processed ${result.data.processedSubtasks} subtasks.\n\n📊 Task Progress: ${result.data.taskProgress.completedSubtasks}/${result.data.taskProgress.totalSubtasks} (${result.data.taskProgress.progress}%)\n\n🔄 Redirecting to updated task page...`;
+        alert(successMessage);
+        
+        // Close modal first
+        onClose();
         
         // Refresh search results to show updated status
         await searchForMatchingTasks();
+        
+        // Redirect to the task page after a short delay
+        setTimeout(() => {
+          router.push(`/tasks/${selectedTaskId}`);
+        }, 100);
       } else {
         throw new Error(result.error || 'Failed to process data');
       }

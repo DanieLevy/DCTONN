@@ -98,7 +98,49 @@ export function TTFileUpload({ onTaskCreated, onClose }: TTFileUploadProps) {
   };
 
   // Function to generate JIRA subtask numbers and add execution status fields
-  const generateJiraSubtaskNumbers = (subtasks: TTSubtask[], startingNumber: number = 10223): TTSubtask[] => {
+  const generateJiraSubtaskNumbers = async (subtasks: TTSubtask[]): Promise<TTSubtask[]> => {
+    let startingNumber = 10224; // Default starting number
+
+    try {
+      // Fetch existing tasks to find the highest DATACO number
+      const response = await fetch('/api/tasks/tt', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.data) {
+          let maxDatacoNumber = 10223; // Start from the base number
+          
+          // Check all existing subtasks for the highest DATACO number
+          for (const task of result.data) {
+            if (task.subtasks) {
+              for (const subtask of task.subtasks) {
+                if (subtask.jira_subtask_number) {
+                  const match = subtask.jira_subtask_number.match(/DATACO-(\d+)/);
+                  if (match) {
+                    const number = parseInt(match[1], 10);
+                    if (number > maxDatacoNumber) {
+                      maxDatacoNumber = number;
+                    }
+                  }
+                }
+              }
+            }
+          }
+          
+          // Start from the next available number
+          startingNumber = Math.max(maxDatacoNumber + 1, 10224);
+          console.log('[TT Upload] Next DATACO number will start from:', startingNumber);
+        }
+      }
+    } catch (error) {
+      console.warn('[TT Upload] Could not fetch existing tasks, using default starting number:', startingNumber);
+    }
+
     return subtasks.map((subtask, index) => ({
       ...subtask,
       jira_subtask_number: `DATACO-${(startingNumber + index).toString().padStart(5, '0')}`,
@@ -129,7 +171,7 @@ export function TTFileUpload({ onTaskCreated, onClose }: TTFileUploadProps) {
 
     try {
       // Generate JIRA subtask numbers
-      const subtasksWithJira = generateJiraSubtaskNumbers(uploadResult.data);
+      const subtasksWithJira = await generateJiraSubtaskNumbers(uploadResult.data);
 
       const taskCreationData: TaskCreationData = {
         title: taskData.title.trim(),
