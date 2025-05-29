@@ -16,7 +16,8 @@ import { VehicleDataModal } from '@/components/VehicleDataModal';
 import { ClientOnlyHandler } from '@/components/ClientOnlyHandler';
 import { Task, TTTask, TaskFilters as TaskFiltersType } from '@/lib/types';
 import { VehicleData, isValidVehicleData } from '@/lib/vehicle-types';
-import { MessageCircle, QrCode } from 'lucide-react';
+import { decodeCompressedJson, isBase64, isURL, safeDecodeCompressedJson } from '@/utils/decodeCompressedJson';
+import { MessageCircle, QrCode, FileText } from 'lucide-react';
 
 // Enhanced Error Boundary for handling simulator and DOM conflicts
 class SimpleErrorBoundary extends React.Component<
@@ -333,16 +334,33 @@ function TaskDashboard() {
     // For DC tasks, we could implement a similar page later
   };
 
-  const handleQRScanResult = (result: string) => {
+  const handleQRScanResult = async (result: string) => {
     console.log('[QR Scanner] Scan result:', result);
     setQrScanResult(result);
     setIsQRScannerOpen(false);
     setRawQRContent(result);
     
+    let parsedData: any = null;
+    let processingMethod = '';
+    
     try {
-      // Try to parse the QR content as JSON
-      const parsedData = JSON.parse(result);
-      console.log('[QR Scanner] Parsed vehicle data:', parsedData);
+      // Check what type of input we have
+      if (isURL(result.trim())) {
+        console.log('[QR Scanner] URL detected, fetching and decoding...');
+        processingMethod = 'URL + Base64 + JSON';
+        parsedData = await decodeCompressedJson(result.trim());
+      } else if (isBase64(result.trim())) {
+        console.log('[QR Scanner] Base64 detected, attempting to decode...');
+        processingMethod = 'Base64 + JSON';
+        parsedData = await decodeCompressedJson(result.trim());
+      } else {
+        // Try direct JSON parsing
+        console.log('[QR Scanner] Direct JSON parsing...');
+        processingMethod = 'Direct JSON';
+        parsedData = JSON.parse(result);
+      }
+      
+      console.log('[QR Scanner] Parsed vehicle data via', processingMethod, ':', parsedData);
       
       // Validate using the type guard function
       if (isValidVehicleData(parsedData)) {
@@ -351,11 +369,26 @@ function TaskDashboard() {
         setIsVehicleDataModalOpen(true);
       } else {
         console.warn('[QR Scanner] Invalid vehicle data structure');
-        alert(`QR Code Scanned!\n\nThe scanned data does not match the expected vehicle data format.\n\nRaw content: ${result.substring(0, 100)}${result.length > 100 ? '...' : ''}`);
+        alert(`QR Code Processed!\n\nMethod: ${processingMethod}\n\nThe data was decoded successfully but does not match the expected vehicle data format.\n\nRaw content: ${result.substring(0, 100)}${result.length > 100 ? '...' : ''}`);
       }
     } catch (error) {
-      console.warn('[QR Scanner] Failed to parse JSON:', error);
-      alert(`QR Code Scanned!\n\nThe scanned content is not valid JSON.\n\nRaw content: ${result.substring(0, 100)}${result.length > 100 ? '...' : ''}`);
+      console.warn('[QR Scanner] All parsing methods failed:', error);
+      
+      // Provide more detailed error information
+      let errorMessage = `QR Code Scanned!\n\nProcessing failed with method: ${processingMethod}\n\n`;
+      
+      if (isURL(result.trim())) {
+        errorMessage += 'URL detected but fetching/decoding failed.\n\n';
+      } else if (isBase64(result.trim())) {
+        errorMessage += 'Base64 format detected but decoding failed.\n\n';
+      } else {
+        errorMessage += 'Direct JSON parsing failed.\n\n';
+      }
+      
+      errorMessage += `Error: ${error instanceof Error ? error.message : 'Unknown error'}\n\n`;
+      errorMessage += `Raw content: ${result.substring(0, 100)}${result.length > 100 ? '...' : ''}`;
+      
+      alert(errorMessage);
     }
   };
 
@@ -441,15 +474,17 @@ function TaskDashboard() {
             
             {/* QR Scanner Button - Only show for TT tasks */}
             {currentSection === 'TT' && (
-              <button
-                onClick={() => setIsQRScannerOpen(true)}
-                className="flex items-center space-x-2 px-4 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-200 touch-manipulation text-sm font-medium shadow-sm hover:shadow-md flex-shrink-0"
-                title="Scan QR Code"
-              >
-                <QrCode className="h-4 w-4" />
-                <span className="hidden sm:inline">Scan QR Code</span>
-                <span className="sm:hidden">Scan</span>
-              </button>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setIsQRScannerOpen(true)}
+                  className="flex items-center space-x-2 px-4 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-200 touch-manipulation text-sm font-medium shadow-sm hover:shadow-md flex-shrink-0"
+                  title="Scan QR Code"
+                >
+                  <QrCode className="h-4 w-4" />
+                  <span className="hidden sm:inline">Scan QR Code</span>
+                  <span className="sm:hidden">Scan</span>
+                </button>
+              </div>
             )}
           </div>
           

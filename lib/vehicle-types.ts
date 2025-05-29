@@ -42,22 +42,38 @@ export function isValidVehicleData(data: any): data is VehicleData {
   );
 }
 
-export function getVehicleDataStats(data: VehicleData) {
+/**
+ * Utility function to calculate statistics from vehicle data
+ */
+export function getVehicleDataStats(data: VehicleData): {
+  totalDisks: number;
+  totalSessions: number;
+  totalSubtasks: number;
+  totalDrops: number;
+  totalCores: number;
+} {
   let totalSessions = 0;
   let totalSubtasks = 0;
   let totalDrops = 0;
   let totalCores = 0;
 
-  data.disks.forEach(disk => {
-    disk.sessions.forEach(session => {
-      totalSessions++;
-      Object.values(session).forEach(sessionData => {
+  for (const disk of data.disks) {
+    totalSessions += disk.sessions.length;
+    
+    for (const sessionGroup of disk.sessions) {
+      for (const [sessionName, sessionData] of Object.entries(sessionGroup)) {
         totalSubtasks += sessionData.subtasks.length;
         totalDrops += sessionData.drops;
         totalCores += sessionData.cores;
-      });
-    });
-  });
+      }
+    }
+  }
 
-  return { totalSessions, totalSubtasks, totalDrops, totalCores };
+  return {
+    totalDisks: data.disks.length,
+    totalSessions,
+    totalSubtasks,
+    totalDrops,
+    totalCores
+  };
 } 

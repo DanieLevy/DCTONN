@@ -69,6 +69,7 @@ interface DayMissionsModalProps {
   }) => void;
   onRemoveAssignment?: (assignmentId: string, subtaskId: string) => void;
   onRemoveLegacyAssignment?: (subtaskId: string) => void;
+  onRefreshTask?: () => Promise<void>; // Add refresh function
 }
 
 function DayMissionsModal({ 
@@ -82,13 +83,15 @@ function DayMissionsModal({
   token,
   onAssignTasks,
   onRemoveAssignment,
-  onRemoveLegacyAssignment
+  onRemoveLegacyAssignment,
+  onRefreshTask
 }: DayMissionsModalProps) {
   const [selectedSubtasks, setSelectedSubtasks] = useState<string[]>([]);
   const [assignmentNotes, setAssignmentNotes] = useState('');
   const [assignmentTitle, setAssignmentTitle] = useState('');
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showAlreadyAssigned, setShowAlreadyAssigned] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   
   // New duration assignment states
   const [assignmentType, setAssignmentType] = useState<'single_day' | 'date_range' | 'duration_days'>('single_day');
@@ -384,7 +387,7 @@ function DayMissionsModal({
 
     try {
       setIsLoading(true);
-      const response = await fetch(`/api/tasks/tt/${taskId}/subtasks/${subtaskId}`, {
+      const response = await fetch(`/api/tasks/tt/${task.id}/subtasks/${subtaskId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -402,7 +405,7 @@ function DayMissionsModal({
       });
 
       if (response.ok) {
-        await fetchTask(); // Refresh task data
+        await onRefreshTask?.(); // Refresh task data
       } else {
         console.error('Failed to remove legacy assignment');
         alert('Failed to remove legacy assignment');
@@ -2784,7 +2787,7 @@ function TaskPageContent() {
 
     try {
       setIsLoading(true);
-      const response = await fetch(`/api/tasks/tt/${taskId}/subtasks/${subtaskId}`, {
+      const response = await fetch(`/api/tasks/tt/${task.id}/subtasks/${subtaskId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -2939,14 +2942,14 @@ function TaskPageContent() {
                 </div>
 
                 <div className="flex items-center space-x-2">
-                  <Badge className={getPriorityColor(task.priority)} variant="outline" size="sm">
+                  <Badge className={getPriorityColor(task.priority)} variant="outline">
                     {task.priority}
                   </Badge>
-                  <Badge className={getStatusColor(task.status)} variant="outline" size="sm">
+                  <Badge className={getStatusColor(task.status)} variant="outline">
                     {task.status}
                   </Badge>
-                  <Badge variant="outline" size="sm">🏁 TT</Badge>
-                  <Badge variant="outline" size="sm">v{task.version}</Badge>
+                  <Badge variant="outline">🏁 TT</Badge>
+                  <Badge variant="outline">v{task.version}</Badge>
                 </div>
               </div>
 
@@ -3144,6 +3147,7 @@ function TaskPageContent() {
           onAssignTasks={handleAssignTasks}
           onRemoveAssignment={handleRemoveAssignment}
           onRemoveLegacyAssignment={handleRemoveLegacyAssignment}
+          onRefreshTask={fetchTask}
         />
       )}
 
